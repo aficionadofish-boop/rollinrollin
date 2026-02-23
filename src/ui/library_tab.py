@@ -196,8 +196,11 @@ class MonsterLibraryTab(QWidget):
         )
         if not files:
             return
+        # apply_to_all is a single-element list so _process_import_file can mutate it.
+        # Reset to None at the start of each import batch.
+        apply_to_all: list[str | None] = [None]
         for file_path in files:
-            self._process_import_file(Path(file_path))
+            self._process_import_file(Path(file_path), apply_to_all)
         self._refresh_model()
         self._refresh_type_combo()
 
@@ -214,22 +217,45 @@ class MonsterLibraryTab(QWidget):
         if not md_files:
             self._log_panel.log(f"No .md files found in {Path(folder).name}/")
             return
+        # Fresh apply_to_all state for each folder import batch.
+        apply_to_all: list[str | None] = [None]
         for file_path in md_files:
-            self._process_import_file(file_path)
+            self._process_import_file(file_path, apply_to_all)
         self._refresh_model()
         self._refresh_type_combo()
 
-    def _process_import_file(self, path: Path) -> None:
-        """Parse one Markdown file, handle duplicates, add to library, log result."""
+    def _process_import_file(self, path: Path, apply_to_all: list[str | None] | None = None) -> None:
+        """Parse one Markdown file, handle duplicates, add to library, log result.
+
+        Args:
+            path:          Path to the Markdown file to parse.
+            apply_to_all:  Single-element mutable list used to propagate an
+                           "Apply to All" duplicate decision across multiple files
+                           in the same import batch.  Pass None when importing a
+                           single file outside of a batch.
+        """
+        if apply_to_all is None:
+            apply_to_all = [None]
+
         result = parse_file(path)
         for monster in result.monsters:
             if self._library.has_name(monster.name):
-                action = self._ask_duplicate_action(monster.name)
-                if action == "skip":
+                # Use the batch-wide decision if already set, otherwise ask.
+                if apply_to_all[0] is not None:
+                    action = apply_to_all[0]
+                else:
+                    action = self._ask_duplicate_action(monster.name)
+                    # Propagate "All" decisions to the rest of this batch.
+                    if action in ("keep_all", "replace_all", "skip_all"):
+                        apply_to_all[0] = action
+
+                # Normalise "all" variants to their base action for execution.
+                base_action = action.replace("_all", "")
+                if base_action == "skip":
                     continue
-                elif action == "replace":
+                elif base_action == "replace":
                     self._library.replace(monster)
-                else:  # 'keep'
+                else:  # 'keep' / 'keep_all'
                     self._library.add(monster)
             else:
                 self._library.add(monster)
@@ -245,24 +271,50 @@ class MonsterLibraryTab(QWidget):
             self._log_panel.log(f"  WARN: {warning}")
 
     def _ask_duplicate_action(self, monster_name: str) -> str:
-        """Show Keep Both / Replace / Skip dialog for a duplicate monster name.
+        """Show duplicate-resolution dialog for a monster that already exists.
 
-        Returns one of: 'keep', 'replace', 'skip'
+        Provides per-item buttons (Keep Both, Replace, Skip) and batch buttons
+        (Keep All, Replace All, Skip All) that apply the choice to all remaining
+        duplicates in the current import batch without further prompting.
+
+        Returns one of:
+            'keep_both'   — keep both entries for this monster only
+            'replace'     — replace the existing entry for this monster only
+            'skip'        — skip this monster only
+            'keep_all'    — keep both for this and all subsequent duplicates
+            'replace_all' — replace for this and all subsequent duplicates
+            'skip_all'    — skip this and all subsequent duplicates
         """
         box = QMessageBox(self)
         box.setWindowTitle("Duplicate Monster")
         box.setText(f'"{monster_name}" already exists in the library.')
-        box.setInformativeText("What would you like to do?")
+        box.setInformativeText(
+            "Choose an action for this monster, or use an 'All' option to apply "
+            "the same choice to all remaining duplicates in this import."
+        )
+
         keep_btn = box.addButton("Keep Both", QMessageBox.ButtonRole.AcceptRole)
         replace_btn = box.addButton("Replace", QMessageBox.ButtonRole.DestructiveRole)
-        box.addButton("Skip", QMessageBox.ButtonRole.RejectRole)
+        skip_btn = box.addButton("Skip", QMessageBox.ButtonRole.RejectRole)
+        keep_all_btn = box.addButton("Keep All", QMessageBox.ButtonRole.AcceptRole)
+        replace_all_btn = box.addButton("Replace All", QMessageBox.ButtonRole.DestructiveRole)
+        skip_all_btn = box.addButton("Skip All", QMessageBox.ButtonRole.RejectRole)
+
         box.exec()
         clicked = box.clickedButton()
+
         if clicked == keep_btn:
-            return "keep"
+            return "keep_both"
         if clicked == replace_btn:
             return "replace"
-        return "skip"
+        if clicked == skip_btn:
+            return "skip"
+        if clicked == keep_all_btn:
+            return "keep_all"
+        if clicked == replace_all_btn:
+            return "replace_all"
+        # Default: skip_all (covers skip_all_btn and any unexpected close)
+        return "skip_all"
 
     # ------------------------------------------------------------------
     # Model refresh helpers
