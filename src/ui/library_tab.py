@@ -106,11 +106,13 @@ class MonsterLibraryTab(QWidget):
         self._table.setSelectionMode(
             QAbstractItemView.SelectionMode.SingleSelection
         )
-        self._table.horizontalHeader().setSortIndicatorShown(True)
-        self._table.horizontalHeader().setStretchLastSection(False)
-        self._table.horizontalHeader().setSectionResizeMode(
-            0, QHeaderView.ResizeMode.Stretch
-        )
+        header = self._table.horizontalHeader()
+        header.setSortIndicatorShown(True)
+        header.setStretchLastSection(False)
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)  # Name
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)  # CR
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)            # Type stretches
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)  # badge
         self._table.setEditTriggers(
             QAbstractItemView.EditTrigger.NoEditTriggers
         )
