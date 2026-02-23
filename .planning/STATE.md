@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-23)
 ## Current Position
 
 Phase: 2 of 7 (Monster Import and Library)
-Plan: 3 of 6 in current phase
-Status: Plan 02-03 complete — ready for 02-04 (library tab UI)
-Last activity: 2026-02-23 — Completed 02-03 (MonsterLibrary service + Qt model/view layer, 232 tests passing)
+Plan: 4 of 6 in current phase (Tasks 1-2 complete; Task 3 checkpoint: human-verify pending)
+Status: Plan 02-04 in progress — awaiting human verification of library tab UI
+Last activity: 2026-02-23 — Completed 02-04 Tasks 1-2 (ImportLogPanel, MonsterDetailPanel, MonsterLibraryTab)
 
-Progress: [████░░░░░░] 33%
+Progress: [█████░░░░░] 40%
 
 ## Performance Metrics
 
@@ -28,13 +28,14 @@ Progress: [████░░░░░░] 33%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-dice-engine-and-domain-foundation | 2/2 | 7 min | 4 min |
-| 02-monster-import-and-library | 3/6 | 13 min | 4 min |
+| 02-monster-import-and-library | 4/6 | 15 min | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (5 min), 01-02 (2 min), 02-01 (4 min), 02-02 (4 min), 02-03 (5 min)
+- Last 5 plans: 01-02 (2 min), 02-01 (4 min), 02-02 (4 min), 02-03 (5 min), 02-04 (2 min)
 - Trend: stable
 
 *Updated after each plan completion*
+| Phase 02-monster-import-and-library P04 | 2 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -69,6 +70,9 @@ Recent decisions affecting current work:
 - QSortFilterProxyModel.invalidate() used instead of deprecated invalidateFilter()/invalidateRowsFilter() in PySide6 6.10.2 (02-03)
 - _cr_to_float returns -1.0 for unknown/empty/dash CR — sorts to top in ascending order for easy identification (02-03)
 - filterAcceptsRow uses filterRegularExpression().pattern() as plain string for substring matching, not regex (02-03)
+- [Phase 02-04]: QGroupBox checkable/checked=False for collapsible lore: idiomatic Qt pattern, no custom animation needed
+- [Phase 02-04]: blockSignals guard on tags QLineEdit prevents spurious monster.tags mutation when show_monster() updates the field
+- [Phase 02-04]: set_complete_only and set_incomplete_only are mutually exclusive flags in MonsterFilterProxyModel
 
 ### Pending Todos
 
@@ -82,5 +86,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-23
-Stopped at: Completed 02-03-PLAN.md — MonsterLibrary service + Qt model/view layer, 232 tests passing
+Stopped at: Checkpoint Task 3 in 02-04-PLAN.md — human-verify of complete library tab UI
 Resume file: None
