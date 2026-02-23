@@ -7,9 +7,14 @@ Displays all fields of a Monster object in a readable layout:
   - Saving throws (comma-separated, or "None")
   - Actions: Roll button for parsed attacks, raw text for unparsed
   - Tags: editable QLineEdit synced to monster.tags
-  - Lore: collapsible QGroupBox (collapsed by default)
+  - Lore: hidden by default; shown via a toggle button, markdown stripped
+
+Lore section uses a QPushButton toggle that shows/hides a QTextEdit.
+This avoids the QGroupBox checkable pattern which greys out content but
+keeps it visible — the requirement is fully hidden until the user clicks.
 """
 from __future__ import annotations
+import re
 
 from PySide6.QtWidgets import (
     QWidget,
@@ -19,9 +24,9 @@ from PySide6.QtWidgets import (
     QLabel,
     QPushButton,
     QLineEdit,
-    QGroupBox,
     QScrollArea,
     QSizePolicy,
+    QTextEdit,
 )
 from PySide6.QtCore import Qt
 
@@ -30,17 +35,40 @@ from src.domain.models import Monster, Action
 
 ABILITY_LABELS = ["STR", "DEX", "CON", "INT", "WIS", "CHA"]
 
+# Markdown patterns to strip before displaying lore text
+_MD_HEADING_RE = re.compile(r'^#{1,6}\s*', re.MULTILINE)
+_MD_BOLD_RE = re.compile(r'\*{2,3}([^*]+)\*{2,3}')
+_MD_ITALIC_RE = re.compile(r'\*([^*]+)\*')
+
+
+def _strip_markdown(text: str) -> str:
+    """Remove basic Markdown syntax from lore text before display.
+
+    Strips:
+      - Heading markers (## Monster Name -> Monster Name)
+      - Bold (***text*** or **text** -> text)
+      - Italic (*text* -> text)
+
+    Leaves plain text paragraphs intact.
+    """
+    text = _MD_HEADING_RE.sub('', text)
+    text = _MD_BOLD_RE.sub(r'\1', text)
+    text = _MD_ITALIC_RE.sub(r'\1', text)
+    return text.strip()
+
 
 class MonsterDetailPanel(QWidget):
-    """Full statblock display panel with expandable lore and editable tags.
+    """Full statblock display panel with toggle-expandable lore and editable tags.
 
-    Scroll area wraps all content.  Lore group is collapsible via QGroupBox
-    checkable pattern (unchecked = collapsed by default).
+    Scroll area wraps all content.  The lore section is HIDDEN by default;
+    a QPushButton toggle shows/hides a QTextEdit containing the lore text
+    with Markdown syntax stripped.
     """
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self._current_monster: Monster | None = None
+        self._lore_expanded: bool = False
         self._setup_ui()
 
     # ------------------------------------------------------------------
@@ -133,21 +161,24 @@ class MonsterDetailPanel(QWidget):
         tags_row = QHBoxLayout()
         tags_row.addWidget(QLabel("Tags:"))
         self._tags_edit = QLineEdit()
-        self._tags_edit.setPlaceholderText("comma-separated tags…")
+        self._tags_edit.setPlaceholderText("comma-separated tags...")
         self._tags_edit.textChanged.connect(self._on_tags_changed)
         tags_row.addWidget(self._tags_edit, 1)
         self._content_layout.addLayout(tags_row)
 
-        # 7. Lore QGroupBox — collapsible, collapsed by default
-        self._lore_group = QGroupBox("Lore & Description")
-        self._lore_group.setCheckable(True)
-        self._lore_group.setChecked(False)
-        lore_layout = QVBoxLayout(self._lore_group)
-        self._lore_label = QLabel("No lore recorded.")
-        self._lore_label.setWordWrap(True)
-        self._lore_label.setAlignment(Qt.AlignmentFlag.AlignTop)
-        lore_layout.addWidget(self._lore_label)
-        self._content_layout.addWidget(self._lore_group)
+        # 7. Lore section — toggle button + hidden QTextEdit
+        #    Button label changes to indicate collapsed/expanded state.
+        self._lore_toggle_btn = QPushButton("+ Lore && Description")
+        self._lore_toggle_btn.setCheckable(False)
+        self._lore_toggle_btn.clicked.connect(self._toggle_lore)
+        self._content_layout.addWidget(self._lore_toggle_btn)
+
+        self._lore_edit = QTextEdit()
+        self._lore_edit.setReadOnly(True)
+        self._lore_edit.setPlaceholderText("No lore recorded.")
+        self._lore_edit.setMinimumHeight(80)
+        self._lore_edit.setVisible(False)  # hidden by default
+        self._content_layout.addWidget(self._lore_edit)
 
         # Spacer at bottom
         self._content_layout.addStretch(1)
@@ -169,8 +200,8 @@ class MonsterDetailPanel(QWidget):
         # Stats
         self._ac_label.setText(str(monster.ac))
         self._hp_label.setText(str(monster.hp))
-        self._cr_label.setText(monster.cr or "—")
-        self._type_label.setText(monster.creature_type or "—")
+        self._cr_label.setText(monster.cr or "\u2014")
+        self._type_label.setText(monster.creature_type or "\u2014")
 
         # Ability scores
         for ability in ABILITY_LABELS:
@@ -198,11 +229,13 @@ class MonsterDetailPanel(QWidget):
         self._tags_edit.setText(", ".join(monster.tags))
         self._tags_edit.blockSignals(False)
 
-        # Lore
-        lore_text = monster.lore if monster.lore else "No lore recorded."
-        self._lore_label.setText(lore_text)
-        # Reset collapsed state each time a new monster is shown
-        self._lore_group.setChecked(False)
+        # Lore — always reset to collapsed when switching monsters
+        lore_raw = monster.lore if monster.lore else ""
+        lore_clean = _strip_markdown(lore_raw) if lore_raw else ""
+        self._lore_edit.setPlainText(lore_clean if lore_clean else "No lore recorded.")
+        self._lore_edit.setVisible(False)
+        self._lore_expanded = False
+        self._lore_toggle_btn.setText("+ Lore && Description")
 
     def clear(self) -> None:
         """Clear all widgets; called when no monster is selected."""
@@ -219,11 +252,23 @@ class MonsterDetailPanel(QWidget):
         self._tags_edit.blockSignals(True)
         self._tags_edit.clear()
         self._tags_edit.blockSignals(False)
-        self._lore_label.setText("")
+        self._lore_edit.clear()
+        self._lore_edit.setVisible(False)
+        self._lore_expanded = False
+        self._lore_toggle_btn.setText("+ Lore && Description")
 
     # ------------------------------------------------------------------
     # Private helpers
     # ------------------------------------------------------------------
+
+    def _toggle_lore(self) -> None:
+        """Show or hide the lore QTextEdit when the toggle button is clicked."""
+        self._lore_expanded = not self._lore_expanded
+        self._lore_edit.setVisible(self._lore_expanded)
+        if self._lore_expanded:
+            self._lore_toggle_btn.setText("- Lore & Description")
+        else:
+            self._lore_toggle_btn.setText("+ Lore && Description")
 
     def _clear_actions_layout(self) -> None:
         """Remove all widgets from the actions layout."""
@@ -267,7 +312,7 @@ def _modifier_str(score: int) -> str:
     """Return D&D 5e ability modifier string for a given score.
 
     Uses Python integer division (rounds toward negative infinity), which
-    matches 5e convention: -7 // 2 = -4 → modifier -4, not -3.
+    matches 5e convention: -7 // 2 = -4 -> modifier -4, not -3.
 
     Examples:
         10 -> "(+0)"
