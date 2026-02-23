@@ -35,6 +35,26 @@ from src.domain.models import Monster, Action
 
 ABILITY_LABELS = ["STR", "DEX", "CON", "INT", "WIS", "CHA"]
 
+# Spellcasting detection: action is spellcasting if its name contains "spellcasting"
+# or if its raw_text contains spell-slot / frequency markers.
+_SPELLCASTING_INDICATOR_RE = re.compile(
+    r'spell\s+slot|/day|at\s+will',
+    re.IGNORECASE,
+)
+
+# Category splitter: inserts a newline before each spell level header or
+# use-frequency marker so the display shows one category per line.
+# Matches: "Cantrips (at will):", "1st level (4 slots):", "At will:", "3/day each:"
+_SPELL_CATEGORY_RE = re.compile(
+    r'('
+    r'Cantrips\s*[^:]*?:'
+    r'|[1-9](?:st|nd|rd|th)\s+level[^:]*?:'
+    r'|At\s+will\s*:'
+    r'|\d+/day[^:]*?:'
+    r')',
+    re.IGNORECASE,
+)
+
 # Markdown patterns to strip before displaying lore text
 _MD_HEADING_RE = re.compile(r'^#{1,6}\s*', re.MULTILINE)
 _MD_BOLD_RE = re.compile(r'\*{2,3}([^*]+)\*{2,3}')
@@ -296,8 +316,13 @@ class MonsterDetailPanel(QWidget):
             row_layout.addWidget(roll_btn)
             self._actions_layout.addWidget(row_widget)
         else:
-            # Unparsed action — raw text only, no button
-            raw_label = QLabel(action.raw_text or action.name)
+            # Unparsed action — raw text only, no button.
+            # Spellcasting actions get their text reformatted so each spell
+            # category (level / use-frequency) appears on its own line.
+            display_text = action.raw_text or action.name
+            if _is_spellcasting_action(action):
+                display_text = _format_spellcasting_text(display_text)
+            raw_label = QLabel(display_text)
             raw_label.setWordWrap(True)
             self._actions_layout.addWidget(raw_label)
 
@@ -306,6 +331,48 @@ class MonsterDetailPanel(QWidget):
         if self._current_monster is not None:
             tags = [t.strip() for t in text.split(",") if t.strip()]
             self._current_monster.tags = tags
+
+
+def _is_spellcasting_action(action: "Action") -> bool:
+    """Return True when an action describes spellcasting (level slots or use-per-day)."""
+    if "spellcasting" in action.name.lower():
+        return True
+    text = action.raw_text or ""
+    return bool(_SPELLCASTING_INDICATOR_RE.search(text))
+
+
+def _format_spellcasting_text(raw_text: str) -> str:
+    """Reformat a spellcasting raw_text so each spell category is on its own line.
+
+    Splits on category markers (level headers or use-frequency markers) and
+    rejoins with newline + indent so each category starts on a new line.
+    The introductory sentence (before the first marker) is kept as-is.
+
+    Example input:
+        "The wizard is a 9th-level spellcaster. Cantrips (at will): mage hand
+         1st level (4 slots): magic missile"
+
+    Example output:
+        "The wizard is a 9th-level spellcaster.
+          Cantrips (at will): mage hand
+          1st level (4 slots): magic missile"
+    """
+    # Split while keeping the delimiter (parenthesised group in the pattern)
+    parts = _SPELL_CATEGORY_RE.split(raw_text)
+    # parts = [intro, marker1, rest1, marker2, rest2, ...]
+    # Recombine: intro unchanged; each (marker + rest) pair indented on a new line.
+    if len(parts) <= 1:
+        return raw_text.strip()
+
+    lines: list[str] = [parts[0].rstrip()]
+    i = 1
+    while i + 1 <= len(parts) - 1:
+        marker = parts[i]
+        rest = parts[i + 1] if i + 1 < len(parts) else ""
+        lines.append(f"  {marker}{rest.rstrip()}")
+        i += 2
+
+    return "\n".join(lines).strip()
 
 
 def _modifier_str(score: int) -> str:
