@@ -10,16 +10,16 @@ See: .planning/PROJECT.md (updated 2026-02-23)
 ## Current Position
 
 Phase: 2 of 7 (Monster Import and Library)
-Plan: 2 of 6 in current phase
-Status: Plan 02-02 complete — ready for 02-03 (library service / next plan)
-Last activity: 2026-02-23 — Completed 02-02 (Homebrewery + Plain parsers, Dispatch layer)
+Plan: 3 of 6 in current phase
+Status: Plan 02-03 complete — ready for 02-04 (library tab UI)
+Last activity: 2026-02-23 — Completed 02-03 (MonsterLibrary service + Qt model/view layer, 232 tests passing)
 
-Progress: [████░░░░░░] 28%
+Progress: [████░░░░░░] 33%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
+- Total plans completed: 5
 - Average duration: 4 min
 - Total execution time: 0.3 hours
 
@@ -28,10 +28,10 @@ Progress: [████░░░░░░] 28%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-dice-engine-and-domain-foundation | 2/2 | 7 min | 4 min |
-| 02-monster-import-and-library | 2/6 | 8 min | 4 min |
+| 02-monster-import-and-library | 3/6 | 13 min | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (5 min), 01-02 (2 min), 02-01 (4 min), 02-02 (4 min)
+- Last 5 plans: 01-01 (5 min), 01-02 (2 min), 02-01 (4 min), 02-02 (4 min), 02-03 (5 min)
 - Trend: stable
 
 *Updated after each plan completion*
@@ -65,6 +65,10 @@ Recent decisions affecting current work:
 - Homebrewery segmentation merges adjacent ___ sections by ## heading scan — one monster spans multiple ___ blocks (02-02)
 - ImportResult placed in models.py (not statblock_parser.py) to keep data types together without pulling in parser logic (02-02)
 - Format detection priority: fivetools > homebrewery > plain > unknown; > prefix is unambiguous differentiator (02-02)
+- MonsterLibrary dual-storage: list[Monster] for ordered iteration + dict[str, int] for O(1) has_name; dict rebuilt on remove() (02-03)
+- QSortFilterProxyModel.invalidate() used instead of deprecated invalidateFilter()/invalidateRowsFilter() in PySide6 6.10.2 (02-03)
+- _cr_to_float returns -1.0 for unknown/empty/dash CR — sorts to top in ascending order for easy identification (02-03)
+- filterAcceptsRow uses filterRegularExpression().pattern() as plain string for substring matching, not regex (02-03)
 
 ### Pending Todos
 
@@ -78,5 +82,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-23
-Stopped at: Completed 02-02-PLAN.md — Homebrewery + plain parsers + dispatch layer, 163 tests passing
+Stopped at: Completed 02-03-PLAN.md — MonsterLibrary service + Qt model/view layer, 232 tests passing
 Resume file: None
