@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-02-23)
 ## Current Position
 
 Phase: 2 of 7 (Monster Import and Library)
-Plan: 1 of 6 in current phase
-Status: Plan 02-01 complete — ready for 02-02 (Homebrewery parser or next plan)
-Last activity: 2026-02-23 — Completed 02-01 (Domain Model Extensions + 5etools Parser)
+Plan: 2 of 6 in current phase
+Status: Plan 02-02 complete — ready for 02-03 (library service / next plan)
+Last activity: 2026-02-23 — Completed 02-02 (Homebrewery + Plain parsers, Dispatch layer)
 
-Progress: [███░░░░░░░] 21%
+Progress: [████░░░░░░] 28%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
+- Total plans completed: 4
 - Average duration: 4 min
-- Total execution time: 0.2 hours
+- Total execution time: 0.3 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-dice-engine-and-domain-foundation | 2/2 | 7 min | 4 min |
-| 02-monster-import-and-library | 1/6 | 4 min | 4 min |
+| 02-monster-import-and-library | 2/6 | 8 min | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (5 min), 01-02 (2 min), 02-01 (4 min)
+- Last 5 plans: 01-01 (5 min), 01-02 (2 min), 02-01 (4 min), 02-02 (4 min)
 - Trend: stable
 
 *Updated after each plan completion*
@@ -61,6 +61,10 @@ Recent decisions affecting current work:
 - ParseResult.monsters uses untyped list to avoid circular import between parser.models and domain.models (02-01)
 - Lore collected as plain paragraphs after statblock block, before next >## heading (02-01)
 - Segmentation anchors on >## heading scan (not blockquote boundary) for reliable multi-monster split (02-01)
+- Shared _shared_patterns.py module: regex constants centralized for all format parsers; avoids duplication (02-02)
+- Homebrewery segmentation merges adjacent ___ sections by ## heading scan — one monster spans multiple ___ blocks (02-02)
+- ImportResult placed in models.py (not statblock_parser.py) to keep data types together without pulling in parser logic (02-02)
+- Format detection priority: fivetools > homebrewery > plain > unknown; > prefix is unambiguous differentiator (02-02)
 
 ### Pending Todos
 
@@ -74,5 +78,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-23
-Stopped at: Completed 02-01-PLAN.md — Domain model extensions + 5etools parser, 81 tests passing
+Stopped at: Completed 02-02-PLAN.md — Homebrewery + plain parsers + dispatch layer, 163 tests passing
 Resume file: None

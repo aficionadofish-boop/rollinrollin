@@ -16,10 +16,10 @@
 ### Monster Import
 
 - [x] **IMPORT-01**: User can import one or more monster statblocks from a single Markdown file
-- [ ] **IMPORT-02**: User can import multiple Markdown files in one operation (batch import)
+- [x] **IMPORT-02**: User can import multiple Markdown files in one operation (batch import)
 - [x] **IMPORT-03**: Parser is tolerant: a monster with missing fields still imports and is flagged as "incomplete" rather than failing
 - [x] **IMPORT-04**: Each action that cannot be parsed is stored with its raw text and has no roll button (not silently dropped)
-- [ ] **IMPORT-05**: Import result panel shows: count successful, count incomplete, count action parse failures (with details per failure)
+- [x] **IMPORT-05**: Import result panel shows: count successful, count incomplete, count action parse failures (with details per failure)
 - [x] **IMPORT-06**: Parser handles at least 3 real-world Markdown statblock format variants (e.g. bold field labels, plain text, table ability scores)
 - [x] **IMPORT-07**: Parser detects `+X to hit`, `Hit:` damage patterns, multi-component damage ("plus … damage"), and damage type labels
 
@@ -158,10 +158,10 @@ Which phases cover which requirements. Confirmed during roadmap creation 2026-02
 | DICE-05 | Phase 1 | Complete |
 | WS-01 | Phase 1 | Complete |
 | IMPORT-01 | Phase 2 | Complete (02-01) |
-| IMPORT-02 | Phase 2 | Pending |
+| IMPORT-02 | Phase 2 | Complete |
 | IMPORT-03 | Phase 2 | Complete (02-01) |
 | IMPORT-04 | Phase 2 | Complete (02-01) |
-| IMPORT-05 | Phase 2 | Pending |
+| IMPORT-05 | Phase 2 | Complete |
 | IMPORT-06 | Phase 2 | Complete (02-01) |
 | IMPORT-07 | Phase 2 | Complete (02-01) |
 | LIB-01 | Phase 2 | Pending |
