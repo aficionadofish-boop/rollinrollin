@@ -1,4 +1,4 @@
-"""ParseResult and ParseFailure dataclasses for the statblock parser pipeline.
+"""ParseResult, ParseFailure, and ImportResult dataclasses for the statblock parser pipeline.
 
 No Qt imports. No domain imports (avoids circular dependency).
 ParseResult.monsters is list (not list[Monster]) — type documented here only.
@@ -26,3 +26,34 @@ class ParseResult:
     monsters: list                              # list[Monster]
     failures: list                              # list[ParseFailure]
     warnings: list[str] = field(default_factory=list)
+
+
+@dataclass
+class ImportResult:
+    """Per-file import statistics for the UI import log panel.
+
+    Accumulates counts from a ParseResult so the UI can display
+    how many monsters succeeded, how many were incomplete, and
+    which specific monsters failed to parse.
+    """
+    filename: str                    # source filename (basename or full path)
+    success_count: int               # number of monsters parsed (including incomplete)
+    incomplete_count: int            # monsters with incomplete=True
+    failures: list                   # list[ParseFailure] — monsters that could not be stored
+
+    @classmethod
+    def from_parse_result(cls, filename: str, result: ParseResult) -> "ImportResult":
+        """Build an ImportResult from a ParseResult.
+
+        success_count = len(result.monsters)  — all monsters that were produced
+        incomplete_count = count of monsters where incomplete=True
+        failures = result.failures
+        """
+        success_count = len(result.monsters)
+        incomplete_count = sum(1 for m in result.monsters if getattr(m, 'incomplete', False))
+        return cls(
+            filename=filename,
+            success_count=success_count,
+            incomplete_count=incomplete_count,
+            failures=list(result.failures),
+        )
