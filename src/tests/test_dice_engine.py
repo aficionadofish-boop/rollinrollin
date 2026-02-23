@@ -151,7 +151,10 @@ def test_keep_lowest():
 
 
 def test_keep_4d6kl3():
-    """'4d6kl3' → 4 faces, 3 kept (highest 3), 1 dropped (lowest)."""
+    """'4d6kl3' → 4 faces, 3 kept (lowest 3), 1 dropped (highest).
+
+    kl = keep-lowest: keeps the 3 lowest dice, drops the 1 highest.
+    """
     roller = Roller(random.Random(5))
     result = roll_expression("4d6kl3", roller, seed=None)
     assert len(result.faces) == 4
@@ -159,9 +162,9 @@ def test_keep_4d6kl3():
     dropped = [f for f in result.faces if not f.kept]
     assert len(kept) == 3
     assert len(dropped) == 1
-    # The dropped face must be the lowest
+    # kl3 = keep lowest 3: the dropped face must be the highest value
     all_values = sorted(f.value for f in result.faces)
-    assert dropped[0].value == all_values[0]
+    assert dropped[0].value == all_values[-1]
     # Total must be sum of kept faces
     assert result.total == sum(f.value for f in kept)
 

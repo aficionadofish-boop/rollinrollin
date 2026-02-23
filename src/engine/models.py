@@ -1,0 +1,131 @@
+"""
+Domain models for dice roll results.
+
+DiceResult is an immutable record of a single evaluated dice expression:
+  - total: final numeric value after all arithmetic
+  - faces: all individual die rolls (kept and dropped), in roll order
+  - expression: original expression string for display/audit
+  - seed: RNG seed passed at call time (None = OS entropy); audit trail only
+  - constant_bonus: sum of all bare integer literals (not in faces)
+
+DieFace is one physical die roll:
+  - value: the number that came up
+  - sides: die size (e.g. 6 for d6, 20 for d20)
+  - kept: True = counted in total; False = dropped by kh/kl modifier
+
+Arithmetic helper methods on DiceResult combine two results into a new one,
+accumulating faces into a flat tuple. These are used by the parser to build
+up a result from sub-expressions without a separate AST layer.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass, replace
+from typing import Optional
+
+
+@dataclass(frozen=True, slots=True)
+class DieFace:
+    """One physical die roll."""
+
+    value: int
+    sides: int
+    kept: bool
+
+
+@dataclass(frozen=True)
+class DiceResult:
+    """Immutable result of evaluating a dice expression (or sub-expression)."""
+
+    total: int
+    faces: tuple[DieFace, ...]
+    expression: str
+    seed: Optional[int]
+    constant_bonus: int = 0
+
+    # ------------------------------------------------------------------
+    # Factory
+    # ------------------------------------------------------------------
+
+    @classmethod
+    def from_constant(
+        cls,
+        value: int,
+        expr: str = "",
+        seed: Optional[int] = None,
+    ) -> "DiceResult":
+        """Create a result representing a bare integer literal."""
+        return cls(
+            total=value,
+            faces=(),
+            expression=expr,
+            seed=seed,
+            constant_bonus=value,
+        )
+
+    # ------------------------------------------------------------------
+    # Arithmetic combiners — used by the parser for infix operations
+    # Each combiner merges the two face tuples and recomputes the total.
+    # The expression / seed fields are set by roll_expression after parsing.
+    # ------------------------------------------------------------------
+
+    def _combine(self, other: "DiceResult", new_total: int) -> "DiceResult":
+        """Merge faces from self and other into a new DiceResult."""
+        return DiceResult(
+            total=new_total,
+            faces=self.faces + other.faces,
+            expression="",
+            seed=self.seed,
+            constant_bonus=self.constant_bonus + other.constant_bonus,
+        )
+
+    def add(self, other: "DiceResult") -> "DiceResult":
+        return self._combine(other, self.total + other.total)
+
+    def subtract(self, other: "DiceResult") -> "DiceResult":
+        return self._combine(other, self.total - other.total)
+
+    def multiply(self, other: "DiceResult") -> "DiceResult":
+        # constant_bonus is not meaningful after multiplication across dice;
+        # reset it to 0 to avoid incorrect accumulation.
+        result = self._combine(other, self.total * other.total)
+        return DiceResult(
+            total=result.total,
+            faces=result.faces,
+            expression=result.expression,
+            seed=result.seed,
+            constant_bonus=0,
+        )
+
+    def divide(self, other: "DiceResult") -> "DiceResult":
+        # 5e convention: truncation toward zero (NOT floor division).
+        # -7/2 = -3, not -4.
+        new_total = int(self.total / other.total)  # 5e convention: truncation toward zero
+        result = self._combine(other, new_total)
+        return DiceResult(
+            total=result.total,
+            faces=result.faces,
+            expression=result.expression,
+            seed=result.seed,
+            constant_bonus=0,
+        )
+
+    def negate(self) -> "DiceResult":
+        """Unary minus."""
+        # Negate total; constant_bonus sign flips too
+        return DiceResult(
+            total=-self.total,
+            faces=self.faces,
+            expression=self.expression,
+            seed=self.seed,
+            constant_bonus=-self.constant_bonus,
+        )
+
+    def with_context(self, expression: str, seed: Optional[int]) -> "DiceResult":
+        """Return a copy with expression and seed set (called by roll_expression)."""
+        return DiceResult(
+            total=self.total,
+            faces=self.faces,
+            expression=expression,
+            seed=seed,
+            constant_bonus=self.constant_bonus,
+        )
