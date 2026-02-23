@@ -80,6 +80,8 @@ class MonsterLibraryTab(QWidget):
         toolbar.addWidget(QLabel("Type:"))
         self._type_combo = QComboBox()
         self._type_combo.addItem("All Types")
+        self._type_combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
+        self._type_combo.setMinimumWidth(120)
         toolbar.addWidget(self._type_combo)
 
         self._incomplete_check = QComboBox()

@@ -54,8 +54,8 @@ Plans:
 Plans:
 - [x] 02-01-PLAN.md — Domain model extensions + 5etools blockquote parser (TDD) — completed 2026-02-23
 - [x] 02-02-PLAN.md — Homebrewery + plain-Markdown parsers + format dispatcher + ImportResult (TDD) — completed 2026-02-23
-- [ ] 02-03-PLAN.md — MonsterLibrary service + MonsterTableModel + MonsterFilterProxyModel
-- [ ] 02-04-PLAN.md — MonsterLibraryTab UI: splitter layout, import toolbar, search/filter/sort, detail panel, import log
+- [x] 02-03-PLAN.md — MonsterLibrary service + MonsterTableModel + MonsterFilterProxyModel — completed 2026-02-23
+- [x] 02-04-PLAN.md — MonsterLibraryTab UI: splitter layout, import toolbar, search/filter/sort, detail panel, import log — completed 2026-02-24
 
 ### Phase 3: Attack Roller
 **Goal**: DMs can select any imported monster action and roll any number of attacks with full 5e rule fidelity — hit/miss, damage breakdown, and all relevant toggles working correctly
@@ -122,7 +122,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Dice Engine and Domain Foundation | 2/2 | Complete   | 2026-02-23 |
-| 2. Monster Import and Library | 4/4 | Complete   | 2026-02-23 |
+| 2. Monster Import and Library | 4/4 | Complete   | 2026-02-24 |
 | 3. Attack Roller | 0/TBD | Not started | - |
 | 4. Lists, Encounters, and Save Roller | 0/TBD | Not started | - |
 | 5. Roll20 Macro Sandbox | 0/TBD | Not started | - |

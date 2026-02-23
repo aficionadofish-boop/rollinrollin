@@ -10,32 +10,32 @@ See: .planning/PROJECT.md (updated 2026-02-23)
 ## Current Position
 
 Phase: 2 of 7 (Monster Import and Library)
-Plan: 4 of 6 in current phase (Tasks 1-2 complete; Task 3 checkpoint: human-verify pending)
-Status: Plan 02-04 in progress — awaiting human verification of library tab UI
-Last activity: 2026-02-23 — Completed 02-04 Tasks 1-2 (ImportLogPanel, MonsterDetailPanel, MonsterLibraryTab)
+Plan: 5 of 6 in current phase (Plan 04 complete; Plans 05-06 remaining)
+Status: Plan 02-04 complete — all 3 tasks done including bug fixes from human verification
+Last activity: 2026-02-24 — Completed 02-04 Tasks 1-3: all UI bugs fixed (sorting, incomplete detection, lore section)
 
-Progress: [█████░░░░░] 40%
+Progress: [██████░░░░] 50%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
-- Average duration: 4 min
-- Total execution time: 0.3 hours
+- Total plans completed: 6
+- Average duration: 5 min
+- Total execution time: 0.5 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-dice-engine-and-domain-foundation | 2/2 | 7 min | 4 min |
-| 02-monster-import-and-library | 4/6 | 15 min | 4 min |
+| 02-monster-import-and-library | 4/6 | 32 min | 5 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-02 (2 min), 02-01 (4 min), 02-02 (4 min), 02-03 (5 min), 02-04 (2 min)
+- Last 5 plans: 02-01 (4 min), 02-02 (4 min), 02-03 (5 min), 02-04-tasks1-2 (2 min), 02-04-task3 (15 min)
 - Trend: stable
 
 *Updated after each plan completion*
-| Phase 02-monster-import-and-library P04 | 2 | 2 tasks | 4 files |
+| Phase 02-monster-import-and-library P04 | 3 | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -70,9 +70,12 @@ Recent decisions affecting current work:
 - QSortFilterProxyModel.invalidate() used instead of deprecated invalidateFilter()/invalidateRowsFilter() in PySide6 6.10.2 (02-03)
 - _cr_to_float returns -1.0 for unknown/empty/dash CR — sorts to top in ascending order for easy identification (02-03)
 - filterAcceptsRow uses filterRegularExpression().pattern() as plain string for substring matching, not regex (02-03)
-- [Phase 02-04]: QGroupBox checkable/checked=False for collapsible lore: idiomatic Qt pattern, no custom animation needed
 - [Phase 02-04]: blockSignals guard on tags QLineEdit prevents spurious monster.tags mutation when show_monster() updates the field
 - [Phase 02-04]: set_complete_only and set_incomplete_only are mutually exclusive flags in MonsterFilterProxyModel
+- [Phase 02-04]: QPushButton toggle + QTextEdit setVisible for lore section — QGroupBox setChecked(False) only greys, does not hide (02-04)
+- [Phase 02-04]: Qt.UserRole must return non-None for ALL columns when setSortRole(Qt.UserRole) is set — col0 returns name.lower() (02-04)
+- [Phase 02-04]: Fivetools format detected by >## heading (structural marker) not **Armor Class** presence (02-04)
+- [Phase 02-04]: Qt '&&' in text displays literal '&' — single '&' is treated as keyboard accelerator prefix (02-04)
 
 ### Pending Todos
 
@@ -85,6 +88,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-23
-Stopped at: Checkpoint Task 3 in 02-04-PLAN.md — human-verify of complete library tab UI
+Last session: 2026-02-24
+Stopped at: Completed 02-04-PLAN.md — all tasks including Task 3 human verification and bug fixes
 Resume file: None
