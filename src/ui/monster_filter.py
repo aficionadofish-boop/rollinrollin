@@ -22,6 +22,7 @@ class MonsterFilterProxyModel(QSortFilterProxyModel):
         super().__init__(parent)
         self._type_filter: str = ""
         self._incomplete_only: bool = False
+        self._complete_only: bool = False
         self.setFilterCaseSensitivity(Qt.CaseInsensitive)
         self.setSortRole(Qt.UserRole)  # numeric CR sort via _cr_to_float
 
@@ -44,6 +45,19 @@ class MonsterFilterProxyModel(QSortFilterProxyModel):
         Calls invalidate() to trigger a full sort+filter re-evaluation.
         """
         self._incomplete_only = incomplete_only
+        if incomplete_only:
+            self._complete_only = False  # mutual exclusion
+        self.invalidate()
+
+    def set_complete_only(self, complete_only: bool) -> None:
+        """When True, only monsters with incomplete=False are shown.
+
+        Mutually exclusive with set_incomplete_only — setting one clears the other.
+        Calls invalidate() to trigger a full sort+filter re-evaluation.
+        """
+        self._complete_only = complete_only
+        if complete_only:
+            self._incomplete_only = False  # mutual exclusion
         self.invalidate()
 
     # ------------------------------------------------------------------
@@ -69,6 +83,10 @@ class MonsterFilterProxyModel(QSortFilterProxyModel):
 
         # --- Incomplete-only toggle ---
         if self._incomplete_only and not monster.incomplete:
+            return False
+
+        # --- Complete-only toggle ---
+        if self._complete_only and monster.incomplete:
             return False
 
         return True
