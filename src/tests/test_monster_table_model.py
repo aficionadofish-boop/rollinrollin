@@ -127,9 +127,10 @@ class TestMonsterTableModelData:
         m = MonsterTableModel([_monster("A")])
         assert m.data(m.index(0, 0), Qt.DecorationRole) is None
 
-    def test_data_user_role_col0_returns_none(self, qapp):
-        m = MonsterTableModel([_monster("A")])
-        assert m.data(m.index(0, 0), Qt.UserRole) is None
+    def test_data_user_role_col0_returns_lowercase_name(self, qapp):
+        # UserRole for col 0 returns lowercase name for case-insensitive sort
+        m = MonsterTableModel([_monster("Goblin")])
+        assert m.data(m.index(0, 0), Qt.UserRole) == "goblin"
 
 
 class TestMonsterTableModelHeaderData:
@@ -324,3 +325,30 @@ class TestCrSortOrder:
         proxy.sort(1, Qt.AscendingOrder)
         idx0 = proxy.mapToSource(proxy.index(0, 0))
         assert source.monster_at(idx0.row()).cr == "1/2"
+
+    def test_name_sort_ascending(self, qapp):
+        """Name column sorts A→Z when sorted ascending."""
+        source = MonsterTableModel([
+            _monster("Zombie"),
+            _monster("Goblin"),
+            _monster("Aboleth"),
+        ])
+        proxy = MonsterFilterProxyModel()
+        proxy.setSourceModel(source)
+        proxy.sort(0, Qt.AscendingOrder)
+        idx0 = proxy.mapToSource(proxy.index(0, 0))
+        idx2 = proxy.mapToSource(proxy.index(2, 0))
+        assert source.monster_at(idx0.row()).name == "Aboleth"
+        assert source.monster_at(idx2.row()).name == "Zombie"
+
+    def test_name_sort_case_insensitive(self, qapp):
+        """Name sort is case-insensitive: 'aboleth' sorts before 'Goblin'."""
+        source = MonsterTableModel([
+            _monster("goblin"),
+            _monster("aboleth"),
+        ])
+        proxy = MonsterFilterProxyModel()
+        proxy.setSourceModel(source)
+        proxy.sort(0, Qt.AscendingOrder)
+        idx0 = proxy.mapToSource(proxy.index(0, 0))
+        assert source.monster_at(idx0.row()).name == "aboleth"

@@ -86,8 +86,15 @@ class MonsterTableModel(QAbstractTableModel):
             return None
 
         if role == Qt.UserRole:
+            if col == 0:
+                # Lowercase string for case-insensitive name sort
+                return monster.name.lower()
             if col == 1:
                 return _cr_to_float(monster.cr)
+            if col == 2:
+                return monster.creature_type.lower()
+            if col == 3:
+                return 1 if monster.incomplete else 0
             return None
 
         return None
