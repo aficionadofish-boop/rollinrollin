@@ -52,7 +52,7 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Domain model extensions + 5etools blockquote parser (TDD)
+- [x] 02-01-PLAN.md — Domain model extensions + 5etools blockquote parser (TDD) — completed 2026-02-23
 - [ ] 02-02-PLAN.md — Homebrewery + plain-Markdown parsers + format dispatcher + ImportResult (TDD)
 - [ ] 02-03-PLAN.md — MonsterLibrary service + MonsterTableModel + MonsterFilterProxyModel
 - [ ] 02-04-PLAN.md — MonsterLibraryTab UI: splitter layout, import toolbar, search/filter/sort, detail panel, import log
@@ -122,7 +122,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Dice Engine and Domain Foundation | 2/2 | Complete   | 2026-02-23 |
-| 2. Monster Import and Library | 0/4 | Not started | - |
+| 2. Monster Import and Library | 1/4 | In progress | - |
 | 3. Attack Roller | 0/TBD | Not started | - |
 | 4. Lists, Encounters, and Save Roller | 0/TBD | Not started | - |
 | 5. Roll20 Macro Sandbox | 0/TBD | Not started | - |
