@@ -42,19 +42,22 @@ def detect_format(content: str) -> str:
         return 'unknown'
 
     # Priority 1: 5etools blockquote format
-    # Requires a '>-' or '> -' line with **Armor Class**
-    if re.search(r'^>[-\s]+\*\*Armor Class\*\*', content, re.MULTILINE):
+    # Unambiguous differentiator: '>## Name' blockquote heading.
+    # Does NOT require **Armor Class** — allows detection of incomplete monsters
+    # (missing AC/HP/CR) that should still be imported as incomplete=True.
+    if re.search(r'^>##\s+\S', content, re.MULTILINE):
         return 'fivetools'
 
     # Priority 2: Homebrewery/GM Binder ___ delimiter format
-    # Requires both a bare ___ line AND **Armor Class** without > prefix
-    if re.search(r'^___\s*$', content, re.MULTILINE) and '**Armor Class**' in content:
+    # Requires both a bare ___ line AND a ## Name heading without > prefix.
+    # **Armor Class** is optional — incomplete blocks still detected.
+    if re.search(r'^___\s*$', content, re.MULTILINE) and re.search(r'^##\s+\S', content, re.MULTILINE):
         return 'homebrewery'
 
     # Priority 3: Plain Markdown ## heading format
-    # Requires both a ## heading AND **Armor Class** bullet
-    if (re.search(r'^##\s+\w', content, re.MULTILINE)
-            and re.search(r'\*\*Armor Class\*\*', content)):
+    # Requires a ## heading without a preceding '>'.
+    # **Armor Class** is optional — incomplete blocks still detected.
+    if re.search(r'^##\s+\S', content, re.MULTILINE):
         return 'plain'
 
     return 'unknown'

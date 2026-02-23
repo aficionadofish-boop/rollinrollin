@@ -86,6 +86,20 @@ class TestDetectFormat:
         mixed = "___\n## Monster\n___\n- **Armor Class** 15\n"
         assert detect_format(mixed) == 'homebrewery'
 
+    def test_fivetools_detected_without_armor_class(self):
+        """Fivetools detection works even when **Armor Class** line is absent.
+
+        A file missing AC should still be detected as fivetools (not unknown)
+        so that the parser can create an incomplete=True monster.
+        """
+        content = ">## Incomplete Monster\n>*Medium Monstrosity, Neutral*\n>- **Challenge** 3\n"
+        assert detect_format(content) == 'fivetools'
+
+    def test_homebrewery_detected_without_armor_class(self):
+        """Homebrewery detection works even when **Armor Class** line is absent."""
+        content = "___\n## Broken Monster\n*Medium Monstrosity*\n___\n- **Challenge** 1\n"
+        assert detect_format(content) == 'homebrewery'
+
 
 # ---------------------------------------------------------------------------
 # parse_file tests
@@ -153,6 +167,28 @@ class TestParseFile:
             parse_file(f)
         except Exception as e:
             pytest.fail(f"parse_file raised on unknown format: {e}")
+
+    def test_fivetools_missing_ac_hp_cr_is_incomplete(self, tmp_path):
+        """Fivetools file with missing AC/HP/CR is parsed as incomplete=True.
+
+        Previously, missing **Armor Class** caused detection to fail (returning
+        'unknown' and 0 monsters). The fixed detector uses '>## Name' as the
+        unambiguous fivetools signal.
+        """
+        content = (
+            ">## Sketchy Monster\n"
+            ">*Medium Monstrosity, Neutral*\n"
+            ">- **Speed** 30 ft.\n"
+        )
+        f = tmp_path / "sketchy.md"
+        f.write_text(content, encoding='utf-8')
+        result = parse_file(f)
+        assert len(result.monsters) == 1
+        assert result.monsters[0].name == "Sketchy Monster"
+        assert result.monsters[0].incomplete is True
+        assert result.monsters[0].ac == 0
+        assert result.monsters[0].hp == 0
+        assert result.monsters[0].cr == "?"
 
 
 # ---------------------------------------------------------------------------
