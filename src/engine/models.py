@@ -19,7 +19,7 @@ up a result from sub-expressions without a separate AST layer.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from typing import Optional
 
 
