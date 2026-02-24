@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Monster Import and Library** - Tolerant Markdown statblock parser, in-memory monster library with search and filtering, workspace file I/O (completed 2026-02-23)
 - [x] **Phase 3: Attack Roller** - Full Attack Roller tab with RAW/COMPARE modes, all 5e toggles, roll breakdown output, and copy-to-clipboard (completed 2026-02-24)
 - [x] **Phase 4: Lists, Encounters, and Save Roller** - Named monster lists and encounters with Markdown save/load, bulk per-participant Save Roller drawing from the active encounter (completed 2026-02-24)
-- [ ] **Phase 5: Roll20 Macro Sandbox** - Free-text macro input resolving Roll20 inline rolls and query dialogs, multi-line support, unsupported-syntax warnings
+- [x] **Phase 5: Roll20 Macro Sandbox** - Free-text macro input resolving Roll20 inline rolls and query dialogs, multi-line support, unsupported-syntax warnings (completed 2026-02-24)
 - [ ] **Phase 6: Settings** - Settings tab: seed toggle, default toggles, default AC/DC, default output mode
 - [ ] **Phase 7: Packaging and Distribution** - Portable Windows 10 .exe via PyInstaller, build script, smoke-tested on clean machine
 
@@ -110,7 +110,7 @@ Plans:
 - [x] 05-01-PLAN.md — MacroPreprocessor + models + workspace update (TDD: /roll stripping, inline rolls, query extraction, unsupported token warnings) — completed 2026-02-24
 - [x] 05-02-PLAN.md — MacroEditor (code-editor with line numbers, syntax highlighting, debounce) + QueryPanel (inline query resolution widget) — completed 2026-02-24
 - [x] 05-03-PLAN.md — ResultPanel + MacroSidebar + MacroSandboxTab assembly + MainWindow wiring — completed 2026-02-24
-- [ ] 05-04-PLAN.md — End-to-end human verification checkpoint
+- [x] 05-04-PLAN.md — End-to-end human verification checkpoint — completed 2026-02-24
 
 ### Phase 6: Settings
 **Goal**: DMs can configure the app's default behaviors once and have every session start with the right toggles, AC, DC, and RNG mode pre-set
@@ -120,7 +120,11 @@ Plans:
   1. User enables seeded RNG, enters seed 42, rolls any attack, restarts the session with the same seed, rolls again, and gets the identical sequence
   2. User sets crit range default to 19 and nat-1 always miss to off in Settings; opening the Attack Roller shows those toggles pre-set accordingly
   3. User sets default Target AC to 14 and default Save DC to 12; opening COMPARE mode and the Save Roller shows those values pre-filled
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 06-01-PLAN.md — AppSettings model + SettingsService persistence layer (TDD)
+- [ ] 06-02-PLAN.md — SettingsTab UI widget + MainWindow wiring + apply_defaults + seeded badge + unsaved-changes guard
 
 ### Phase 7: Packaging and Distribution
 **Goal**: The complete app ships as a single portable Windows 10 .exe that runs offline on a machine with no Python installed
@@ -143,6 +147,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 2. Monster Import and Library | 4/4 | Complete   | 2026-02-24 |
 | 3. Attack Roller | 4/4 | Complete   | 2026-02-24 |
 | 4. Lists, Encounters, and Save Roller | 4/4 | Complete   | 2026-02-24 |
-| 5. Roll20 Macro Sandbox | 3/4 | In Progress|  |
+| 5. Roll20 Macro Sandbox | 4/4 | Complete   | 2026-02-24 |
 | 6. Settings | 0/TBD | Not started | - |
 | 7. Packaging and Distribution | 0/TBD | Not started | - |
