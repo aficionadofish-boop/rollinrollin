@@ -34,7 +34,7 @@
 
 ### Attack Roller
 
-- [ ] **ATTACK-01**: User can select a monster from the library, then select one of its actions to roll
+- [x] **ATTACK-01**: User can select a monster from the library, then select one of its actions to roll
 - [x] **ATTACK-02**: User can specify N (how many attacks to roll at once, e.g. roll 8 attacks)
 - [x] **ATTACK-03**: RAW mode shows per-attack breakdown: all d20 result(s), to-hit bonus, flat modifier, bonus dice results, final attack total; per-damage-part die results and subtotals; damage type labels
 - [x] **ATTACK-04**: COMPARE mode requires a Target AC input; shows each attack as hit/miss with margin; damage rolls only on hits; summary of total hits, total misses, total damage
@@ -44,7 +44,7 @@
 - [x] **ATTACK-08**: Crit damage rule: double all damage dice (default 5e rule)
 - [x] **ATTACK-09**: Flat modifier input (positive or negative integer) applied to attack roll total
 - [x] **ATTACK-10**: Bonus dice list: user can add one or more signed dice formulas (e.g. +1d4 Bless, -1d6) stacked and added to attack total
-- [ ] **ATTACK-11**: Roll output can be copied to clipboard in one click
+- [x] **ATTACK-11**: Roll output can be copied to clipboard in one click
 - [x] **ATTACK-12**: Per-damage-part results show damage type (e.g. "14 slashing + 7 poison")
 
 ### Save Roller
@@ -170,18 +170,18 @@ Which phases cover which requirements. Confirmed during roadmap creation 2026-02
 | LIB-04 | Phase 2 | Complete |
 | LIB-05 | Phase 2 | Complete |
 | LIB-06 | Phase 2 | Complete |
-| ATTACK-01 | Phase 3 | Pending |
-| ATTACK-02 | Phase 3 | Pending |
-| ATTACK-03 | Phase 3 | Pending |
-| ATTACK-04 | Phase 3 | Pending |
+| ATTACK-01 | Phase 3 | Complete |
+| ATTACK-02 | Phase 3 | Complete |
+| ATTACK-03 | Phase 3 | Complete |
+| ATTACK-04 | Phase 3 | Complete |
 | ATTACK-05 | Phase 3 | Complete |
-| ATTACK-06 | Phase 3 | Pending |
+| ATTACK-06 | Phase 3 | Complete |
 | ATTACK-07 | Phase 3 | Complete |
-| ATTACK-08 | Phase 3 | Pending |
+| ATTACK-08 | Phase 3 | Complete |
 | ATTACK-09 | Phase 3 | Complete |
 | ATTACK-10 | Phase 3 | Complete |
-| ATTACK-11 | Phase 3 | Pending |
-| ATTACK-12 | Phase 3 | Pending |
+| ATTACK-11 | Phase 3 | Complete |
+| ATTACK-12 | Phase 3 | Complete |
 | LIST-01 | Phase 4 | Pending |
 | LIST-02 | Phase 4 | Pending |
 | LIST-03 | Phase 4 | Pending |

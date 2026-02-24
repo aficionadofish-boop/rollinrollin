@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-23)
 ## Current Position
 
 Phase: 3 of 7 (Attack Roller)
-Plan: 3 of 3 in current phase (Plans 01-02 complete; Plan 03 remaining)
-Status: Plan 03-02 complete — ToggleBar and BonusDiceList widgets, 276 tests pass
-Last activity: 2026-02-24 — Completed 03-02: src/ui/toggle_bar.py and src/ui/bonus_dice_list.py
+Plan: 3 of 3 in current phase (Plans 01-03 complete; Phase 3 done)
+Status: Plan 03-03 complete — AttackRollerTab and RollOutputPanel widgets, 276 tests pass
+Last activity: 2026-02-24 — Completed 03-03: src/ui/attack_roller_tab.py and src/ui/roll_output.py
 
-Progress: [███████░░░] 60%
+Progress: [████████░░] 75%
 
 ## Performance Metrics
 
@@ -29,7 +29,7 @@ Progress: [███████░░░] 60%
 |-------|-------|-------|----------|
 | 01-dice-engine-and-domain-foundation | 2/2 | 7 min | 4 min |
 | 02-monster-import-and-library | 4/6 | 32 min | 5 min |
-| 03-attack-roller | 1/3 | 10 min | 10 min |
+| 03-attack-roller | 3/3 | 14 min | 5 min |
 
 **Recent Trend:**
 - Last 5 plans: 02-03 (5 min), 02-04-tasks1-2 (2 min), 02-04-task3 (15 min), 03-01 (10 min)
@@ -39,6 +39,7 @@ Progress: [███████░░░] 60%
 | Phase 02-monster-import-and-library P04 | 3 | 3 tasks | 8 files |
 | Phase 03-attack-roller P01 | 1 | 1 TDD task | 4 files |
 | Phase 03-attack-roller P02 | 1 | 2 tasks | 2 files |
+| Phase 03-attack-roller P03 | 3 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -86,6 +87,9 @@ Recent decisions affecting current work:
 - [Phase 03-01]: COMPARE mode damage gating: is_hit is True (explicit identity check, not truthy) before rolling damage (03-01)
 - [Phase 03-02]: ToggleBar default falls back to options[0] if provided default not in options dict
 - [Phase 03-02]: BonusDiceList.get_entries() lazy-imports BonusDiceEntry from src.roll.models to avoid Qt circular dependency
+- [Phase 03-attack-roller]: RollOutputPanel is a QWidget container (not QTextEdit subclass) — owns QTextEdit internally for encapsulation and Copy button
+- [Phase 03-attack-roller]: Target AC widget uses setVisible(False/True) in _on_mode_changed — hides in RAW mode per CONTEXT.md decision (not setEnabled)
+- [Phase 03-attack-roller]: Result re-render: _last_result stores RollResult; mode switch calls _render_results() with no re-roll (03-03)
 
 ### Pending Todos
 
@@ -99,5 +103,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-24
-Stopped at: Completed 03-02-PLAN.md — ToggleBar and BonusDiceList widgets, 276 tests passing
+Stopped at: Completed 03-03-PLAN.md — AttackRollerTab and RollOutputPanel widgets, 276 tests passing
 Resume file: None

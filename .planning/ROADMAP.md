@@ -129,7 +129,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 |-------|----------------|--------|-----------|
 | 1. Dice Engine and Domain Foundation | 2/2 | Complete   | 2026-02-23 |
 | 2. Monster Import and Library | 4/4 | Complete   | 2026-02-24 |
-| 3. Attack Roller | 2/4 | In Progress|  |
+| 3. Attack Roller | 3/4 | In Progress|  |
 | 4. Lists, Encounters, and Save Roller | 0/TBD | Not started | - |
 | 5. Roll20 Macro Sandbox | 0/TBD | Not started | - |
 | 6. Settings | 0/TBD | Not started | - |

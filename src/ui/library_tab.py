@@ -29,7 +29,7 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QAbstractItemView,
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 
 from src.library.service import MonsterLibrary
 from src.parser.statblock_parser import parse_file
@@ -47,6 +47,8 @@ class MonsterLibraryTab(QWidget):
         library: Shared MonsterLibrary instance (owned by the caller / main window).
         parent:  Optional parent QWidget.
     """
+
+    monster_selected = Signal(object)  # emitted when user selects a row
 
     def __init__(self, library: MonsterLibrary, parent=None) -> None:
         super().__init__(parent)
@@ -185,6 +187,7 @@ class MonsterLibraryTab(QWidget):
         source_index = self._proxy.mapToSource(proxy_index)
         monster = self._model.monster_at(source_index.row())
         self._detail_panel.show_monster(monster)
+        self.monster_selected.emit(monster)   # NEW — cross-tab signal
 
     # ------------------------------------------------------------------
     # Import actions
