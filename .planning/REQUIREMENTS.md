@@ -76,20 +76,20 @@
 
 ### Macro Sandbox
 
-- [ ] **SAND-01**: User can type or paste a free-text dice expression (e.g. `1d20+5+1d4`) and execute it with a Roll button
-- [ ] **SAND-02**: Output shows total result and full per-die breakdown
-- [ ] **SAND-03**: Sandbox resolves Roll20 inline rolls: `[[expr]]` expressions are evaluated and replaced with their numeric result
-- [ ] **SAND-04**: Sandbox resolves Roll20 query rolls: `?{prompt|option,value|...}` shows a choice dialog; chosen value is substituted before evaluation
-- [ ] **SAND-05**: Multi-line input: each non-empty line is processed as a separate roll; results displayed in order
-- [ ] **SAND-06**: `/roll` and `/r` prefix is stripped before parsing (not treated as a syntax error)
-- [ ] **SAND-07**: Unsupported Roll20 syntax (e.g. `@{attr}` references, `&{template:...}`) emits a visible parse warning rather than crashing
+- [x] **SAND-01**: User can type or paste a free-text dice expression (e.g. `1d20+5+1d4`) and execute it with a Roll button
+- [x] **SAND-02**: Output shows total result and full per-die breakdown
+- [x] **SAND-03**: Sandbox resolves Roll20 inline rolls: `[[expr]]` expressions are evaluated and replaced with their numeric result
+- [x] **SAND-04**: Sandbox resolves Roll20 query rolls: `?{prompt|option,value|...}` shows a choice dialog; chosen value is substituted before evaluation
+- [x] **SAND-05**: Multi-line input: each non-empty line is processed as a separate roll; results displayed in order
+- [x] **SAND-06**: `/roll` and `/r` prefix is stripped before parsing (not treated as a syntax error)
+- [x] **SAND-07**: Unsupported Roll20 syntax (e.g. `@{attr}` references, `&{template:...}`) emits a visible parse warning rather than crashing
 
 ### Settings
 
-- [ ] **SET-01**: User can enable/disable seeded RNG and set a seed value; all rolls in the session use the seed when enabled
+- [x] **SET-01**: User can enable/disable seeded RNG and set a seed value; all rolls in the session use the seed when enabled
 - [ ] **SET-02**: User can configure default toggles: crit enable, nat-1 always miss, nat-20 always hit
 - [ ] **SET-03**: User can set the default output mode (RAW or COMPARE) applied when opening the Attack Roller
-- [ ] **SET-04**: User can set a default Target AC (pre-filled in COMPARE mode) and default Save DC (pre-filled in Save Roller)
+- [x] **SET-04**: User can set a default Target AC (pre-filled in COMPARE mode) and default Save DC (pre-filled in Save Roller)
 
 ### Workspace and Distribution
 
@@ -200,17 +200,17 @@ Which phases cover which requirements. Confirmed during roadmap creation 2026-02
 | SAVE-05 | Phase 4 | Complete |
 | SAVE-06 | Phase 4 | Complete |
 | SAVE-07 | Phase 4 | Complete |
-| SAND-01 | Phase 5 | Pending |
-| SAND-02 | Phase 5 | Pending |
-| SAND-03 | Phase 5 | Pending |
-| SAND-04 | Phase 5 | Pending |
-| SAND-05 | Phase 5 | Pending |
-| SAND-06 | Phase 5 | Pending |
-| SAND-07 | Phase 5 | Pending |
-| SET-01 | Phase 6 | Pending |
+| SAND-01 | Phase 5 | Complete |
+| SAND-02 | Phase 5 | Complete |
+| SAND-03 | Phase 5 | Complete |
+| SAND-04 | Phase 5 | Complete |
+| SAND-05 | Phase 5 | Complete |
+| SAND-06 | Phase 5 | Complete |
+| SAND-07 | Phase 5 | Complete |
+| SET-01 | Phase 6 | Complete |
 | SET-02 | Phase 6 | Pending |
 | SET-03 | Phase 6 | Pending |
-| SET-04 | Phase 6 | Pending |
+| SET-04 | Phase 6 | Complete |
 | WS-02 | Phase 7 | Pending |
 | WS-03 | Phase 7 | Pending |
 

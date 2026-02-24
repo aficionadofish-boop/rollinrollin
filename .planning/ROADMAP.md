@@ -148,5 +148,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 3. Attack Roller | 4/4 | Complete   | 2026-02-24 |
 | 4. Lists, Encounters, and Save Roller | 4/4 | Complete   | 2026-02-24 |
 | 5. Roll20 Macro Sandbox | 4/4 | Complete   | 2026-02-24 |
-| 6. Settings | 0/TBD | Not started | - |
+| 6. Settings | 1/2 | In Progress|  |
 | 7. Packaging and Distribution | 0/TBD | Not started | - |

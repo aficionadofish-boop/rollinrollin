@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-23)
 
 **Core value:** DMs can roll attacks and saving throws for groups of monsters in seconds, with full D&D 5e rule fidelity and clear hit/miss/damage breakdowns.
-**Current focus:** Phase 5 — Roll20 Macro Sandbox (in progress)
+**Current focus:** Phase 6 — Settings (in progress)
 
 ## Current Position
 
-Phase: 5 of 7 in progress (Roll20 Macro Sandbox)
-Plan: 3 of 4 in phase 5 complete
-Status: Phase 5 Plan 3 complete — MacroSandboxTab fully assembled: ResultPanel, MacroSidebar, MacroSandboxTab container, and MainWindow wired with 4 tabs
-Last activity: 2026-02-24 — Completed 05-03: MacroSandboxTab assembly + MainWindow wiring
+Phase: 6 of 7 in progress (Settings)
+Plan: 1 of 2 in phase 6 complete
+Status: Phase 6 Plan 01 complete — AppSettings dataclass + SettingsService persistence layer with TDD
+Last activity: 2026-02-24 — Completed 06-01: AppSettings model and SettingsService
 
-Progress: [█████████░] 90%
+Progress: [█░░░░░░░░░] 50% (Phase 6, Plan 1 of 2)
 
 ## Performance Metrics
 
@@ -45,6 +45,7 @@ Progress: [█████████░] 90%
 | Phase 05-roll20-macro-sandbox P01 | 4 | 4 tasks | 8 files |
 | Phase 05-roll20-macro-sandbox P02 | 2 | 2 tasks | 2 files |
 | Phase 05-roll20-macro-sandbox P03 | 5 | 2 tasks | 4 files |
+| Phase 06-settings P01 | 2 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -121,6 +122,9 @@ Recent decisions affecting current work:
 - [Phase 05-03]: WorkspaceManager(Path.home() / "RollinRollin") created in MainWindow and initialized on startup — ensures macros/ folder exists before MacroSandboxTab is constructed
 - [Phase 05-03]: QTimer.singleShot(50, scroll_to_bottom) — 50ms delay lets layout settle before scroll maximum is read
 - [Phase 05-03]: Horizontal splitter: main content (index 0) non-collapsible, sidebar (index 1) collapsible
+- [Phase 06-01]: dataclasses.fields(AppSettings) used for known-key filtering — public API per RESEARCH.md Pitfall 4 (not __dataclass_fields__)
+- [Phase 06-01]: SettingsService catches both json.JSONDecodeError and OSError in single except clause — both return default AppSettings
+- [Phase 06-01]: _FILENAME = 'settings.json' is module-level constant, not instance state
 
 ### Pending Todos
 
@@ -134,5 +138,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-24
-Stopped at: Completed 05-03-PLAN.md — MacroSandboxTab assembled + MainWindow wired with 4 tabs + Macro Sandbox tab
+Stopped at: Completed 06-01-PLAN.md — settings service layer complete; next is 06-02 SettingsTab UI
 Resume file: None
