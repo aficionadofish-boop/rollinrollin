@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-23)
 
 **Core value:** DMs can roll attacks and saving throws for groups of monsters in seconds, with full D&D 5e rule fidelity and clear hit/miss/damage breakdowns.
-**Current focus:** Phase 4 — Lists, Encounters, and Save Roller (in progress)
+**Current focus:** Phase 5 — Roll20 Macro Sandbox (next)
 
 ## Current Position
 
-Phase: 4 of 7 (Lists, Encounters, and Save Roller)
-Plan: 3 of 5 in current phase (Plan 04-03 complete)
-Status: Plan 04-03 complete — Encounters tab UI with drag-drop, save/load, Save Roller; 307 tests pass
-Last activity: 2026-02-24 — Completed 04-03: EncountersTab UI, MonsterTableModel drag support, MainWindow 3 tabs
+Phase: 4 of 7 complete (Lists, Encounters, and Save Roller — DONE)
+Plan: 4 of 4 in phase 4 complete — Phase 4 fully verified and closed
+Status: Phase 4 complete — all 4 plans done; 307 tests pass; EncounterDropZone added to Library tab
+Last activity: 2026-02-24 — Completed 04-04: human end-to-end verification approved, Phase 4 closed
 
-Progress: [████████░░] 78%
+Progress: [█████████░] 85%
 
 ## Performance Metrics
 
@@ -103,6 +103,7 @@ Recent decisions affecting current work:
 - [Phase 04-03]: EncounterMemberList receives library in __init__ for dropEvent resolution; drag MIME type application/x-monster-name sourced from MonsterTableModel
 - [Phase 04-03]: _expand_participants duplicated as module-level helper in encounters_tab.py for UI use; service.py version remains canonical for testing
 - [Phase 04-03]: Tab label 'Encounters && Saves' uses Qt '&&' convention per Phase 02-04 decision (displays as 'Encounters & Saves')
+- [Phase 04-04]: EncounterDropZone added to Library tab during human-verify enhancement — splits import log area 50/50; monsters can be dragged to encounter without switching tabs
 
 ### Pending Todos
 
@@ -116,5 +117,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-24
-Stopped at: Completed 04-03-PLAN.md — EncountersTab UI, drag-drop, save/load, Save Roller, 307 tests passing
+Stopped at: Completed 04-04-PLAN.md — Phase 4 end-to-end verification approved; EncounterDropZone added; Phase 4 closed
 Resume file: None

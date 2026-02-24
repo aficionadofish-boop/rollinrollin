@@ -49,13 +49,13 @@
 
 ### Save Roller
 
-- [ ] **SAVE-01**: User can select a save ability (STR/DEX/CON/INT/WIS/CHA) and set a DC
-- [ ] **SAVE-02**: Participants can be loaded from the current encounter (each member rolls individually; monster's save bonus or ability modifier used automatically)
-- [ ] **SAVE-03**: Per-participant result shows: d20 face(s), save bonus, total, success/fail, margin vs DC
-- [ ] **SAVE-04**: Summary shows total success count and total fail count
-- [ ] **SAVE-05**: Advantage/disadvantage toggle for saves (rolls 2d20, takes higher/lower)
-- [ ] **SAVE-06**: Flat modifier input for saves (applied to all participants)
-- [ ] **SAVE-07**: Save roll output can be copied to clipboard in one click
+- [x] **SAVE-01**: User can select a save ability (STR/DEX/CON/INT/WIS/CHA) and set a DC
+- [x] **SAVE-02**: Participants can be loaded from the current encounter (each member rolls individually; monster's save bonus or ability modifier used automatically)
+- [x] **SAVE-03**: Per-participant result shows: d20 face(s), save bonus, total, success/fail, margin vs DC
+- [x] **SAVE-04**: Summary shows total success count and total fail count
+- [x] **SAVE-05**: Advantage/disadvantage toggle for saves (rolls 2d20, takes higher/lower)
+- [x] **SAVE-06**: Flat modifier input for saves (applied to all participants)
+- [x] **SAVE-07**: Save roll output can be copied to clipboard in one click
 
 ### Lists
 
@@ -69,10 +69,10 @@
 
 - [x] **ENC-01**: User can create a named encounter by selecting monsters from the library (or from a list) with a count per monster
 - [x] **ENC-02**: User can edit encounter member counts and labels
-- [ ] **ENC-03**: User can save an encounter to a Markdown file in the workspace `encounters/` folder
-- [ ] **ENC-04**: User can load/import an encounter from a Markdown file
-- [ ] **ENC-05**: On encounter import, unresolved monster names are shown in an "Unresolved Entries" panel for manual re-linking
-- [ ] **ENC-06**: The active encounter can be loaded into the Save Roller as the participant list
+- [x] **ENC-03**: User can save an encounter to a Markdown file in the workspace `encounters/` folder
+- [x] **ENC-04**: User can load/import an encounter from a Markdown file
+- [x] **ENC-05**: On encounter import, unresolved monster names are shown in an "Unresolved Entries" panel for manual re-linking
+- [x] **ENC-06**: The active encounter can be loaded into the Save Roller as the participant list
 
 ### Macro Sandbox
 
@@ -189,17 +189,17 @@ Which phases cover which requirements. Confirmed during roadmap creation 2026-02
 | LIST-05 | Phase 4 | Complete |
 | ENC-01 | Phase 4 | Complete |
 | ENC-02 | Phase 4 | Complete |
-| ENC-03 | Phase 4 | Pending |
-| ENC-04 | Phase 4 | Pending |
-| ENC-05 | Phase 4 | Pending |
-| ENC-06 | Phase 4 | Pending |
-| SAVE-01 | Phase 4 | Pending |
-| SAVE-02 | Phase 4 | Pending |
-| SAVE-03 | Phase 4 | Pending |
-| SAVE-04 | Phase 4 | Pending |
-| SAVE-05 | Phase 4 | Pending |
-| SAVE-06 | Phase 4 | Pending |
-| SAVE-07 | Phase 4 | Pending |
+| ENC-03 | Phase 4 | Complete |
+| ENC-04 | Phase 4 | Complete |
+| ENC-05 | Phase 4 | Complete |
+| ENC-06 | Phase 4 | Complete |
+| SAVE-01 | Phase 4 | Complete |
+| SAVE-02 | Phase 4 | Complete |
+| SAVE-03 | Phase 4 | Complete |
+| SAVE-04 | Phase 4 | Complete |
+| SAVE-05 | Phase 4 | Complete |
+| SAVE-06 | Phase 4 | Complete |
+| SAVE-07 | Phase 4 | Complete |
 | SAND-01 | Phase 5 | Pending |
 | SAND-02 | Phase 5 | Pending |
 | SAND-03 | Phase 5 | Pending |

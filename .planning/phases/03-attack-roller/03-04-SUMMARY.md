@@ -61,7 +61,7 @@ completed: 2026-02-24
 - **Duration:** ~2 min
 - **Started:** 2026-02-24T01:03:25Z
 - **Completed:** 2026-02-24T01:05:00Z
-- **Tasks:** 1 of 2 complete (Task 2 is human-verify checkpoint — awaiting approval)
+- **Tasks:** 2 of 2 complete
 - **Files modified:** 3
 
 ## Accomplishments
@@ -75,7 +75,7 @@ completed: 2026-02-24
 Each task was committed atomically:
 
 1. **Task 1: Add monster_selected signal, create MainWindow + main.py** - `9f0fb0c` (feat)
-2. **Task 2: End-to-end verification checkpoint** - PENDING (human-verify gate)
+2. **Task 2: End-to-end verification checkpoint** - APPROVED by human verifier
 
 ## Files Created/Modified
 - `src/ui/library_tab.py` — Added `Signal` import, `monster_selected = Signal(object)` class attr, emit in `_on_selection_changed`
@@ -108,4 +108,4 @@ None - no external service configuration required.
 *Phase: 03-attack-roller*
 *Completed: 2026-02-24*
 
-## Self-Check: PENDING (awaiting Task 2 checkpoint approval)
+## Self-Check: APPROVED — Phase 3 complete

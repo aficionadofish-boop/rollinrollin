@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Dice Engine and Domain Foundation** - Pure-Python dice evaluator, seeded RNG, domain models, and workspace folder — the inner ring everything else imports (completed 2026-02-23)
 - [x] **Phase 2: Monster Import and Library** - Tolerant Markdown statblock parser, in-memory monster library with search and filtering, workspace file I/O (completed 2026-02-23)
 - [x] **Phase 3: Attack Roller** - Full Attack Roller tab with RAW/COMPARE modes, all 5e toggles, roll breakdown output, and copy-to-clipboard (completed 2026-02-24)
-- [ ] **Phase 4: Lists, Encounters, and Save Roller** - Named monster lists and encounters with Markdown save/load, bulk per-participant Save Roller drawing from the active encounter
+- [x] **Phase 4: Lists, Encounters, and Save Roller** - Named monster lists and encounters with Markdown save/load, bulk per-participant Save Roller drawing from the active encounter (completed 2026-02-24)
 - [ ] **Phase 5: Roll20 Macro Sandbox** - Free-text macro input resolving Roll20 inline rolls and query dialogs, multi-line support, unsupported-syntax warnings
 - [ ] **Phase 6: Settings** - Settings tab: seed toggle, default toggles, default AC/DC, default output mode
 - [ ] **Phase 7: Packaging and Distribution** - Portable Windows 10 .exe via PyInstaller, build script, smoke-tested on clean machine
@@ -90,9 +90,9 @@ Plans:
 
 Plans:
 - [x] 04-01-PLAN.md — Domain model patch (Encounter.members) + MonsterLibrary.get_by_name + encounter DTOs package — completed 2026-02-24
-- [ ] 04-02-PLAN.md — EncounterService (Markdown I/O) + SaveRollService (seeded save mechanics) — TDD
-- [ ] 04-03-PLAN.md — EncounterMemberList widget + drag-drop MonsterTableModel + EncountersTab + app.py wiring
-- [ ] 04-04-PLAN.md — End-to-end human verification checkpoint
+- [x] 04-02-PLAN.md — EncounterService (Markdown I/O) + SaveRollService (seeded save mechanics) — TDD — completed 2026-02-24
+- [x] 04-03-PLAN.md — EncounterMemberList widget + drag-drop MonsterTableModel + EncountersTab + app.py wiring — completed 2026-02-24
+- [x] 04-04-PLAN.md — End-to-end human verification checkpoint — completed 2026-02-24
 
 ### Phase 5: Roll20 Macro Sandbox
 **Goal**: DMs with existing Roll20 macros can paste them into the Sandbox, resolve any query prompts, and get correct dice results — without needing Roll20 or an internet connection
@@ -136,7 +136,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 1. Dice Engine and Domain Foundation | 2/2 | Complete   | 2026-02-23 |
 | 2. Monster Import and Library | 4/4 | Complete   | 2026-02-24 |
 | 3. Attack Roller | 4/4 | Complete   | 2026-02-24 |
-| 4. Lists, Encounters, and Save Roller | 3/4 | In Progress|  |
+| 4. Lists, Encounters, and Save Roller | 4/4 | Complete   | 2026-02-24 |
 | 5. Roll20 Macro Sandbox | 0/TBD | Not started | - |
 | 6. Settings | 0/TBD | Not started | - |
 | 7. Packaging and Distribution | 0/TBD | Not started | - |
