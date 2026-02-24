@@ -172,7 +172,7 @@ class AttackRollerTab(QWidget):
         crit_range_row = QHBoxLayout()
         crit_range_label = QLabel("Crit range:")
         self._crit_range_spin = QSpinBox()
-        self._crit_range_spin.setRange(18, 20)
+        self._crit_range_spin.setRange(2, 20)
         self._crit_range_spin.setValue(20)
         self._crit_range_spin.setEnabled(True)  # enabled because crit starts checked
         crit_range_row.addWidget(crit_range_label)
@@ -181,6 +181,30 @@ class AttackRollerTab(QWidget):
 
         # Crit range spinner active only when crit checkbox is checked
         self._crit_check.toggled.connect(self._crit_range_spin.setEnabled)
+
+        self._crunchy_crits_check = QCheckBox("Crunchy Crits")
+        self._crunchy_crits_check.setToolTip(
+            "Maximize base damage dice; only the extra crit dice are rolled.\n"
+            "E.g. 1d8+4 crit → 8 (max) + 4 + Xd8 (rolled)"
+        )
+        self._crunchy_crits_check.setChecked(False)
+        layout.addWidget(self._crunchy_crits_check)
+
+        self._brutal_crits_check = QCheckBox("Brutal Crits")
+        self._brutal_crits_check.setToolTip(
+            "Maximize all damage dice on a crit — no rolling, everything is maximum.\n"
+            "E.g. 1d8+4 crit → 8 (max) + 4 + 8 (max)"
+        )
+        self._brutal_crits_check.setChecked(False)
+        layout.addWidget(self._brutal_crits_check)
+
+        # Mutually exclusive — checking one unchecks the other
+        self._crunchy_crits_check.toggled.connect(
+            lambda checked: self._brutal_crits_check.setChecked(False) if checked else None
+        )
+        self._brutal_crits_check.toggled.connect(
+            lambda checked: self._crunchy_crits_check.setChecked(False) if checked else None
+        )
 
         return group
 
@@ -294,6 +318,8 @@ class AttackRollerTab(QWidget):
             bonus_dice=self._bonus_dice_list.get_entries(),
             show_margin=self._show_margin_check.isChecked(),
             seed=None,  # Phase 6 (Settings) wires the global seed
+            crunchy_crits=self._crunchy_crits_check.isChecked(),
+            brutal_crits=self._brutal_crits_check.isChecked(),
         )
 
     # ------------------------------------------------------------------
@@ -324,35 +350,47 @@ class AttackRollerTab(QWidget):
 
     def _format_attack_line(self, attack, request) -> str:
         """Format one attack result as a compact single-line string."""
-        mode = request.mode
-        n = attack.attack_number
-
-        if mode == "raw":
-            return self._format_raw_line(attack)
+        if request.mode == "raw":
+            return self._format_raw_line(attack, request)
         else:
             return self._format_compare_line(attack, request)
 
-    def _format_raw_line(self, attack) -> str:
+    def _d20_str(self, attack) -> str:
+        """Format the d20 roll portion, including secondary die for adv/disadv."""
+        faces = attack.d20_faces
+        if len(faces) == 2:
+            kept_face = next(f for f in faces if f.kept)
+            other_face = next(f for f in faces if not f.kept)
+            adv_label = "adv" if kept_face.value >= other_face.value else "disadv"
+            return f"d20=[{kept_face.value}, {other_face.value}]({adv_label})"
+        return f"d20={attack.d20_natural}"
+
+    def _damage_str(self, attack, request) -> str:
+        """Format damage parts, showing crit extra dice breakdown when present."""
+        if not attack.damage_parts:
+            return ""
+        parts = []
+        extra_list = attack.crit_extra_parts
+        for i, dp in enumerate(attack.damage_parts):
+            if attack.is_crit and i < len(extra_list):
+                extra = extra_list[i]
+                combined = dp.total + extra.total
+                if request.brutal_crits:
+                    note = f"{dp.total}+{extra.total} [all max]"
+                elif request.crunchy_crits:
+                    note = f"{dp.total}[max]+{extra.total} crit"
+                else:
+                    note = f"{dp.total}+{extra.total} crit"
+                parts.append(f"{combined} {dp.damage_type} ({note})")
+            else:
+                parts.append(f"{dp.total} {dp.damage_type}")
+        return " + ".join(parts)
+
+    def _format_raw_line(self, attack, request) -> str:
         """Format RAW mode: #N: d20=14 (+5 hit)(+2 flat)(+3 bless) -> 24  |  8 slashing"""
         n = attack.attack_number
 
-        # d20 display
-        faces = attack.d20_faces
-        if len(faces) == 2:
-            vals = [f.value for f in faces]
-            kept_val = attack.d20_natural
-            adv_label = "adv" if faces[0].kept == (faces[0].value >= faces[1].value) else "disadv"
-            # Determine advantage or disadvantage from which was kept
-            kept_face = next(f for f in faces if f.kept)
-            other_face = next(f for f in faces if not f.kept)
-            if kept_face.value >= other_face.value:
-                adv_label = "adv"
-            else:
-                adv_label = "disadv"
-            d20_str = f"d20=[{kept_face.value}, {other_face.value}]({adv_label})"
-        else:
-            d20_str = f"d20={attack.d20_natural}"
-
+        d20_str = self._d20_str(attack)
         if attack.is_crit:
             d20_str += " [CRIT]"
 
@@ -371,37 +409,41 @@ class AttackRollerTab(QWidget):
 
         roll_str = " ".join(parts)
 
-        # Damage
-        if attack.damage_parts:
-            dmg_str = " + ".join(
-                f"{dp.total} {dp.damage_type}" for dp in attack.damage_parts
-            )
+        dmg_str = self._damage_str(attack, request)
+        if dmg_str:
             return f"#{n}: {roll_str} \u2192 {attack.attack_total}  |  {dmg_str}"
-        else:
-            return f"#{n}: {roll_str} \u2192 {attack.attack_total}"
+        return f"#{n}: {roll_str} \u2192 {attack.attack_total}"
 
     def _format_compare_line(self, attack, request) -> str:
-        """Format COMPARE mode: #N: 24 vs AC15 -> HIT [CRIT]  |  16 slashing"""
+        """Format COMPARE mode: #N: [d20 adv] 24 vs AC15 -> HIT [CRIT]  |  16 slashing"""
         n = attack.attack_number
         ac = request.target_ac
+
+        # Critical miss — show no further math
+        if attack.is_nat1 and request.nat1_always_miss and attack.is_hit is False:
+            return f"#{n}: CRITICAL MISS"
+
+        # Secondary d20 prefix for advantage/disadvantage
+        d20_prefix = ""
+        if len(attack.d20_faces) == 2:
+            kept_face = next(f for f in attack.d20_faces if f.kept)
+            other_face = next(f for f in attack.d20_faces if not f.kept)
+            adv_label = "adv" if kept_face.value >= other_face.value else "disadv"
+            d20_prefix = f"[d20={kept_face.value}/{other_face.value} {adv_label}] "
 
         if attack.is_hit:
             hit_label = "HIT"
             if attack.is_crit:
                 hit_label += " [CRIT]"
-            if attack.damage_parts:
-                dmg_str = " + ".join(
-                    f"{dp.total} {dp.damage_type}" for dp in attack.damage_parts
-                )
-                return f"#{n}: {attack.attack_total} vs AC{ac} \u2192 {hit_label}  |  {dmg_str}"
-            else:
-                return f"#{n}: {attack.attack_total} vs AC{ac} \u2192 {hit_label}"
+            dmg_str = self._damage_str(attack, request)
+            if dmg_str:
+                return f"#{n}: {d20_prefix}{attack.attack_total} vs AC{ac} \u2192 {hit_label}  |  {dmg_str}"
+            return f"#{n}: {d20_prefix}{attack.attack_total} vs AC{ac} \u2192 {hit_label}"
         else:
             if request.show_margin and attack.margin is not None:
                 margin_abs = abs(attack.margin)
-                return f"#{n}: {attack.attack_total} vs AC{ac} \u2192 Miss by {margin_abs}"
-            else:
-                return f"#{n}: {attack.attack_total} vs AC{ac} \u2192 Miss"
+                return f"#{n}: {d20_prefix}{attack.attack_total} vs AC{ac} \u2192 Miss by {margin_abs}"
+            return f"#{n}: {d20_prefix}{attack.attack_total} vs AC{ac} \u2192 Miss"
 
     def _format_summary(self, summary) -> str:
         """Format COMPARE mode summary line."""
@@ -411,3 +453,23 @@ class AttackRollerTab(QWidget):
             f"{summary.misses} misses{crit_str} | "
             f"Total damage: {summary.total_damage} \u2500\u2500\u2500"
         )
+
+    # ------------------------------------------------------------------
+    # Settings integration
+    # ------------------------------------------------------------------
+
+    def apply_defaults(self, settings) -> None:
+        """Apply saved default settings to UI controls. Called by MainWindow."""
+        self._mode_bar.set_value("RAW" if settings.default_mode == "raw" else "COMPARE")
+        self._adv_bar.set_value(settings.default_advantage_mode.capitalize())
+        self._nat1_check.setChecked(settings.default_nat1_always_miss)
+        self._nat20_check.setChecked(settings.default_nat20_always_hit)
+        self._crit_check.setChecked(settings.default_crit_enabled)
+        self._crit_range_spin.setValue(settings.default_crit_range)
+        self._target_ac_spin.setValue(settings.default_target_ac)
+        # GWM/Sharpshooter: store default for future widget wiring.
+        self._default_gwm_ss = settings.default_gwm_sharpshooter
+
+    def set_seeded_mode(self, enabled: bool) -> None:
+        """Show or hide the seeded badge on the output panel."""
+        self._output_panel.set_seeded_mode(enabled)

@@ -464,3 +464,11 @@ class EncountersTab(QWidget):
             except (ValueError, AttributeError):
                 pass
         return Path.home()
+
+    # ------------------------------------------------------------------
+    # Settings integration
+    # ------------------------------------------------------------------
+
+    def apply_defaults(self, settings) -> None:
+        """Apply saved default settings to UI controls. Called by MainWindow."""
+        self._dc_spin.setValue(settings.default_save_dc)

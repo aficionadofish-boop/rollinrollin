@@ -26,6 +26,39 @@ from src.macro.models import MacroLineResult, MacroRollResult
 
 
 # ---------------------------------------------------------------------------
+# Face formatting helpers
+# ---------------------------------------------------------------------------
+
+def _face_plain(f) -> str:
+    """Plain text representation of a DieFace (for tooltips and clipboard)."""
+    text = f"d{f.sides}: {f.value}"
+    annotations = []
+    if not f.kept:
+        annotations.append("dropped")
+    if f.exploded:
+        annotations.append("exploded")
+    if f.critical:
+        annotations.append("CRIT")
+    if annotations:
+        text += f" ({', '.join(annotations)})"
+    return text
+
+
+def _face_rich(f) -> str:
+    """HTML-formatted DieFace for rich text QLabel display."""
+    text = f"d{f.sides}: {f.value}"
+    if not f.kept:
+        text += " (dropped)"
+    if f.exploded:
+        text += " (exploded)"
+    if f.critical:
+        return f'<span style="color: #00CC00;">{text} &#9733;</span>'
+    if not f.kept:
+        return f'<span style="color: #888888;">{text}</span>'
+    return text
+
+
+# ---------------------------------------------------------------------------
 # ResultCard
 # ---------------------------------------------------------------------------
 
@@ -62,8 +95,18 @@ class ResultCard(QFrame):
         badge_font = QFont(badge.font())
         badge_font.setBold(True)
         badge.setFont(badge_font)
-        badge.setStyleSheet("color: #888888;")
+        badge.setStyleSheet("color: #AAAAAA;")
         header.addWidget(badge)
+
+        # Template name (shown before total/error if present)
+        if line_result.template_name:
+            name_label = QLabel(line_result.template_name)
+            name_font = QFont(name_label.font())
+            name_font.setBold(True)
+            name_label.setFont(name_font)
+            name_label.setStyleSheet("color: #4DA6FF;")
+            name_label.setWordWrap(True)
+            header.addWidget(name_label)
 
         if line_result.has_result:
             total_label = QLabel(f"Total: {line_result.dice_result.total}")
@@ -71,7 +114,7 @@ class ResultCard(QFrame):
             total_font.setBold(True)
             total_font.setPointSize(total_font.pointSize() + 2)
             total_label.setFont(total_font)
-            total_label.setStyleSheet("color: #E0E0E0;")
+            total_label.setStyleSheet("color: #FFFFFF;")
             header.addWidget(total_label)
         elif line_result.error:
             err_label = QLabel(f"Error: {line_result.error}")
@@ -105,6 +148,22 @@ class ResultCard(QFrame):
                 warn_label.setWordWrap(True)
                 root.addWidget(warn_label)
 
+        # For template-only results, show inline rolls directly in the card
+        # (not hidden in the detail section) since they ARE the main results.
+        is_template_only = line_result.has_inline_only
+
+        if is_template_only and line_result.inline_results:
+            for original_expr, dice_result in line_result.inline_results:
+                tooltip_parts = [_face_plain(f) for f in dice_result.faces]
+                if dice_result.constant_bonus != 0:
+                    tooltip_parts.append(f"constant: {dice_result.constant_bonus:+d}")
+                tooltip = "\n".join(tooltip_parts) if tooltip_parts else "No dice faces"
+
+                inline_label = QLabel(f"  {original_expr} = {dice_result.total}")
+                inline_label.setStyleSheet("color: #4DA6FF;")
+                inline_label.setToolTip(tooltip)
+                root.addWidget(inline_label)
+
         # ---- Detail section (collapsed by default) ---------------------
         self._detail = QWidget()
         self._detail.setVisible(False)
@@ -116,34 +175,30 @@ class ResultCard(QFrame):
             dr = line_result.dice_result
 
             expr_label = QLabel(f"Expression: {dr.expression}")
-            expr_label.setStyleSheet("color: #AAAAAA;")
+            expr_label.setStyleSheet("color: #CCCCCC;")
             detail_layout.addWidget(expr_label)
 
             if dr.faces:
-                faces_text = "  ".join(
-                    f"d{f.sides}: {f.value}{'(dropped)' if not f.kept else ''}"
-                    for f in dr.faces
-                )
-                faces_label = QLabel(f"Dice: {faces_text}")
-                faces_label.setStyleSheet("color: #AAAAAA;")
+                face_parts = [_face_rich(f) for f in dr.faces]
+                faces_html = "&nbsp;&nbsp;".join(face_parts)
+                faces_label = QLabel(f"Dice: {faces_html}")
+                faces_label.setTextFormat(Qt.TextFormat.RichText)
+                faces_label.setStyleSheet("color: #CCCCCC;")
                 faces_label.setWordWrap(True)
                 detail_layout.addWidget(faces_label)
 
             if dr.constant_bonus != 0:
                 const_label = QLabel(f"Constant: {dr.constant_bonus:+d}")
-                const_label.setStyleSheet("color: #AAAAAA;")
+                const_label.setStyleSheet("color: #CCCCCC;")
                 detail_layout.addWidget(const_label)
 
-        if line_result.inline_results:
+        # Show inline rolls in detail section for non-template results
+        if not is_template_only and line_result.inline_results:
             inline_header = QLabel("Inline rolls:")
-            inline_header.setStyleSheet("color: #888888;")
+            inline_header.setStyleSheet("color: #BBBBBB;")
             detail_layout.addWidget(inline_header)
             for original_expr, dice_result in line_result.inline_results:
-                # Build tooltip with per-die detail
-                tooltip_parts = []
-                for f in dice_result.faces:
-                    kept_str = "" if f.kept else " (dropped)"
-                    tooltip_parts.append(f"d{f.sides}: {f.value}{kept_str}")
+                tooltip_parts = [_face_plain(f) for f in dice_result.faces]
                 if dice_result.constant_bonus != 0:
                     tooltip_parts.append(f"constant: {dice_result.constant_bonus:+d}")
                 tooltip = "\n".join(tooltip_parts) if tooltip_parts else "No dice faces"
@@ -170,17 +225,17 @@ class ResultCard(QFrame):
     def to_text(self) -> str:
         """Plain text representation of this result card for clipboard copy."""
         lr = self._line_result
-        lines: list[str] = [f"#{lr.line_number}"]
+        header = f"#{lr.line_number}"
+        if lr.template_name:
+            header += f" {lr.template_name}"
+        lines: list[str] = [header]
 
         if lr.has_result:
             dr = lr.dice_result
             lines.append(f"  Total: {dr.total}")
             lines.append(f"  Expression: {dr.expression}")
             if dr.faces:
-                face_parts = [
-                    f"d{f.sides}: {f.value}{'(dropped)' if not f.kept else ''}"
-                    for f in dr.faces
-                ]
+                face_parts = [_face_plain(f) for f in dr.faces]
                 lines.append(f"  Dice: {', '.join(face_parts)}")
             if dr.constant_bonus != 0:
                 lines.append(f"  Constant: {dr.constant_bonus:+d}")
@@ -257,10 +312,15 @@ class ResultPanel(QWidget):
         self._roll_set_count = 0
         # Track (divider_widget, [card_widget, ...]) for auto-trim
         self._roll_sets: list[tuple[QWidget, list[QWidget]]] = []
+        self._seeded_mode: bool = False
 
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
+
+    def set_seeded_mode(self, enabled: bool) -> None:
+        """Show or hide the seeded indicator on future roll results."""
+        self._seeded_mode = enabled
 
     def add_roll_result(self, roll_result: MacroRollResult) -> None:
         """Append a new roll set with timestamp divider."""
@@ -271,9 +331,10 @@ class ResultPanel(QWidget):
 
         # Timestamp divider
         now = datetime.now().strftime("%H:%M:%S")
-        divider = QLabel(f"── Roll at {now} ──")
+        seeded_suffix = " [seeded]" if self._seeded_mode else ""
+        divider = QLabel(f"── Roll at {now}{seeded_suffix} ──")
         divider.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        divider.setStyleSheet("color: #555555; font-size: 11px; padding: 2px 0;")
+        divider.setStyleSheet("color: #888888; font-size: 11px; padding: 2px 0;")
         self._layout.insertWidget(insert_at, divider)
         insert_at += 1
 
