@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-02-23)
 ## Current Position
 
 Phase: 3 of 7 (Attack Roller)
-Plan: 2 of 3 in current phase (Plan 01 complete; Plans 02-03 remaining)
-Status: Plan 03-01 complete — RollService TDD: 39 tests pass, all toggle combinations covered
-Last activity: 2026-02-24 — Completed 03-01: src/roll/ package with models, service, and full test suite
+Plan: 3 of 3 in current phase (Plans 01-02 complete; Plan 03 remaining)
+Status: Plan 03-02 complete — ToggleBar and BonusDiceList widgets, 276 tests pass
+Last activity: 2026-02-24 — Completed 03-02: src/ui/toggle_bar.py and src/ui/bonus_dice_list.py
 
 Progress: [███████░░░] 60%
 
@@ -38,6 +38,7 @@ Progress: [███████░░░] 60%
 *Updated after each plan completion*
 | Phase 02-monster-import-and-library P04 | 3 | 3 tasks | 8 files |
 | Phase 03-attack-roller P01 | 1 | 1 TDD task | 4 files |
+| Phase 03-attack-roller P02 | 1 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -83,6 +84,8 @@ Recent decisions affecting current work:
 - [Phase 03-01]: Nat-1/nat-20 extracted from DieFace.kept=True (not d20_result.total) for correctness with advantage/disadvantage (03-01)
 - [Phase 03-01]: Bonus dice formula: strip leading '+' before roll_expression(); sign detected from formula.startswith('-') (03-01)
 - [Phase 03-01]: COMPARE mode damage gating: is_hit is True (explicit identity check, not truthy) before rolling damage (03-01)
+- [Phase 03-02]: ToggleBar default falls back to options[0] if provided default not in options dict
+- [Phase 03-02]: BonusDiceList.get_entries() lazy-imports BonusDiceEntry from src.roll.models to avoid Qt circular dependency
 
 ### Pending Todos
 
@@ -96,5 +99,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-24
-Stopped at: Completed 03-01-PLAN.md — RollService TDD (RED+GREEN), 39 tests passing, 276 total
+Stopped at: Completed 03-02-PLAN.md — ToggleBar and BonusDiceList widgets, 276 tests passing
 Resume file: None

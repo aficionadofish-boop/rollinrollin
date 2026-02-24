@@ -174,12 +174,12 @@ Which phases cover which requirements. Confirmed during roadmap creation 2026-02
 | ATTACK-02 | Phase 3 | Pending |
 | ATTACK-03 | Phase 3 | Pending |
 | ATTACK-04 | Phase 3 | Pending |
-| ATTACK-05 | Phase 3 | Pending |
+| ATTACK-05 | Phase 3 | Complete |
 | ATTACK-06 | Phase 3 | Pending |
-| ATTACK-07 | Phase 3 | Pending |
+| ATTACK-07 | Phase 3 | Complete |
 | ATTACK-08 | Phase 3 | Pending |
-| ATTACK-09 | Phase 3 | Pending |
-| ATTACK-10 | Phase 3 | Pending |
+| ATTACK-09 | Phase 3 | Complete |
+| ATTACK-10 | Phase 3 | Complete |
 | ATTACK-11 | Phase 3 | Pending |
 | ATTACK-12 | Phase 3 | Pending |
 | LIST-01 | Phase 4 | Pending |
