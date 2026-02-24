@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Optional
 
-WORKSPACE_SUBFOLDERS: tuple[str, ...] = ("monsters", "lists", "encounters", "exports")
+WORKSPACE_SUBFOLDERS: tuple[str, ...] = ("monsters", "lists", "encounters", "exports", "macros")
 
 
 class WorkspaceError(Exception):
