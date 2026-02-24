@@ -19,12 +19,13 @@ def test_initialize_idempotent(tmp_path):
 
 
 def test_initialize_partial(tmp_path):
-    # Pre-create 2 of 4 subfolders
+    # Pre-create 2 subfolders; the rest (including macros) should be created
     (tmp_path / "monsters").mkdir()
     (tmp_path / "lists").mkdir()
     wm = WorkspaceManager(tmp_path)
     created = wm.initialize()
-    assert set(created) == {"encounters", "exports"}
+    expected = set(WORKSPACE_SUBFOLDERS) - {"monsters", "lists"}
+    assert set(created) == expected
 
 
 def test_validate_existing_path(tmp_path):
