@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-23)
 
 **Core value:** DMs can roll attacks and saving throws for groups of monsters in seconds, with full D&D 5e rule fidelity and clear hit/miss/damage breakdowns.
-**Current focus:** Phase 5 — Roll20 Macro Sandbox (next)
+**Current focus:** Phase 5 — Roll20 Macro Sandbox (in progress)
 
 ## Current Position
 
-Phase: 4 of 7 complete (Lists, Encounters, and Save Roller — DONE)
-Plan: 4 of 4 in phase 4 complete — Phase 4 fully verified and closed
-Status: Phase 4 complete — all 4 plans done; 307 tests pass; EncounterDropZone added to Library tab
-Last activity: 2026-02-24 — Completed 04-04: human end-to-end verification approved, Phase 4 closed
+Phase: 5 of 7 in progress (Roll20 Macro Sandbox)
+Plan: 1 of 4 in phase 5 complete
+Status: Phase 5 Plan 1 complete — MacroPreprocessor and MacroSandboxService with TDD; 339 tests pass
+Last activity: 2026-02-24 — Completed 05-01: MacroPreprocessor + MacroSandboxService with full TDD coverage
 
-Progress: [█████████░] 85%
+Progress: [█████████░] 87%
 
 ## Performance Metrics
 
@@ -42,6 +42,7 @@ Progress: [█████████░] 85%
 | Phase 03-attack-roller P03 | 3 | 2 tasks | 2 files |
 | Phase 04-lists-encounters-and-save-roller P01 | 4 | 2 tasks | 5 files |
 | Phase 04-lists-encounters-and-save-roller P02 | 3 | 2 TDD tasks | 3 files |
+| Phase 05-roll20-macro-sandbox P01 | 4 | 4 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -104,6 +105,11 @@ Recent decisions affecting current work:
 - [Phase 04-03]: _expand_participants duplicated as module-level helper in encounters_tab.py for UI use; service.py version remains canonical for testing
 - [Phase 04-03]: Tab label 'Encounters && Saves' uses Qt '&&' convention per Phase 02-04 decision (displays as 'Encounters & Saves')
 - [Phase 04-04]: EncounterDropZone added to Library tab during human-verify enhancement — splits import log area 50/50; monsters can be dragged to encounter without switching tabs
+- [Phase 05-01]: [05-01]: @{attr} stripped to empty string (not 0) — substituting 0 creates semantically wrong results; empty string causes ParseError caught and reported as error with warning
+- [Phase 05-01]: [05-01]: Iterative inner-first [[inline roll]] resolution via while loop handles nested [[1d20+[[1d4]]]] correctly without custom parser
+- [Phase 05-01]: [05-01]: Double-sign normalization (++/+-) in service layer not preprocessor — preprocessor is stateless text parser; normalization is execution-time concern
+- [Phase 05-01]: [05-01]: collect_all_queries deduplicates by .raw token text — same ?{...} in multiple lines asked only once
+- [Phase 05-01]: [05-01]: test_initialize_partial updated to derive expected set from WORKSPACE_SUBFOLDERS minus pre-created set — future subfolder additions won't break the test
 
 ### Pending Todos
 
@@ -111,11 +117,11 @@ None.
 
 ### Blockers/Concerns
 
-- Phase 5: The ?{query} prompt must not block the Qt main thread — confirm QDialog.exec() callback pattern before implementing MacroParser
+- Phase 5 Qt concern RESOLVED: QDialog.exec() NOT used — inline QWidget + signals confirmed in RESEARCH.md Pattern 5; MacroSandboxService is pure Python, no Qt dependency
 - Phase 7: Antivirus false positive rate on the packaged .exe is unknown; budget time to test and fall back to pyside6-deploy (Nuitka) if needed
 
 ## Session Continuity
 
 Last session: 2026-02-24
-Stopped at: Completed 04-04-PLAN.md — Phase 4 end-to-end verification approved; EncounterDropZone added; Phase 4 closed
+Stopped at: Completed 05-01-PLAN.md — MacroPreprocessor and MacroSandboxService with full TDD coverage; 339 tests pass
 Resume file: None

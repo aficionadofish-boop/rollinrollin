@@ -143,6 +143,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 2. Monster Import and Library | 4/4 | Complete   | 2026-02-24 |
 | 3. Attack Roller | 4/4 | Complete   | 2026-02-24 |
 | 4. Lists, Encounters, and Save Roller | 4/4 | Complete   | 2026-02-24 |
-| 5. Roll20 Macro Sandbox | 0/4 | Not started | - |
+| 5. Roll20 Macro Sandbox | 1/4 | In Progress|  |
 | 6. Settings | 0/TBD | Not started | - |
 | 7. Packaging and Distribution | 0/TBD | Not started | - |
