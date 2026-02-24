@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-23)
 ## Current Position
 
 Phase: 5 of 7 in progress (Roll20 Macro Sandbox)
-Plan: 2 of 4 in phase 5 complete
-Status: Phase 5 Plan 2 complete — MacroEditor (QPlainTextEdit + line numbers + syntax highlighting) and QueryPanel (inline query widget, no QDialog.exec())
-Last activity: 2026-02-24 — Completed 05-02: MacroEditor and QueryPanel UI widgets
+Plan: 3 of 4 in phase 5 complete
+Status: Phase 5 Plan 3 complete — MacroSandboxTab fully assembled: ResultPanel, MacroSidebar, MacroSandboxTab container, and MainWindow wired with 4 tabs
+Last activity: 2026-02-24 — Completed 05-03: MacroSandboxTab assembly + MainWindow wiring
 
-Progress: [█████████░] 87%
+Progress: [█████████░] 90%
 
 ## Performance Metrics
 
@@ -44,6 +44,7 @@ Progress: [█████████░] 87%
 | Phase 04-lists-encounters-and-save-roller P02 | 3 | 2 TDD tasks | 3 files |
 | Phase 05-roll20-macro-sandbox P01 | 4 | 4 tasks | 8 files |
 | Phase 05-roll20-macro-sandbox P02 | 2 | 2 tasks | 2 files |
+| Phase 05-roll20-macro-sandbox P03 | 5 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -115,6 +116,11 @@ Recent decisions affecting current work:
 - [Phase 05-02]: QueryPanel uses QStackedWidget (page 0=QComboBox, page 1=QLineEdit) to switch between dropdown and free-text query modes
 - [Phase 05-02]: QueryPanel._previous_answers persists per prompt text for session; NOT cleared by reset() — re-roll memory per CONTEXT.md decision
 - [Phase 05-02]: answered signal emits dict copy to prevent mutation after emission
+- [Phase 05-03]: ResultPanel stores (divider, cards) tuples for clean auto-trim — pop oldest group and deleteLater() when over 20 roll sets
+- [Phase 05-03]: Tab-owns-save pattern: sidebar Save button clicked -> tab._on_save_macro -> sidebar.save_macro(editor text) — neither sidebar nor editor holds reference to the other
+- [Phase 05-03]: WorkspaceManager(Path.home() / "RollinRollin") created in MainWindow and initialized on startup — ensures macros/ folder exists before MacroSandboxTab is constructed
+- [Phase 05-03]: QTimer.singleShot(50, scroll_to_bottom) — 50ms delay lets layout settle before scroll maximum is read
+- [Phase 05-03]: Horizontal splitter: main content (index 0) non-collapsible, sidebar (index 1) collapsible
 
 ### Pending Todos
 
@@ -128,5 +134,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-24
-Stopped at: Completed 05-02-PLAN.md — MacroEditor (line numbers + syntax highlighting) and QueryPanel (inline sequential query widget)
+Stopped at: Completed 05-03-PLAN.md — MacroSandboxTab assembled + MainWindow wired with 4 tabs + Macro Sandbox tab
 Resume file: None

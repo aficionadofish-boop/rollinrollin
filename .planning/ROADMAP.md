@@ -107,9 +107,9 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 05-01-PLAN.md — MacroPreprocessor + models + workspace update (TDD: /roll stripping, inline rolls, query extraction, unsupported token warnings)
-- [ ] 05-02-PLAN.md — MacroEditor (code-editor with line numbers, syntax highlighting, debounce) + QueryPanel (inline query resolution widget)
-- [ ] 05-03-PLAN.md — ResultPanel + MacroSidebar + MacroSandboxTab assembly + MainWindow wiring
+- [x] 05-01-PLAN.md — MacroPreprocessor + models + workspace update (TDD: /roll stripping, inline rolls, query extraction, unsupported token warnings) — completed 2026-02-24
+- [x] 05-02-PLAN.md — MacroEditor (code-editor with line numbers, syntax highlighting, debounce) + QueryPanel (inline query resolution widget) — completed 2026-02-24
+- [x] 05-03-PLAN.md — ResultPanel + MacroSidebar + MacroSandboxTab assembly + MainWindow wiring — completed 2026-02-24
 - [ ] 05-04-PLAN.md — End-to-end human verification checkpoint
 
 ### Phase 6: Settings
@@ -143,6 +143,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 2. Monster Import and Library | 4/4 | Complete   | 2026-02-24 |
 | 3. Attack Roller | 4/4 | Complete   | 2026-02-24 |
 | 4. Lists, Encounters, and Save Roller | 4/4 | Complete   | 2026-02-24 |
-| 5. Roll20 Macro Sandbox | 2/4 | In Progress|  |
+| 5. Roll20 Macro Sandbox | 3/4 | In Progress|  |
 | 6. Settings | 0/TBD | Not started | - |
 | 7. Packaging and Distribution | 0/TBD | Not started | - |
