@@ -71,7 +71,7 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — RollService + roll models (TDD): pure-Python 5e rule translation layer with seeded golden tests
+- [x] 03-01-PLAN.md — RollService + roll models (TDD): pure-Python 5e rule translation layer with seeded golden tests — completed 2026-02-24
 - [ ] 03-02-PLAN.md — ToggleBar + BonusDiceList reusable UI widgets
 - [ ] 03-03-PLAN.md — AttackRollerTab + RollOutputPanel: full rolling UI with RAW/COMPARE modes, action list, all toggles
 - [ ] 03-04-PLAN.md — MainWindow + cross-tab wiring + end-to-end human verification
@@ -129,7 +129,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 |-------|----------------|--------|-----------|
 | 1. Dice Engine and Domain Foundation | 2/2 | Complete   | 2026-02-23 |
 | 2. Monster Import and Library | 4/4 | Complete   | 2026-02-24 |
-| 3. Attack Roller | 0/TBD | Not started | - |
+| 3. Attack Roller | 1/4 | In progress | - |
 | 4. Lists, Encounters, and Save Roller | 0/TBD | Not started | - |
 | 5. Roll20 Macro Sandbox | 0/TBD | Not started | - |
 | 6. Settings | 0/TBD | Not started | - |

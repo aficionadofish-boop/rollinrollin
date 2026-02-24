@@ -35,17 +35,17 @@
 ### Attack Roller
 
 - [ ] **ATTACK-01**: User can select a monster from the library, then select one of its actions to roll
-- [ ] **ATTACK-02**: User can specify N (how many attacks to roll at once, e.g. roll 8 attacks)
-- [ ] **ATTACK-03**: RAW mode shows per-attack breakdown: all d20 result(s), to-hit bonus, flat modifier, bonus dice results, final attack total; per-damage-part die results and subtotals; damage type labels
-- [ ] **ATTACK-04**: COMPARE mode requires a Target AC input; shows each attack as hit/miss with margin; damage rolls only on hits; summary of total hits, total misses, total damage
-- [ ] **ATTACK-05**: Advantage/disadvantage toggle: rolls 2d20, displays both faces, uses higher (adv) or lower (disadv)
-- [ ] **ATTACK-06**: Nat-1 always miss and Nat-20 always hit toggles (independent on/off)
-- [ ] **ATTACK-07**: Crit enable toggle with configurable crit range (default 20; adjustable down to 18)
-- [ ] **ATTACK-08**: Crit damage rule: double all damage dice (default 5e rule)
-- [ ] **ATTACK-09**: Flat modifier input (positive or negative integer) applied to attack roll total
-- [ ] **ATTACK-10**: Bonus dice list: user can add one or more signed dice formulas (e.g. +1d4 Bless, -1d6) stacked and added to attack total
+- [x] **ATTACK-02**: User can specify N (how many attacks to roll at once, e.g. roll 8 attacks)
+- [x] **ATTACK-03**: RAW mode shows per-attack breakdown: all d20 result(s), to-hit bonus, flat modifier, bonus dice results, final attack total; per-damage-part die results and subtotals; damage type labels
+- [x] **ATTACK-04**: COMPARE mode requires a Target AC input; shows each attack as hit/miss with margin; damage rolls only on hits; summary of total hits, total misses, total damage
+- [x] **ATTACK-05**: Advantage/disadvantage toggle: rolls 2d20, displays both faces, uses higher (adv) or lower (disadv)
+- [x] **ATTACK-06**: Nat-1 always miss and Nat-20 always hit toggles (independent on/off)
+- [x] **ATTACK-07**: Crit enable toggle with configurable crit range (default 20; adjustable down to 18)
+- [x] **ATTACK-08**: Crit damage rule: double all damage dice (default 5e rule)
+- [x] **ATTACK-09**: Flat modifier input (positive or negative integer) applied to attack roll total
+- [x] **ATTACK-10**: Bonus dice list: user can add one or more signed dice formulas (e.g. +1d4 Bless, -1d6) stacked and added to attack total
 - [ ] **ATTACK-11**: Roll output can be copied to clipboard in one click
-- [ ] **ATTACK-12**: Per-damage-part results show damage type (e.g. "14 slashing + 7 poison")
+- [x] **ATTACK-12**: Per-damage-part results show damage type (e.g. "14 slashing + 7 poison")
 
 ### Save Roller
 

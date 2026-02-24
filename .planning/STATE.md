@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-23)
 
 **Core value:** DMs can roll attacks and saving throws for groups of monsters in seconds, with full D&D 5e rule fidelity and clear hit/miss/damage breakdowns.
-**Current focus:** Phase 2 — Monster Import and Library (in progress)
+**Current focus:** Phase 3 — Attack Roller (in progress)
 
 ## Current Position
 
-Phase: 2 of 7 (Monster Import and Library)
-Plan: 5 of 6 in current phase (Plan 04 complete; Plans 05-06 remaining)
-Status: Plan 02-04 complete — all 3 tasks done including bug fixes from human verification
-Last activity: 2026-02-24 — Completed 02-04 Tasks 1-3: all UI bugs fixed (sorting, incomplete detection, lore section)
+Phase: 3 of 7 (Attack Roller)
+Plan: 2 of 3 in current phase (Plan 01 complete; Plans 02-03 remaining)
+Status: Plan 03-01 complete — RollService TDD: 39 tests pass, all toggle combinations covered
+Last activity: 2026-02-24 — Completed 03-01: src/roll/ package with models, service, and full test suite
 
-Progress: [██████░░░░] 50%
+Progress: [███████░░░] 60%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
+- Total plans completed: 7
 - Average duration: 5 min
-- Total execution time: 0.5 hours
+- Total execution time: 0.6 hours
 
 **By Phase:**
 
@@ -29,13 +29,15 @@ Progress: [██████░░░░] 50%
 |-------|-------|-------|----------|
 | 01-dice-engine-and-domain-foundation | 2/2 | 7 min | 4 min |
 | 02-monster-import-and-library | 4/6 | 32 min | 5 min |
+| 03-attack-roller | 1/3 | 10 min | 10 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-01 (4 min), 02-02 (4 min), 02-03 (5 min), 02-04-tasks1-2 (2 min), 02-04-task3 (15 min)
+- Last 5 plans: 02-03 (5 min), 02-04-tasks1-2 (2 min), 02-04-task3 (15 min), 03-01 (10 min)
 - Trend: stable
 
 *Updated after each plan completion*
 | Phase 02-monster-import-and-library P04 | 3 | 3 tasks | 8 files |
+| Phase 03-attack-roller P01 | 1 | 1 TDD task | 4 files |
 
 ## Accumulated Context
 
@@ -76,6 +78,11 @@ Recent decisions affecting current work:
 - [Phase 02-04]: Qt.UserRole must return non-None for ALL columns when setSortRole(Qt.UserRole) is set — col0 returns name.lower() (02-04)
 - [Phase 02-04]: Fivetools format detected by >## heading (structural marker) not **Armor Class** presence (02-04)
 - [Phase 02-04]: Qt '&&' in text displays literal '&' — single '&' is treated as keyboard accelerator prefix (02-04)
+- [Phase 03-01]: RollRequest uses to_hit_bonus: int (not formula string) — d20 rolled separately to avoid ParseError on negative bonuses (03-01)
+- [Phase 03-01]: _double_dice() regex doubles only leading NdM prefix; constant bonuses unchanged per 5e crit rules (03-01)
+- [Phase 03-01]: Nat-1/nat-20 extracted from DieFace.kept=True (not d20_result.total) for correctness with advantage/disadvantage (03-01)
+- [Phase 03-01]: Bonus dice formula: strip leading '+' before roll_expression(); sign detected from formula.startswith('-') (03-01)
+- [Phase 03-01]: COMPARE mode damage gating: is_hit is True (explicit identity check, not truthy) before rolling damage (03-01)
 
 ### Pending Todos
 
@@ -89,5 +96,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-24
-Stopped at: Completed 02-04-PLAN.md — all tasks including Task 3 human verification and bug fixes
+Stopped at: Completed 03-01-PLAN.md — RollService TDD (RED+GREEN), 39 tests passing, 276 total
 Resume file: None
