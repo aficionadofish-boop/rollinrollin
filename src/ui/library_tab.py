@@ -119,6 +119,8 @@ class MonsterLibraryTab(QWidget):
             QAbstractItemView.EditTrigger.NoEditTriggers
         )
         self._table.verticalHeader().setVisible(False)
+        self._table.setDragEnabled(True)
+        self._table.setDefaultDropAction(Qt.DropAction.CopyAction)
 
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)

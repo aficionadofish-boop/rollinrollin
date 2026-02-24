@@ -11,7 +11,7 @@ performs numeric float comparison rather than lexicographic string comparison.
 """
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex
+from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex, QMimeData
 
 from src.domain.models import Monster
 
@@ -128,3 +128,27 @@ class MonsterTableModel(QAbstractTableModel):
         or editing.  Raises IndexError on out-of-range row.
         """
         return self._monsters[row]
+
+    # ------------------------------------------------------------------
+    # Drag support
+    # ------------------------------------------------------------------
+
+    def flags(self, index: QModelIndex) -> Qt.ItemFlag:
+        base = super().flags(index)
+        return base | Qt.ItemFlag.ItemIsDragEnabled
+
+    def mimeTypes(self) -> list[str]:
+        return ["application/x-monster-name"]
+
+    def mimeData(self, indexes) -> QMimeData:
+        mime = QMimeData()
+        if indexes:
+            # indexes may be multiple cells in same row — use first unique row
+            rows = sorted({idx.row() for idx in indexes})
+            row = rows[0]
+            monster = self._monsters[row]
+            mime.setData(
+                "application/x-monster-name",
+                monster.name.encode("utf-8"),
+            )
+        return mime

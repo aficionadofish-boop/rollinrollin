@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-02-23)
 ## Current Position
 
 Phase: 4 of 7 (Lists, Encounters, and Save Roller)
-Plan: 1 of 5 in current phase (Plan 04-01 complete)
-Status: Plan 04-01 complete — Domain model extensions and encounter DTOs, 276 tests pass
-Last activity: 2026-02-24 — Completed 04-01: Encounter.members shape, get_by_name, src/encounter/models.py
+Plan: 2 of 5 in current phase (Plan 04-02 complete)
+Status: Plan 04-02 complete — EncounterService + SaveRollService TDD, 307 tests pass
+Last activity: 2026-02-24 — Completed 04-02: EncounterService Markdown save/load, SaveRollService d20 saves, 307 tests
 
 Progress: [████████░░] 78%
 
@@ -41,6 +41,7 @@ Progress: [████████░░] 78%
 | Phase 03-attack-roller P02 | 1 | 2 tasks | 2 files |
 | Phase 03-attack-roller P03 | 3 | 2 tasks | 2 files |
 | Phase 04-lists-encounters-and-save-roller P01 | 4 | 2 tasks | 5 files |
+| Phase 04-lists-encounters-and-save-roller P02 | 3 | 2 TDD tasks | 3 files |
 
 ## Accumulated Context
 
@@ -96,6 +97,9 @@ Recent decisions affecting current work:
 - [Phase 04-01]: Encounter.members changed to list[tuple[Monster, int]] — same (monster, count) convention as MonsterList.entries
 - [Phase 04-01]: get_by_name raises KeyError on miss — callers must call has_name() first; no Optional return
 - [Phase 04-01]: SaveRequest.bonus_dice typed as list (untyped) — avoids importing BonusDiceEntry from roll.models into encounter layer
+- [Phase 04-02]: (score-10)//2 for ability modifier fallback — floor division is correct for negatives; int(score/2) used only for damage (01-01 convention does NOT apply here)
+- [Phase 04-02]: SaveRollService defines its own bonus dice handling inline — no import from src.roll; avoids coupling between attack-roll and save-roll layers
+- [Phase 04-02]: _resolve_save_bonus and _expand_participants are module-level helpers, not class methods — independently testable pure functions
 
 ### Pending Todos
 
@@ -109,5 +113,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-24
-Stopped at: Completed 04-01-PLAN.md — Encounter.members shape, get_by_name, src/encounter/models.py DTOs, 276 tests passing
+Stopped at: Completed 04-02-PLAN.md — EncounterService Markdown save/load, SaveRollService d20 saves, 307 tests passing
 Resume file: None
