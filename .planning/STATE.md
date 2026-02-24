@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-02-23)
 ## Current Position
 
 Phase: 5 of 7 in progress (Roll20 Macro Sandbox)
-Plan: 1 of 4 in phase 5 complete
-Status: Phase 5 Plan 1 complete — MacroPreprocessor and MacroSandboxService with TDD; 339 tests pass
-Last activity: 2026-02-24 — Completed 05-01: MacroPreprocessor + MacroSandboxService with full TDD coverage
+Plan: 2 of 4 in phase 5 complete
+Status: Phase 5 Plan 2 complete — MacroEditor (QPlainTextEdit + line numbers + syntax highlighting) and QueryPanel (inline query widget, no QDialog.exec())
+Last activity: 2026-02-24 — Completed 05-02: MacroEditor and QueryPanel UI widgets
 
 Progress: [█████████░] 87%
 
@@ -43,6 +43,7 @@ Progress: [█████████░] 87%
 | Phase 04-lists-encounters-and-save-roller P01 | 4 | 2 tasks | 5 files |
 | Phase 04-lists-encounters-and-save-roller P02 | 3 | 2 TDD tasks | 3 files |
 | Phase 05-roll20-macro-sandbox P01 | 4 | 4 tasks | 8 files |
+| Phase 05-roll20-macro-sandbox P02 | 2 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -110,6 +111,10 @@ Recent decisions affecting current work:
 - [Phase 05-01]: [05-01]: Double-sign normalization (++/+-) in service layer not preprocessor — preprocessor is stateless text parser; normalization is execution-time concern
 - [Phase 05-01]: [05-01]: collect_all_queries deduplicates by .raw token text — same ?{...} in multiple lines asked only once
 - [Phase 05-01]: [05-01]: test_initialize_partial updated to derive expected set from WORKSPACE_SUBFOLDERS minus pre-created set — future subfolder additions won't break the test
+- [Phase 05-02]: QTextEdit imported from PySide6.QtWidgets not PySide6.QtGui — wrong module causes ImportError
+- [Phase 05-02]: QueryPanel uses QStackedWidget (page 0=QComboBox, page 1=QLineEdit) to switch between dropdown and free-text query modes
+- [Phase 05-02]: QueryPanel._previous_answers persists per prompt text for session; NOT cleared by reset() — re-roll memory per CONTEXT.md decision
+- [Phase 05-02]: answered signal emits dict copy to prevent mutation after emission
 
 ### Pending Todos
 
@@ -123,5 +128,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-24
-Stopped at: Completed 05-01-PLAN.md — MacroPreprocessor and MacroSandboxService with full TDD coverage; 339 tests pass
+Stopped at: Completed 05-02-PLAN.md — MacroEditor (line numbers + syntax highlighting) and QueryPanel (inline sequential query widget)
 Resume file: None
