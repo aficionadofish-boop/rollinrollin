@@ -8,6 +8,7 @@ from src.engine.roller import Roller
 from src.library.service import MonsterLibrary
 from src.ui.library_tab import MonsterLibraryTab
 from src.ui.attack_roller_tab import AttackRollerTab
+from src.ui.encounters_tab import EncountersTab
 
 
 class MainWindow(QMainWindow):
@@ -26,9 +27,14 @@ class MainWindow(QMainWindow):
         self._tab_widget = QTabWidget()
         self._library_tab = MonsterLibraryTab(library=self._library)
         self._attack_roller_tab = AttackRollerTab(roller=self._roller)
+        self._encounters_tab = EncountersTab(
+            library=self._library,
+            roller=self._roller,
+        )
 
         self._tab_widget.addTab(self._library_tab, "Library")
         self._tab_widget.addTab(self._attack_roller_tab, "Attack Roller")
+        self._tab_widget.addTab(self._encounters_tab, "Encounters && Saves")
         self.setCentralWidget(self._tab_widget)
 
         # Cross-tab signal: Library monster selection → Attack Roller
