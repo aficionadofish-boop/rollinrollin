@@ -302,7 +302,7 @@ class MonsterDetailPanel(QWidget):
     def _add_action_row(self, action: Action) -> None:
         """Add a single action row widget to the actions layout."""
         if action.is_parsed and action.to_hit_bonus is not None:
-            # Parsed attack action — show name + disabled Roll button
+            # Parsed attack action — show name + dice math (no Roll button)
             row_widget = QWidget()
             row_layout = QHBoxLayout(row_widget)
             row_layout.setContentsMargins(0, 0, 0, 0)
@@ -310,10 +310,18 @@ class MonsterDetailPanel(QWidget):
             name_label.setSizePolicy(
                 QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
             )
-            roll_btn = QPushButton("Roll")
-            roll_btn.setEnabled(False)  # Phase 3 will wire this
             row_layout.addWidget(name_label)
-            row_layout.addWidget(roll_btn)
+
+            # Dice math: "+5 to hit  |  1d6+3 piercing + 1d4 poison"
+            sign = "+" if action.to_hit_bonus >= 0 else ""
+            hit_str = f"{sign}{action.to_hit_bonus} to hit"
+            dmg_parts = [
+                f"{dp.dice_expr} {dp.damage_type}" for dp in action.damage_parts
+            ]
+            math_str = f"{hit_str}  |  {' + '.join(dmg_parts)}" if dmg_parts else hit_str
+            math_label = QLabel(math_str)
+            math_label.setStyleSheet("color: gray; font-size: 9pt;")
+            row_layout.addWidget(math_label)
             self._actions_layout.addWidget(row_widget)
         else:
             # Unparsed action — raw text only, no button.

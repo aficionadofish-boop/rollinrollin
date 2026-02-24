@@ -4,13 +4,14 @@ Recursive descent parser for dice expressions.
 Entry point:
     roll_expression(expr: str, roller: Roller, seed: Optional[int] = None) -> DiceResult
 
-Grammar (from RESEARCH.md — implemented exactly):
+Grammar:
     expression  ::= term (('+' | '-') term)*
-    term        ::= factor (('*' | '/') factor)*
+    term        ::= power (('*' | '/') power)*
+    power       ::= factor ('**' power)?       # right-associative
     factor      ::= '-' factor | '(' expression ')' | atom
     atom        ::= dice_expr | INTEGER
-    dice_expr   ::= INTEGER 'd' INTEGER keep_modifier?
-    keep_modifier ::= ('kh' | 'kl') INTEGER
+    dice_expr   ::= INTEGER 'd' INTEGER modifiers?
+    modifiers   ::= '!'? ('kh'|'kl' INTEGER)? ('cs>' INTEGER | ('>'|'<') INTEGER)?
 
 The parser builds DiceResult objects directly (no separate AST) by combining
 sub-results using DiceResult arithmetic helpers.
@@ -33,9 +34,14 @@ from src.engine.lexer import Token, tokenize
 from src.engine.models import DiceResult
 from src.engine.roller import Roller
 
-# Regex for splitting a raw DICE token value (e.g. "2d20kh1", "4d6kl3", "2d6")
+# Regex for splitting a raw DICE token value.
+# Supports: NdM, NdM!, NdMkh/klN, NdM!kh/klN, NdM>T, NdM<T, NdMcs>T
 _DICE_VALUE_RE = re.compile(
-    r"^(?P<n_dice>\d+)[dD](?P<sides>\d+)(?:(?P<keep_type>k[hl])(?P<keep_count>\d+))?$",
+    r"^(?P<n_dice>\d+)[dD](?P<sides>\d+)"
+    r"(?P<explode>!)?"
+    r"(?:(?P<keep_type>k[hl])(?P<keep_count>\d+))?"
+    r"(?:(?P<crit_op>cs>)(?P<crit_threshold>\d+)"
+    r"|(?P<success_op>[><])(?P<success_threshold>\d+))?$",
     re.IGNORECASE,
 )
 
@@ -87,16 +93,25 @@ class _DiceParser:
         return left
 
     def _term(self) -> DiceResult:
-        """term ::= factor (('*' | '/') factor)*"""
-        left = self._factor()
+        """term ::= power (('*' | '/') power)*"""
+        left = self._power()
         while self._peek_value() in ("*", "/"):
             op = self._consume_op()
-            right = self._factor()
+            right = self._power()
             if op == "*":
                 left = left.multiply(right)
             else:
                 left = left.divide(right)
         return left
+
+    def _power(self) -> DiceResult:
+        """power ::= factor ('**' power)?   (right-associative via recursion)"""
+        base = self._factor()
+        if self._peek_value() == "**":
+            self._consume_op()
+            exponent = self._power()  # right-recursive for right-associativity
+            return base.power(exponent)
+        return base
 
     def _factor(self) -> DiceResult:
         """factor ::= '-' factor | '(' expression ')' | atom"""
@@ -135,16 +150,32 @@ class _DiceParser:
 
         n_dice = int(m.group("n_dice"))
         sides = int(m.group("sides"))
+
+        explode = m.group("explode") is not None
+
         raw_keep_type = m.group("keep_type")  # e.g. "kh" or "kl" or None
         keep_type = raw_keep_type.lower() if raw_keep_type else None
         keep_count_str = m.group("keep_count")
         keep_count = int(keep_count_str) if keep_count_str else n_dice
+
+        success_op = m.group("success_op")  # ">" or "<" or None
+        success_threshold_str = m.group("success_threshold")
+        success_threshold = int(success_threshold_str) if success_threshold_str else None
+
+        crit_op = m.group("crit_op")  # "cs>" or None
+        crit_threshold_str = m.group("crit_threshold")
+        crit_threshold = int(crit_threshold_str) if crit_threshold_str else None
 
         return self._roller.roll_dice(
             n_dice=n_dice,
             sides=sides,
             keep_type=keep_type,
             keep_count=keep_count,
+            explode=explode,
+            success_op=success_op,
+            success_threshold=success_threshold,
+            crit_op=crit_op,
+            crit_threshold=crit_threshold,
         )
 
     # ------------------------------------------------------------------
@@ -194,9 +225,13 @@ def roll_expression(
     Parameters
     ----------
     expr   : str
-        The dice expression to evaluate (e.g. "2d6+5", "2d20kh1", "(1d6+2)*3").
-        Whitespace is tolerated. Operators: +, -, *, /. Division truncates toward
-        zero (5e convention).
+        The dice expression to evaluate.  Supports:
+        - Arithmetic: +, -, *, /, ** (exponentiation, right-associative)
+        - Dice: NdM, NdM! (exploding), NdMkh/klN (keep)
+        - Success counting: NdM>T, NdM<T (total = count of passes)
+        - Critical marking: NdMcs>T (display only, marks faces >= T)
+        - Parentheses for grouping
+        Whitespace is tolerated. Division truncates toward zero (5e convention).
     roller : Roller
         The Roller instance to use for all die rolls. The caller controls seeding.
     seed   : Optional[int]

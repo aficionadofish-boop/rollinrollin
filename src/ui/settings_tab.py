@@ -2,7 +2,7 @@
 
 Provides a two-column grid layout with:
   - RNG section (seeded RNG toggle and seed spinbox)
-  - Combat Defaults (advantage mode, GWM/SS, crit settings)
+  - Combat Defaults (advantage mode, crit settings)
   - Default AC / DC (target AC and save DC spinboxes)
   - Output mode (RAW/COMPARE toggle)
   - Save button with dirty tracking
@@ -148,11 +148,6 @@ class SettingsTab(QWidget):
         adv_row.addWidget(self._adv_bar)
         layout.addLayout(adv_row)
 
-        # GWM / Sharpshooter checkbox
-        self._gwm_check = QCheckBox("GWM / Sharpshooter")
-        self._gwm_check.toggled.connect(self._mark_dirty)
-        layout.addWidget(self._gwm_check)
-
         # Crit enabled checkbox
         self._crit_check = QCheckBox("Crit Enabled")
         self._crit_check.setChecked(True)
@@ -272,7 +267,6 @@ class SettingsTab(QWidget):
             adv_label = settings.default_advantage_mode.capitalize()
             # "normal" -> "Normal", "advantage" -> "Advantage", "disadvantage" -> "Disadvantage"
             self._adv_bar.set_value(adv_label)
-            self._gwm_check.setChecked(settings.default_gwm_sharpshooter)
             self._crit_check.setChecked(settings.default_crit_enabled)
             self._crit_range_spin.setValue(settings.default_crit_range)
             self._nat1_check.setChecked(settings.default_nat1_always_miss)
@@ -311,7 +305,6 @@ class SettingsTab(QWidget):
             default_nat1_always_miss=self._nat1_check.isChecked(),
             default_nat20_always_hit=self._nat20_check.isChecked(),
             default_advantage_mode=adv_value,
-            default_gwm_sharpshooter=self._gwm_check.isChecked(),
             default_mode=mode_value,
             default_target_ac=self._target_ac_spin.value(),
             default_save_dc=self._save_dc_spin.value(),

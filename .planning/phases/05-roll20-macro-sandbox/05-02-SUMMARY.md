@@ -76,7 +76,7 @@ Each task was committed atomically:
 1. **Task 1: MacroEditor with line number gutter and syntax highlighter** - `63801d5` (feat)
 2. **Task 2: QueryPanel inline widget for sequential ?{query} resolution** - `15e154d` (feat)
 
-**Plan metadata:** (pending final commit)
+**Plan metadata:** `4a8d813` (docs: complete plan)
 
 ## Files Created/Modified
 - `src/ui/macro_editor.py` - MacroHighlighter + LineNumberArea + MacroEditor classes
@@ -114,6 +114,16 @@ None — no external service configuration required.
 - MacroEditor and QueryPanel are self-contained QWidget subclasses ready for assembly in Plan 03 (MacroSandboxTab)
 - Both widgets verified to import cleanly from their modules
 - No new pip packages required; all PySide6 components already in project
+
+---
+## Self-Check: PASSED
+
+- FOUND: src/ui/macro_editor.py
+- FOUND: src/ui/macro_query_panel.py
+- FOUND: .planning/phases/05-roll20-macro-sandbox/05-02-SUMMARY.md
+- FOUND commit: 63801d5 (Task 1)
+- FOUND commit: 15e154d (Task 2)
+- FOUND commit: 4a8d813 (docs/metadata)
 
 ---
 *Phase: 05-roll20-macro-sandbox*

@@ -1,10 +1,9 @@
 """AttackRollerTab — full Attack Roller tab widget.
 
 Assembles all Phase 3 UI:
-- Monster name header + N (count) spinner
-- Scrollable action list with per-row Roll buttons
+- Scrollable grouped attack list (populated from shared encounter creature list)
 - Controls: mode toggle, advantage toggle, nat-1/nat-20 checkboxes,
-  crit controls, flat modifier, bonus dice list
+  crit controls, flat modifier, bonus dice list, N attacks spinner
 - RollOutputPanel for results
 
 Wires RollService to the UI; implements RAW/COMPARE mode switching with
@@ -12,6 +11,7 @@ result re-render (no re-roll on mode switch).
 """
 from __future__ import annotations
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -42,9 +42,9 @@ class AttackRollerTab(QWidget):
 
     Public API
     ----------
-    set_monster(monster)
-        Called from main window when Library tab selection changes.
-        Rebuilds the action list to show the selected monster's actions.
+    set_creatures(creatures)
+        Called from main window when encounter member list changes.
+        Rebuilds the grouped attack list.
     """
 
     def __init__(self, roller, parent=None) -> None:
@@ -52,7 +52,7 @@ class AttackRollerTab(QWidget):
         self._roller = roller
         self._roll_service = RollService()
         self._last_result: RollResult | None = None
-        self._current_monster = None
+        self._creatures: list[tuple] = []  # [(Monster, count), ...]
         self._action_rows: list[QWidget] = []
         self._mode = "raw"
 
@@ -67,24 +67,15 @@ class AttackRollerTab(QWidget):
         root_layout.setContentsMargins(6, 6, 6, 6)
         root_layout.setSpacing(6)
 
-        # -- Header row: monster label + N spinner -----------------------
-        header_row = QHBoxLayout()
-        self._monster_label = QLabel("Monster: None selected")
-        self._monster_label.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
+        # -- Placeholder (shown when no creatures loaded) -----------------
+        self._placeholder_label = QLabel(
+            "Add creatures from the Library to see their attacks"
         )
-        header_row.addWidget(self._monster_label)
+        self._placeholder_label.setStyleSheet("color: gray; padding: 12px;")
+        self._placeholder_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        root_layout.addWidget(self._placeholder_label)
 
-        n_label = QLabel("N:")
-        self._n_spin = QSpinBox()
-        self._n_spin.setRange(1, 99)
-        self._n_spin.setValue(1)
-        self._n_spin.setToolTip("Number of attacks to roll")
-        header_row.addWidget(n_label)
-        header_row.addWidget(self._n_spin)
-        root_layout.addLayout(header_row)
-
-        # -- Action list (scrollable) ------------------------------------
+        # -- Grouped attack list (scrollable) -----------------------------
         self._action_list_layout = QVBoxLayout()
         self._action_list_layout.setContentsMargins(0, 0, 0, 0)
         self._action_list_layout.setSpacing(2)
@@ -93,11 +84,12 @@ class AttackRollerTab(QWidget):
         action_list_widget = QWidget()
         action_list_widget.setLayout(self._action_list_layout)
 
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setWidget(action_list_widget)
-        scroll_area.setMinimumHeight(120)
-        root_layout.addWidget(scroll_area)
+        self._action_scroll = QScrollArea()
+        self._action_scroll.setWidgetResizable(True)
+        self._action_scroll.setWidget(action_list_widget)
+        self._action_scroll.setMinimumHeight(140)
+        self._action_scroll.setVisible(False)  # hidden until creatures added
+        root_layout.addWidget(self._action_scroll)
 
         # -- Controls area -----------------------------------------------
         controls_row = QHBoxLayout()
@@ -118,6 +110,17 @@ class AttackRollerTab(QWidget):
     def _build_attack_roll_group(self) -> QGroupBox:
         group = QGroupBox("Attack Roll")
         layout = QVBoxLayout(group)
+
+        # N (number of attacks) spinner
+        n_row = QHBoxLayout()
+        n_label = QLabel("N:")
+        self._n_spin = QSpinBox()
+        self._n_spin.setRange(1, 99)
+        self._n_spin.setValue(1)
+        self._n_spin.setToolTip("Number of attacks to roll")
+        n_row.addWidget(n_label)
+        n_row.addWidget(self._n_spin)
+        layout.addLayout(n_row)
 
         # RAW | COMPARE mode toggle
         mode_row = QHBoxLayout()
@@ -232,11 +235,13 @@ class AttackRollerTab(QWidget):
     # Public API
     # ------------------------------------------------------------------
 
-    def set_monster(self, monster) -> None:
-        """Called from main window when Library tab selection changes."""
-        self._current_monster = monster
-        name = monster.name if monster else "None selected"
-        self._monster_label.setText(f"Monster: {name}")
+    def set_creatures(self, creatures: list) -> None:
+        """Called from MainWindow when encounter member list changes.
+
+        Args:
+            creatures: list of (Monster, int) tuples from EncounterMemberList.
+        """
+        self._creatures = creatures
         self._rebuild_action_list()
 
     # ------------------------------------------------------------------
@@ -244,44 +249,66 @@ class AttackRollerTab(QWidget):
     # ------------------------------------------------------------------
 
     def _rebuild_action_list(self) -> None:
-        """Clear and rebuild action rows for self._current_monster."""
-        # Remove existing rows (deleteLater is required for Qt ownership)
+        """Clear and rebuild action rows, grouped by creature."""
+        # Remove existing dynamic widgets
         for row_widget in self._action_rows:
             self._action_list_layout.removeWidget(row_widget)
             row_widget.deleteLater()
         self._action_rows = []
 
-        if self._current_monster is None:
+        if not self._creatures:
+            self._placeholder_label.setVisible(True)
+            self._action_scroll.setVisible(False)
             return
 
-        for action in self._current_monster.actions:
-            row = self._make_action_row(action)
-            # Insert before the stretch at the end
+        self._placeholder_label.setVisible(False)
+        self._action_scroll.setVisible(True)
+
+        for monster, count in self._creatures:
+            # Filter to rollable attacks only
+            rollable = [
+                a for a in monster.actions
+                if a.is_parsed and a.to_hit_bonus is not None
+            ]
+            if not rollable:
+                continue
+
+            # Creature header
+            if count > 1:
+                header_text = f"\u2500\u2500 {monster.name} (x{count}) \u2500\u2500"
+            else:
+                header_text = f"\u2500\u2500 {monster.name} \u2500\u2500"
+
+            header_label = QLabel(header_text)
+            header_label.setStyleSheet("font-weight: bold; padding: 4px 0 2px 0;")
             insert_idx = self._action_list_layout.count() - 1
-            self._action_list_layout.insertWidget(insert_idx, row)
-            self._action_rows.append(row)
+            self._action_list_layout.insertWidget(insert_idx, header_label)
+            self._action_rows.append(header_label)
+
+            # Action rows for this creature
+            for action in rollable:
+                row = self._make_action_row(action)
+                insert_idx = self._action_list_layout.count() - 1
+                self._action_list_layout.insertWidget(insert_idx, row)
+                self._action_rows.append(row)
 
     def _make_action_row(self, action) -> QWidget:
-        """Build one action row widget with label + Roll button."""
+        """Build one action row: 'Scimitar (+4)  [Roll]'."""
         row = QWidget()
         layout = QHBoxLayout(row)
-        layout.setContentsMargins(2, 1, 2, 1)
+        layout.setContentsMargins(16, 1, 2, 1)  # 16px left indent for grouping
 
-        name_label = QLabel(action.name)
+        bonus_sign = "+" if action.to_hit_bonus >= 0 else ""
+        label_text = f"{action.name} ({bonus_sign}{action.to_hit_bonus})"
+        name_label = QLabel(label_text)
         name_label.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
         )
-        roll_btn = QPushButton("Roll")
 
-        if action.is_parsed and action.to_hit_bonus is not None:
-            roll_btn.setEnabled(True)
-            roll_btn.clicked.connect(
-                lambda checked, a=action: self._on_roll(a)
-            )
-        else:
-            roll_btn.setEnabled(False)
-            roll_btn.setToolTip("Action could not be parsed — no roll available")
-            name_label.setStyleSheet("color: gray;")
+        roll_btn = QPushButton("Roll")
+        roll_btn.clicked.connect(
+            lambda checked, a=action: self._on_roll(a)
+        )
 
         layout.addWidget(name_label)
         layout.addWidget(roll_btn)
@@ -467,8 +494,6 @@ class AttackRollerTab(QWidget):
         self._crit_check.setChecked(settings.default_crit_enabled)
         self._crit_range_spin.setValue(settings.default_crit_range)
         self._target_ac_spin.setValue(settings.default_target_ac)
-        # GWM/Sharpshooter: store default for future widget wiring.
-        self._default_gwm_ss = settings.default_gwm_sharpshooter
 
     def set_seeded_mode(self, enabled: bool) -> None:
         """Show or hide the seeded badge on the output panel."""

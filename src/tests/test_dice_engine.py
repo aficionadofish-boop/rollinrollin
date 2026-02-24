@@ -267,3 +267,279 @@ def test_whitespace_tolerance():
     result_padded = roll_expression("  2d6  +  3  ", roller1, seed=None)
     result_clean = roll_expression("2d6+3", roller2, seed=None)
     assert result_padded.total == result_clean.total
+
+
+# ---------------------------------------------------------------------------
+# Lexer: new token types (**, !, >, <, cs>)
+# ---------------------------------------------------------------------------
+
+def test_tokenize_exponent_op():
+    """'2d4**2' tokenizes as [DICE(2d4), OP(**), INT(2)]."""
+    tokens = tokenize("2d4**2")
+    assert len(tokens) == 3
+    assert tokens[0].type == "DICE"
+    assert tokens[0].value == "2d4"
+    assert tokens[1].type == "OP"
+    assert tokens[1].value == "**"
+    assert tokens[2].type == "INT"
+    assert tokens[2].value == 2
+
+
+def test_tokenize_star_vs_doublestar():
+    """'3*2**4' tokenizes correctly — ** is one token, not two * tokens."""
+    tokens = tokenize("3*2**4")
+    assert len(tokens) == 5
+    assert tokens[0].value == 3
+    assert tokens[1].value == "*"
+    assert tokens[2].value == 2
+    assert tokens[3].value == "**"
+    assert tokens[4].value == 4
+
+
+def test_tokenize_exploding():
+    """'1d10!' is a single DICE token."""
+    tokens = tokenize("1d10!")
+    assert len(tokens) == 1
+    assert tokens[0].type == "DICE"
+    assert tokens[0].value == "1d10!"
+
+
+def test_tokenize_exploding_keep():
+    """'4d6!kh3' is a single DICE token."""
+    tokens = tokenize("4d6!kh3")
+    assert len(tokens) == 1
+    assert tokens[0].type == "DICE"
+    assert tokens[0].value == "4d6!kh3"
+
+
+def test_tokenize_success_gt():
+    """'12d10>4' is a single DICE token."""
+    tokens = tokenize("12d10>4")
+    assert len(tokens) == 1
+    assert tokens[0].type == "DICE"
+    assert tokens[0].value == "12d10>4"
+
+
+def test_tokenize_success_lt():
+    """'12d10<4' is a single DICE token."""
+    tokens = tokenize("12d10<4")
+    assert len(tokens) == 1
+    assert tokens[0].type == "DICE"
+    assert tokens[0].value == "12d10<4"
+
+
+def test_tokenize_crit_marking():
+    """'1d20cs>19' is a single DICE token."""
+    tokens = tokenize("1d20cs>19")
+    assert len(tokens) == 1
+    assert tokens[0].type == "DICE"
+    assert tokens[0].value == "1d20cs>19"
+
+
+# ---------------------------------------------------------------------------
+# Exponentiation (**)
+# ---------------------------------------------------------------------------
+
+def test_exponent_constant():
+    """'2**3' = 8."""
+    roller = Roller(random.Random(1))
+    result = roll_expression("2**3", roller, seed=None)
+    assert result.total == 8
+
+
+def test_exponent_right_associative():
+    """'2**3**2' = 2**(3**2) = 512, NOT (2**3)**2 = 64."""
+    roller = Roller(random.Random(1))
+    result = roll_expression("2**3**2", roller, seed=None)
+    assert result.total == 512
+
+
+def test_exponent_with_dice():
+    """'2d6**2' squares the 2d6 total.
+
+    seed=42 → 2d6 = (6,1) → 7**2 = 49
+    """
+    roller = Roller(random.Random(42))
+    result = roll_expression("2d6**2", roller, seed=42)
+    assert result.total == 49
+
+
+def test_exponent_precedence_over_add():
+    """'1+2**3' = 1 + 8 = 9 (** binds tighter than +)."""
+    roller = Roller(random.Random(1))
+    result = roll_expression("1+2**3", roller, seed=None)
+    assert result.total == 9
+
+
+def test_exponent_precedence_over_mul():
+    """'2*3**2' = 2 * 9 = 18 (** binds tighter than *)."""
+    roller = Roller(random.Random(1))
+    result = roll_expression("2*3**2", roller, seed=None)
+    assert result.total == 18
+
+
+# ---------------------------------------------------------------------------
+# Exploding dice (!)
+# ---------------------------------------------------------------------------
+
+def test_exploding_no_explosion():
+    """'1d6!' with seed=1 → d6=2 (not max), no explosion, 1 face."""
+    roller = Roller(random.Random(1))
+    result = roll_expression("1d6!", roller, seed=None)
+    assert len(result.faces) == 1
+    assert result.faces[0].value == 2
+    assert result.faces[0].exploded is False
+    assert result.total == 2
+
+
+def test_exploding_triggers():
+    """'1d6!' with seed=42 → d6=6 (max), explodes once to 1.
+
+    Pool: [6, 1(exploded)], total = 7, 2 faces.
+    """
+    roller = Roller(random.Random(42))
+    result = roll_expression("1d6!", roller, seed=42)
+    assert len(result.faces) == 2
+    assert result.faces[0].value == 6
+    assert result.faces[0].exploded is False
+    assert result.faces[1].value == 1
+    assert result.faces[1].exploded is True
+    assert result.total == 7
+
+
+def test_exploding_safety_cap():
+    """1d1! always hits max — capped at 100 explosions (101 total faces)."""
+    roller = Roller(random.Random(1))
+    result = roll_expression("1d1!", roller, seed=None)
+    assert len(result.faces) == 101  # 1 original + 100 explosions
+    assert result.total == 101
+
+
+def test_exploding_with_keep():
+    """'3d6!kh2' with seed=42 → pool [6,1,1,6,3], keep highest 2 = [6,6], total=12."""
+    roller = Roller(random.Random(42))
+    result = roll_expression("3d6!kh2", roller, seed=42)
+    kept = [f for f in result.faces if f.kept]
+    assert len(kept) == 2
+    assert result.total == sum(f.value for f in kept)
+    # The two highest values from pool [6,1,1,6,3] are 6 and 6
+    kept_values = sorted(f.value for f in kept)
+    assert kept_values == [6, 6]
+
+
+def test_exploded_face_default_false():
+    """Normal dice (no !) have exploded=False on all faces."""
+    roller = Roller(random.Random(1))
+    result = roll_expression("2d6", roller, seed=None)
+    for f in result.faces:
+        assert f.exploded is False
+
+
+# ---------------------------------------------------------------------------
+# Success counting (> and <)
+# ---------------------------------------------------------------------------
+
+def test_success_count_gt():
+    """'3d6>3' counts faces strictly > 3.
+
+    seed=42 → 3d6 = (6,1,1) → 6>3=True, 1>3=False, 1>3=False → total=1
+    """
+    roller = Roller(random.Random(42))
+    result = roll_expression("3d6>3", roller, seed=42)
+    assert result.total == 1
+    kept = [f for f in result.faces if f.kept]
+    assert len(kept) == 1
+    assert kept[0].value == 6
+
+
+def test_success_count_lt():
+    """'3d6<3' counts faces strictly < 3.
+
+    seed=42 → 3d6 = (6,1,1) → 6<3=F, 1<3=T, 1<3=T → total=2
+    """
+    roller = Roller(random.Random(42))
+    result = roll_expression("3d6<3", roller, seed=42)
+    assert result.total == 2
+
+
+def test_success_count_none_pass():
+    """'3d6>10' — no d6 can exceed 10 → total = 0."""
+    roller = Roller(random.Random(42))
+    result = roll_expression("3d6>10", roller, seed=42)
+    assert result.total == 0
+
+
+def test_success_count_all_pass():
+    """'3d6<10' — all d6 values are < 10 → total = 3."""
+    roller = Roller(random.Random(42))
+    result = roll_expression("3d6<10", roller, seed=42)
+    assert result.total == 3
+
+
+def test_success_count_in_expression():
+    """'3d6>3+5' — success count + constant.
+
+    seed=42 → 3d6>3 = 1, then +5 = 6
+    """
+    roller = Roller(random.Random(42))
+    result = roll_expression("3d6>3+5", roller, seed=42)
+    assert result.total == 6
+
+
+# ---------------------------------------------------------------------------
+# Critical success marking (cs>)
+# ---------------------------------------------------------------------------
+
+def test_crit_marking_triggers():
+    """'3d6cs>5' marks faces >= 5 as critical.
+
+    seed=42 → 3d6 = (6,1,1) → 6>=5=crit, 1>=5=no, 1>=5=no
+    """
+    roller = Roller(random.Random(42))
+    result = roll_expression("3d6cs>5", roller, seed=42)
+    assert result.total == 8  # 6+1+1, unchanged
+    crits = [f for f in result.faces if f.critical]
+    assert len(crits) == 1
+    assert crits[0].value == 6
+
+
+def test_crit_marking_no_total_change():
+    """cs> is display-only — total is still the sum of all dice."""
+    roller = Roller(random.Random(42))
+    result = roll_expression("3d6cs>1", roller, seed=42)
+    # All faces >= 1, all are critical
+    assert result.total == 8  # 6+1+1
+    assert all(f.critical for f in result.faces)
+
+
+def test_crit_default_false():
+    """Normal dice (no cs>) have critical=False on all faces."""
+    roller = Roller(random.Random(1))
+    result = roll_expression("2d6", roller, seed=None)
+    for f in result.faces:
+        assert f.critical is False
+
+
+# ---------------------------------------------------------------------------
+# Feature interactions
+# ---------------------------------------------------------------------------
+
+def test_exploding_plus_success():
+    """'3d6!>3' — explode, then count successes > 3.
+
+    seed=42 → 3d6=(6,1,1), 6 explodes→6, 6 explodes→3
+    pool=[6,1,1,6,3], successes>3: 6,6 → total=2
+    """
+    roller = Roller(random.Random(42))
+    result = roll_expression("3d6!>3", roller, seed=42)
+    assert result.total == 2
+
+
+def test_exponent_plus_add():
+    """'2d6**2+1' = (2d6 total)**2 + 1.
+
+    seed=42 → 2d6=(6,1)→7, 7**2=49, +1=50
+    """
+    roller = Roller(random.Random(42))
+    result = roll_expression("2d6**2+1", roller, seed=42)
+    assert result.total == 50

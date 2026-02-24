@@ -40,6 +40,48 @@ from src.roll.models import (
 _DICE_COUNT_RE = re.compile(r"^(\d+)(d\d+)", re.IGNORECASE)
 
 
+def _extract_dice_part(expr: str) -> str | None:
+    """Extract just the 'NdM' prefix from an expression.
+
+    Returns None for pure constants (no dice component).
+
+    Examples
+    --------
+    "1d6+3"  -> "1d6"
+    "2d8"    -> "2d8"
+    "3"      -> None
+    """
+    m = _DICE_COUNT_RE.match(expr)
+    return f"{m.group(1)}{m.group(2)}" if m else None
+
+
+def _maximize_expr(expr: str) -> int:
+    """Compute the maximum possible value of a dice expression.
+
+    Examples
+    --------
+    "2d6+3"  -> 15  (2*6 + 3)
+    "1d8"    -> 8
+    "1d8-1"  -> 7
+    "3"      -> 3
+    """
+    m = _DICE_COUNT_RE.match(expr)
+    if not m:
+        try:
+            return int(expr.strip())
+        except ValueError:
+            return 0
+    count = int(m.group(1))
+    die_size = int(m.group(2)[1:])  # strip leading 'd'
+    max_dice = count * die_size
+    remainder = expr[m.end():]
+    if remainder:
+        const_m = re.match(r"([+-]\d+)", remainder.strip())
+        if const_m:
+            return max_dice + int(const_m.group(1))
+    return max_dice
+
+
 def _double_dice(expr: str) -> str:
     """Double the dice count in a dice expression for crit damage.
 
@@ -159,18 +201,70 @@ class RollService:
 
         # 8. Roll damage (always in RAW; only on hit in COMPARE)
         damage_parts: list[DamagePartResult] = []
+        crit_extra_parts: list[DamagePartResult] = []
         if request.mode == "raw" or is_hit is True:
             for dp in request.damage_parts:
-                expr = _double_dice(dp.dice_expr) if is_crit else dp.dice_expr
-                dmg_result = roll_expression(expr, roller, request.seed)
-                damage_parts.append(
-                    DamagePartResult(
+                if is_crit:
+                    dice_part = _extract_dice_part(dp.dice_expr)  # e.g. "1d6" from "1d6+3"
+                    if request.brutal_crits:
+                        # Maximize both base and extra dice — no rolls needed
+                        base_total = _maximize_expr(dp.dice_expr)
+                        damage_parts.append(DamagePartResult(
+                            total=base_total,
+                            damage_type=dp.damage_type,
+                            dice_expr=dp.dice_expr,
+                            faces=(),
+                        ))
+                        if dice_part:
+                            extra_total = _maximize_expr(dice_part)
+                            crit_extra_parts.append(DamagePartResult(
+                                total=extra_total,
+                                damage_type=dp.damage_type,
+                                dice_expr=dice_part,
+                                faces=(),
+                            ))
+                    elif request.crunchy_crits:
+                        # Maximize base dice, roll extra dice normally
+                        base_total = _maximize_expr(dp.dice_expr)
+                        damage_parts.append(DamagePartResult(
+                            total=base_total,
+                            damage_type=dp.damage_type,
+                            dice_expr=dp.dice_expr,
+                            faces=(),
+                        ))
+                        if dice_part:
+                            extra_result = roll_expression(dice_part, roller, request.seed)
+                            crit_extra_parts.append(DamagePartResult(
+                                total=extra_result.total,
+                                damage_type=dp.damage_type,
+                                dice_expr=dice_part,
+                                faces=extra_result.faces,
+                            ))
+                    else:
+                        # Standard crit: roll base expression, then roll extra dice separately
+                        base_result = roll_expression(dp.dice_expr, roller, request.seed)
+                        damage_parts.append(DamagePartResult(
+                            total=base_result.total,
+                            damage_type=dp.damage_type,
+                            dice_expr=dp.dice_expr,
+                            faces=base_result.faces,
+                        ))
+                        if dice_part:
+                            extra_result = roll_expression(dice_part, roller, request.seed)
+                            crit_extra_parts.append(DamagePartResult(
+                                total=extra_result.total,
+                                damage_type=dp.damage_type,
+                                dice_expr=dice_part,
+                                faces=extra_result.faces,
+                            ))
+                else:
+                    dmg_result = roll_expression(dp.dice_expr, roller, request.seed)
+                    damage_parts.append(DamagePartResult(
                         total=dmg_result.total,
                         damage_type=dp.damage_type,
-                        dice_expr=expr,
+                        dice_expr=dp.dice_expr,
                         faces=dmg_result.faces,
-                    )
-                )
+                    ))
 
         # 9. Margin (COMPARE + show_margin only)
         margin: Optional[int] = None
@@ -191,6 +285,7 @@ class RollService:
             is_nat20=is_nat20,
             damage_parts=damage_parts,
             margin=margin,
+            crit_extra_parts=crit_extra_parts,
         )
 
     # ------------------------------------------------------------------
@@ -203,7 +298,10 @@ class RollService:
         hits = sum(1 for r in attack_rolls if r.is_hit is True)
         misses = sum(1 for r in attack_rolls if r.is_hit is False)
         crits = sum(1 for r in attack_rolls if r.is_crit)
-        total_damage = sum(dp.total for r in attack_rolls for dp in r.damage_parts)
+        total_damage = (
+            sum(dp.total for r in attack_rolls for dp in r.damage_parts)
+            + sum(ep.total for r in attack_rolls for ep in r.crit_extra_parts)
+        )
         return RollSummary(
             total_attacks=len(attack_rolls),
             hits=hits,

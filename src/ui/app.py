@@ -57,15 +57,14 @@ class MainWindow(QMainWindow):
         self._tab_widget.addTab(self._settings_tab, "Settings")
         self.setCentralWidget(self._tab_widget)
 
-        # Cross-tab signal: Library monster selection → Attack Roller
-        # Connect AFTER both tabs are constructed (Pitfall 6 in RESEARCH.md)
-        self._library_tab.monster_selected.connect(
-            self._attack_roller_tab.set_monster
-        )
-
         # Cross-tab signal: Library drop zone → Encounters tab member list
         self._library_tab.monster_added_to_encounter.connect(
             self._encounters_tab.add_monster_to_encounter
+        )
+
+        # Cross-tab signal: Encounter member list changes → Attack Roller
+        self._encounters_tab.encounter_members_changed.connect(
+            self._attack_roller_tab.set_creatures
         )
 
         # Settings tab signal

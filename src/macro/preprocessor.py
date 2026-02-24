@@ -73,6 +73,7 @@ class CleanedMacro:
     queries: list[QuerySpec]     # ?{...} specs in left-to-right order; empty = no queries
     warnings: list[ParseWarning] # Warnings for stripped unsupported tokens
     is_empty: bool               # True if the original line was blank or whitespace-only
+    template_name: str | None = None  # Name from {{name=...}} template field, if present
 
 
 # ---------------------------------------------------------------------------
@@ -127,6 +128,9 @@ class MacroPreprocessor:
             ))
         line = _TEMPLATE_RE.sub("", line)
 
+        # --- Extract {{key=value}} template fields ---
+        line, template_name = self._extract_template_fields(line)
+
         # --- Warn and strip #macro-name tokens ---
         for m in _MACRO_REF_RE.finditer(line):
             warnings.append(ParseWarning(
@@ -140,11 +144,17 @@ class MacroPreprocessor:
         for m in _QUERY_RE.finditer(line):
             queries.append(self._parse_query(m.group(1), m.group()))
 
+        # Strip leftover parentheses from template-wrapped expressions like ({{...}})
+        stripped = line.strip()
+        if template_name is not None and stripped in ("()", "(", ")"):
+            line = ""
+
         return CleanedMacro(
             expression=line,
             queries=queries,
             warnings=warnings,
             is_empty=False,
+            template_name=template_name,
         )
 
     def resolve_inline_rolls(
@@ -214,6 +224,80 @@ class MacroPreprocessor:
     # ---------------------------------------------------------------------------
     # Private helpers
     # ---------------------------------------------------------------------------
+
+    def _extract_template_fields(self, text: str) -> tuple[str, str | None]:
+        """Extract ``{{key=value}}`` Roll20 template fields from the expression.
+
+        Returns ``(cleaned_expression, template_name)``.
+
+        - ``{{name=...}}`` is extracted as the template name and stripped entirely.
+        - Other ``{{key=value}}`` fields have ``key=`` stripped; the value is kept
+          so that inline rolls and queries within remain available for resolution.
+        - ``{{bare_value}}`` (no ``=``) is kept as-is (e.g. ``{{?{query}}}``).
+        - Correctly handles ``}}}`` where the first ``}`` closes an inner
+          ``?{...}`` and the next ``}}`` closes the template field.
+        """
+        if "{{" not in text:
+            return text, None
+
+        template_name: str | None = None
+        result_parts: list[str] = []
+        last_end = 0
+        i = 0
+
+        while i < len(text) - 1:
+            start = text.find("{{", i)
+            if start == -1:
+                break
+
+            # Find closing }} — handle }}} by skipping a } that's followed by }}
+            j = start + 2
+            end = -1
+            while j < len(text) - 1:
+                if text[j] == "}" and text[j + 1] == "}":
+                    # Is this really the closing }}?
+                    if j + 2 >= len(text) or text[j + 2] != "}":
+                        end = j
+                        break
+                    else:
+                        # }}} — skip one } (it belongs to inner construct)
+                        j += 1
+                else:
+                    j += 1
+
+            if end == -1:
+                # Fallback: check if string ends with }}
+                if len(text) >= 2 and text[-2:] == "}}":
+                    end = len(text) - 2
+                else:
+                    break
+
+            content = text[start + 2 : end]
+
+            # Keep any text before this field
+            result_parts.append(text[last_end:start])
+
+            # Parse field content
+            if "=" in content:
+                key, _, value = content.partition("=")
+                if key.strip().lower() == "name":
+                    template_name = value.strip()
+                    # Name field is informational — don't add to expression
+                else:
+                    # Keep the value (may contain [[inline rolls]], ?{queries})
+                    result_parts.append(" " + value.strip() + " ")
+            else:
+                # Bare value (e.g. ?{query} inside template field)
+                result_parts.append(" " + content.strip() + " ")
+
+            last_end = end + 2
+            i = end + 2
+
+        # Append any remaining text after the last field
+        result_parts.append(text[last_end:])
+
+        cleaned = " ".join(part.strip() for part in result_parts if part.strip())
+        return cleaned, template_name
 
     def _parse_query(self, inner: str, raw: str) -> QuerySpec:
         """

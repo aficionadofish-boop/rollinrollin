@@ -16,8 +16,6 @@ class AppSettings:
     default_nat1_always_miss: bool = True
     default_nat20_always_hit: bool = True
     default_advantage_mode: str = "normal"   # "normal", "advantage", or "disadvantage"
-    default_gwm_sharpshooter: bool = False
-
     # Default output mode — "raw" or "compare"
     default_mode: str = "raw"
 

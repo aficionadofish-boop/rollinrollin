@@ -37,6 +37,8 @@ class RollRequest:
     bonus_dice: list[BonusDiceEntry] = field(default_factory=list)
     show_margin: bool = False                          # COMPARE "Show margin" toggle
     seed: Optional[int] = None
+    crunchy_crits: bool = False  # maximize base dice, roll extra dice normally
+    brutal_crits: bool = False   # maximize both base and extra dice
 
 
 @dataclass
@@ -66,6 +68,7 @@ class AttackRollResult:
     is_nat20: bool
     damage_parts: list[DamagePartResult]  # empty if miss in COMPARE mode
     margin: Optional[int]      # attack_total - target_ac; None in RAW or if !show_margin
+    crit_extra_parts: list = field(default_factory=list)  # extra crit dice (parallel to damage_parts)
 
 
 @dataclass

@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
     QFileDialog,
     QTextEdit,
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 
 from src.domain.models import Encounter, Monster
 from src.encounter.models import SaveParticipant, SaveRequest
@@ -55,6 +55,8 @@ class EncounterMemberList(QWidget):
     has a name label, count spinbox, and remove button.
     """
 
+    members_changed = Signal(list)
+
     def __init__(self, library, parent=None):
         super().__init__(parent)
         self._library = library
@@ -80,6 +82,7 @@ class EncounterMemberList(QWidget):
         for (m, spin, _) in self._rows:
             if m.name == monster.name:
                 spin.setValue(spin.value() + count)
+                self.members_changed.emit(self.get_members())
                 return
         # New row — insert before the stretch at position (len - 1)
         row_widget = QWidget()
@@ -93,6 +96,7 @@ class EncounterMemberList(QWidget):
         count_spin.setRange(1, 99)
         count_spin.setValue(count)
         count_spin.setFixedWidth(56)
+        count_spin.valueChanged.connect(lambda _: self.members_changed.emit(self.get_members()))
 
         remove_btn = QPushButton("\u2212")  # minus sign
         remove_btn.setFixedWidth(28)
@@ -108,6 +112,7 @@ class EncounterMemberList(QWidget):
         self._layout.insertWidget(insert_pos, row_widget)
 
         remove_btn.clicked.connect(lambda checked=False, e=entry: self._remove_row(e))
+        self.members_changed.emit(self.get_members())
 
     def get_members(self) -> list[tuple]:
         """Return list of (Monster, count) for current encounter state."""
@@ -117,12 +122,14 @@ class EncounterMemberList(QWidget):
         if entry in self._rows:
             self._rows.remove(entry)
             entry[2].deleteLater()
+            self.members_changed.emit(self.get_members())
 
     def clear_all(self) -> None:
         """Remove all rows."""
         for (_, _, row_widget) in self._rows:
             row_widget.deleteLater()
         self._rows = []
+        self.members_changed.emit(self.get_members())
 
     # --- Drag-and-drop target ---
 
@@ -159,6 +166,8 @@ class EncountersTab(QWidget):
     roller           : Roller — shared roller for dice rolling
     workspace_manager: WorkspaceManager or None — provides encounters/ folder path
     """
+
+    encounter_members_changed = Signal(list)
 
     def __init__(self, library, roller, workspace_manager=None, parent=None) -> None:
         super().__init__(parent)
@@ -207,6 +216,7 @@ class EncountersTab(QWidget):
 
         # Member list (drag target)
         self._member_list = EncounterMemberList(library=self._library)
+        self._member_list.members_changed.connect(self.encounter_members_changed)
         layout.addWidget(self._member_list, 1)
 
         # Hint label

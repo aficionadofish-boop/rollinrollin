@@ -165,8 +165,9 @@ class MacroSandboxService:
                     line_number=line_number,
                     dice_result=None,
                     inline_results=[],
-                    warnings=macro.warnings,
+                    warnings=[MacroWarning(token=w.token, reason=w.reason) for w in macro.warnings],
                     error=str(e),
+                    template_name=macro.template_name,
                 ))
                 line_number += 1
                 continue
@@ -174,24 +175,58 @@ class MacroSandboxService:
             # Normalize again after inline roll substitution (result may start with +/-)
             expr = _normalize_expression(expr)
 
+            # Convert warnings from ParseWarning to MacroWarning
+            warnings = [
+                MacroWarning(token=w.token, reason=w.reason) for w in macro.warnings
+            ]
+
             # Step d: Evaluate the final expression
-            try:
-                dice_result = roll_expression(expr, roller, seed)
-                results.append(MacroLineResult(
-                    line_number=line_number,
-                    dice_result=dice_result,
-                    inline_results=inline_results,
-                    warnings=macro.warnings,
-                    error=None,
-                ))
-            except (ValueError, ParseError) as e:
+            # Skip evaluation for template-only lines where the expression is
+            # empty or non-rollable after {{...}} field extraction
+            expr_stripped = expr.strip()
+            is_template_line = macro.template_name is not None or inline_results
+            if is_template_line and (not expr_stripped or not re.search(r'\d+d\d+', expr_stripped)):
+                # Template/inline-only — inline rolls ARE the results
                 results.append(MacroLineResult(
                     line_number=line_number,
                     dice_result=None,
                     inline_results=inline_results,
-                    warnings=macro.warnings,
-                    error=str(e),
+                    warnings=warnings,
+                    error=None,
+                    template_name=macro.template_name,
                 ))
+            else:
+                try:
+                    dice_result = roll_expression(expr, roller, seed)
+                    results.append(MacroLineResult(
+                        line_number=line_number,
+                        dice_result=dice_result,
+                        inline_results=inline_results,
+                        warnings=warnings,
+                        error=None,
+                        template_name=macro.template_name,
+                    ))
+                except (ValueError, ParseError) as e:
+                    # If we have inline results or a template name, suppress the error —
+                    # the inline rolls ARE the results for template-based macros
+                    if inline_results or macro.template_name:
+                        results.append(MacroLineResult(
+                            line_number=line_number,
+                            dice_result=None,
+                            inline_results=inline_results,
+                            warnings=warnings,
+                            error=None,
+                            template_name=macro.template_name,
+                        ))
+                    else:
+                        results.append(MacroLineResult(
+                            line_number=line_number,
+                            dice_result=None,
+                            inline_results=inline_results,
+                            warnings=warnings,
+                            error=str(e),
+                            template_name=macro.template_name,
+                        ))
 
             line_number += 1
 

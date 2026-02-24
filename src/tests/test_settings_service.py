@@ -25,7 +25,6 @@ def test_default_values():
     assert s.default_nat1_always_miss is True
     assert s.default_nat20_always_hit is True
     assert s.default_advantage_mode == "normal"
-    assert s.default_gwm_sharpshooter is False
     assert s.default_mode == "raw"
     assert s.default_target_ac == 15
     assert s.default_save_dc == 13
@@ -52,7 +51,6 @@ def test_custom_values():
     assert s.default_nat1_always_miss is True
     assert s.default_nat20_always_hit is True
     assert s.default_advantage_mode == "normal"
-    assert s.default_gwm_sharpshooter is False
 
 
 # ---------------------------------------------------------------------------

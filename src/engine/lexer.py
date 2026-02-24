@@ -4,10 +4,11 @@ Lexer for dice expressions.
 Converts a dice expression string into a flat list of Token objects.
 
 Token types:
-  DICE    - a dice expression atom: NdM or NdMkhN or NdMklN
-            e.g. "2d6", "2d20kh1", "4d6kl3"
+  DICE    - a dice expression atom with optional modifiers:
+            NdM, NdM!, NdMkhN, NdM!khN, NdM>T, NdM<T, NdMcs>T
+            e.g. "2d6", "1d10!", "2d20kh1", "12d10>4", "1d20cs>19"
   INT     - a bare integer literal: e.g. "5", "10"
-  OP      - an arithmetic operator: +, -, *, /
+  OP      - an arithmetic operator: +, -, *, /, **
   LPAREN  - literal '('
   RPAREN  - literal ')'
 
@@ -15,9 +16,10 @@ Whitespace is silently skipped.
 
 CRITICAL ordering: DICE pattern must appear BEFORE INT in the regex alternation.
 If INT matched first, "2d6" would tokenize as INT(2) then fail on 'd6'.
+In the OP group, ** must appear before * to prevent splitting ** into two * tokens.
 
 Token.value:
-  - For DICE tokens: the raw matched string (e.g. "2d20kh1")
+  - For DICE tokens: the raw matched string (e.g. "2d20kh1", "1d10!")
   - For INT tokens: the integer value (int)
   - For OP/LPAREN/RPAREN: the raw character string
 """
@@ -34,9 +36,9 @@ TokenType = Literal["DICE", "INT", "OP", "LPAREN", "RPAREN"]
 # before INT can consume the leading "2".
 # re.IGNORECASE allows '2D6' and '2d6' to both tokenize correctly.
 _TOKEN_RE = re.compile(
-    r"(?P<DICE>\d+[dD]\d+(?:k[hl]\d+)?)"  # 2d6, 2d20kh1, 4d6kl3 — MUST be first
+    r"(?P<DICE>\d+[dD]\d+(?:!)?(?:k[hl]\d+)?(?:cs>\d+|[><]\d+)?)"  # MUST be first
     r"|(?P<INT>\d+)"                        # bare integer: 5, 10
-    r"|(?P<OP>[+\-*/])"                     # arithmetic operators
+    r"|(?P<OP>\*\*|[+\-*/])"               # ** before * to avoid splitting
     r"|(?P<LPAREN>\()"
     r"|(?P<RPAREN>\))"
     r"|\s+",                                # whitespace: skip (no named group)

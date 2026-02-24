@@ -30,15 +30,21 @@ class MacroLineResult:
     """Result of evaluating one non-empty line of macro input."""
 
     line_number: int
-    dice_result: Optional[DiceResult]  # None when error is set
+    dice_result: Optional[DiceResult]  # None when error is set or template-only
     inline_results: list               # list of (original_expr_str, DiceResult) tuples
     warnings: list[MacroWarning]
     error: Optional[str]               # ParseError message; None on success
+    template_name: Optional[str] = None  # Name from {{name=...}} if present
 
     @property
     def has_result(self) -> bool:
         """True if the line produced a valid DiceResult."""
         return self.dice_result is not None
+
+    @property
+    def has_inline_only(self) -> bool:
+        """True if template-only result: no dice_result, no error, but has inline rolls."""
+        return self.dice_result is None and self.error is None and bool(self.inline_results)
 
     @property
     def has_warnings(self) -> bool:
