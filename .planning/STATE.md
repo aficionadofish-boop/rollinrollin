@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-02-23)
 ## Current Position
 
 Phase: 4 of 7 (Lists, Encounters, and Save Roller)
-Plan: 2 of 5 in current phase (Plan 04-02 complete)
-Status: Plan 04-02 complete — EncounterService + SaveRollService TDD, 307 tests pass
-Last activity: 2026-02-24 — Completed 04-02: EncounterService Markdown save/load, SaveRollService d20 saves, 307 tests
+Plan: 3 of 5 in current phase (Plan 04-03 complete)
+Status: Plan 04-03 complete — Encounters tab UI with drag-drop, save/load, Save Roller; 307 tests pass
+Last activity: 2026-02-24 — Completed 04-03: EncountersTab UI, MonsterTableModel drag support, MainWindow 3 tabs
 
 Progress: [████████░░] 78%
 
@@ -100,6 +100,9 @@ Recent decisions affecting current work:
 - [Phase 04-02]: (score-10)//2 for ability modifier fallback — floor division is correct for negatives; int(score/2) used only for damage (01-01 convention does NOT apply here)
 - [Phase 04-02]: SaveRollService defines its own bonus dice handling inline — no import from src.roll; avoids coupling between attack-roll and save-roll layers
 - [Phase 04-02]: _resolve_save_bonus and _expand_participants are module-level helpers, not class methods — independently testable pure functions
+- [Phase 04-03]: EncounterMemberList receives library in __init__ for dropEvent resolution; drag MIME type application/x-monster-name sourced from MonsterTableModel
+- [Phase 04-03]: _expand_participants duplicated as module-level helper in encounters_tab.py for UI use; service.py version remains canonical for testing
+- [Phase 04-03]: Tab label 'Encounters && Saves' uses Qt '&&' convention per Phase 02-04 decision (displays as 'Encounters & Saves')
 
 ### Pending Todos
 
@@ -113,5 +116,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-24
-Stopped at: Completed 04-02-PLAN.md — EncounterService Markdown save/load, SaveRollService d20 saves, 307 tests passing
+Stopped at: Completed 04-03-PLAN.md — EncountersTab UI, drag-drop, save/load, Save Roller, 307 tests passing
 Resume file: None
