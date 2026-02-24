@@ -1,0 +1,31 @@
+# build/version.txt
+# Windows VERSIONINFO resource for PyInstaller --version-file
+# Source: dev.to/arhamrumi/adding-version-information-to-a-pyinstaller-onefile-executable-6n8
+# UTF-8
+VSVersionInfo(
+  ffi=FixedFileInfo(
+    filevers=(1, 0, 0, 0),
+    prodvers=(1, 0, 0, 0),
+    mask=0x3f,
+    flags=0x0,
+    OS=0x40004,
+    fileType=0x1,
+    subtype=0x0,
+    date=(0, 0)
+  ),
+  kids=[
+    StringFileInfo(
+      [StringTable(
+        '040904B0',
+        [StringStruct('CompanyName', ''),
+         StringStruct('FileDescription', 'D&D 5e dice roller for DMs'),
+         StringStruct('FileVersion', '1.0.0.0'),
+         StringStruct('InternalName', 'RollinRollin'),
+         StringStruct('LegalCopyright', ''),
+         StringStruct('OriginalFilename', 'RollinRollin.exe'),
+         StringStruct('ProductName', 'RollinRollin'),
+         StringStruct('ProductVersion', '1.0.0.0')]
+      )]),
+    VarFileInfo([VarStruct('Translation', [1033, 1200])])
+  ]
+)

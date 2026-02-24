@@ -134,7 +134,11 @@ Plans:
   1. Running the .exe on a clean Windows 10 machine (no Python, no PySide6 installed) opens the app fully with all tabs functional
   2. The app operates completely offline — no network requests are made and no internet connection is required at any point
   3. A build.bat script in the repo produces the .exe from source in a single command when run inside the correct venv
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 07-01-PLAN.md — Build infrastructure: icon generation, version resource, PyInstaller spec, build.bat, smoke test
+- [ ] 07-02-PLAN.md — Execute build, run smoke test, human verification of packaged .exe
 
 ## Progress
 
@@ -148,5 +152,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 3. Attack Roller | 4/4 | Complete   | 2026-02-24 |
 | 4. Lists, Encounters, and Save Roller | 4/4 | Complete   | 2026-02-24 |
 | 5. Roll20 Macro Sandbox | 4/4 | Complete   | 2026-02-24 |
-| 6. Settings | 2/2 | Complete   | 2026-02-24 |
-| 7. Packaging and Distribution | 0/TBD | Not started | - |
+| 6. Settings | 2/2 | Complete    | 2026-02-24 |
+| 7. Packaging and Distribution | 0/2 | Not started | - |
