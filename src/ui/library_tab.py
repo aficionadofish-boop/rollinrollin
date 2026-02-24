@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
     QAbstractItemView,
 )
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QDragEnterEvent, QDragLeaveEvent, QDropEvent
 
 from src.library.service import MonsterLibrary
 from src.parser.statblock_parser import parse_file
@@ -40,6 +41,52 @@ from src.ui.monster_detail import MonsterDetailPanel
 from src.ui.import_log import ImportLogPanel
 
 
+class EncounterDropZone(QLabel):
+    """Drop target on the Library tab that adds a monster to the current encounter.
+
+    Accepts ``application/x-monster-name`` drags. Emits ``monster_dropped``
+    with the resolved Monster when a valid drag is released.
+    """
+
+    monster_dropped = Signal(object)  # Monster
+
+    _STYLE_IDLE = (
+        "border: 2px dashed #888; border-radius: 4px; "
+        "color: #888; padding: 4px; font-size: 10px;"
+    )
+    _STYLE_HOVER = (
+        "border: 2px dashed #4a9; border-radius: 4px; "
+        "color: #4a9; padding: 4px; font-size: 10px;"
+    )
+
+    def __init__(self, library, parent=None) -> None:
+        super().__init__(parent)
+        self._library = library
+        self.setAcceptDrops(True)
+        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.setText("Drop monster here\nto add to encounter")
+        self.setWordWrap(True)
+        self.setStyleSheet(self._STYLE_IDLE)
+
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
+        if event.mimeData().hasFormat("application/x-monster-name"):
+            self.setStyleSheet(self._STYLE_HOVER)
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dragLeaveEvent(self, event: QDragLeaveEvent) -> None:
+        self.setStyleSheet(self._STYLE_IDLE)
+
+    def dropEvent(self, event: QDropEvent) -> None:
+        self.setStyleSheet(self._STYLE_IDLE)
+        raw = event.mimeData().data("application/x-monster-name")
+        name = bytes(raw).decode("utf-8")
+        if self._library is not None and self._library.has_name(name):
+            self.monster_dropped.emit(self._library.get_by_name(name))
+        event.acceptProposedAction()
+
+
 class MonsterLibraryTab(QWidget):
     """Complete Monster Library tab widget.
 
@@ -48,7 +95,8 @@ class MonsterLibraryTab(QWidget):
         parent:  Optional parent QWidget.
     """
 
-    monster_selected = Signal(object)  # emitted when user selects a row
+    monster_selected = Signal(object)         # emitted when user selects a row
+    monster_added_to_encounter = Signal(object)  # emitted when monster dropped onto drop zone
 
     def __init__(self, library: MonsterLibrary, parent=None) -> None:
         super().__init__(parent)
@@ -127,16 +175,27 @@ class MonsterLibraryTab(QWidget):
         left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.addWidget(self._table)
 
-        # ---- Right panel: detail + log ----
+        # ---- Right panel: detail + (drop zone | log) ----
         self._detail_panel = MonsterDetailPanel(parent=self)
+
+        self._drop_zone = EncounterDropZone(library=self._library, parent=self)
+        self._drop_zone.monster_dropped.connect(self.monster_added_to_encounter)
+
         self._log_panel = ImportLogPanel(parent=self)
-        self._log_panel.setMaximumHeight(180)
+
+        # Bottom strip: drop zone on the left, import log on the right
+        bottom_splitter = QSplitter(Qt.Orientation.Horizontal)
+        bottom_splitter.addWidget(self._drop_zone)
+        bottom_splitter.addWidget(self._log_panel)
+        bottom_splitter.setStretchFactor(0, 1)
+        bottom_splitter.setStretchFactor(1, 1)
+        bottom_splitter.setMaximumHeight(180)
 
         right_widget = QWidget()
         right_layout = QVBoxLayout(right_widget)
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.addWidget(self._detail_panel, 1)
-        right_layout.addWidget(self._log_panel)
+        right_layout.addWidget(bottom_splitter)
 
         # ---- Splitter ----
         splitter = QSplitter(Qt.Orientation.Horizontal)

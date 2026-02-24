@@ -310,6 +310,14 @@ class EncountersTab(QWidget):
         return panel
 
     # ------------------------------------------------------------------
+    # Public API for cross-tab monster addition
+    # ------------------------------------------------------------------
+
+    def add_monster_to_encounter(self, monster) -> None:
+        """Add *monster* to the encounter builder (called by Library tab drop zone)."""
+        self._member_list.add_monster(monster)
+
+    # ------------------------------------------------------------------
     # Left panel button handlers
     # ------------------------------------------------------------------
 

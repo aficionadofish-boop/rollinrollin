@@ -42,3 +42,8 @@ class MainWindow(QMainWindow):
         self._library_tab.monster_selected.connect(
             self._attack_roller_tab.set_monster
         )
+
+        # Cross-tab signal: Library drop zone → Encounters tab member list
+        self._library_tab.monster_added_to_encounter.connect(
+            self._encounters_tab.add_monster_to_encounter
+        )
