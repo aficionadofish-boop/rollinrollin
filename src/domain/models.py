@@ -64,4 +64,4 @@ class MonsterList:
 @dataclass
 class Encounter:
     name: str
-    members: list[Monster] = field(default_factory=list)   # Monster references
+    members: list[tuple[Monster, int]] = field(default_factory=list)  # (monster, count)

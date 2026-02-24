@@ -73,6 +73,15 @@ class MonsterLibrary:
         """Return True if any monster with *name* is in the library."""
         return name in self._by_name
 
+    def get_by_name(self, name: str) -> "Monster":
+        """Return first monster with given name. Raises KeyError if name not found.
+
+        Always call has_name() first to check existence before calling this.
+        The Monster import is already at the top of the file.
+        """
+        idx = self._by_name[name]
+        return self._monsters[idx]
+
     def all(self) -> list[Monster]:
         """Return a defensive copy of all monsters in insertion order."""
         return list(self._monsters)

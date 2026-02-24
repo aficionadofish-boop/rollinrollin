@@ -72,12 +72,12 @@ Plans:
 
 Plans:
 - [x] 03-01-PLAN.md — RollService + roll models (TDD): pure-Python 5e rule translation layer with seeded golden tests — completed 2026-02-24
-- [ ] 03-02-PLAN.md — ToggleBar + BonusDiceList reusable UI widgets
-- [ ] 03-03-PLAN.md — AttackRollerTab + RollOutputPanel: full rolling UI with RAW/COMPARE modes, action list, all toggles
-- [ ] 03-04-PLAN.md — MainWindow + cross-tab wiring + end-to-end human verification
+- [x] 03-02-PLAN.md — ToggleBar + BonusDiceList reusable UI widgets — completed 2026-02-24
+- [x] 03-03-PLAN.md — AttackRollerTab + RollOutputPanel: full rolling UI with RAW/COMPARE modes, action list, all toggles — completed 2026-02-24
+- [x] 03-04-PLAN.md — MainWindow + cross-tab wiring + end-to-end human verification — completed 2026-02-24
 
 ### Phase 4: Lists, Encounters, and Save Roller
-**Goal**: DMs can organize monsters into named lists and encounters, save and reload them as Markdown files, and run bulk saving throw rolls against an entire encounter group in seconds
+**Goal**: DMs can organize monsters into named encounters, save and reload them as Markdown files, and run bulk saving throw rolls against the active encounter's participants — single combined Encounters & Saves tab
 **Depends on**: Phase 3
 **Requirements**: LIST-01, LIST-02, LIST-03, LIST-04, LIST-05, ENC-01, ENC-02, ENC-03, ENC-04, ENC-05, ENC-06, SAVE-01, SAVE-02, SAVE-03, SAVE-04, SAVE-05, SAVE-06, SAVE-07
 **Success Criteria** (what must be TRUE):
@@ -86,7 +86,13 @@ Plans:
   3. User can load an encounter into the Save Roller, select CON save DC 15, click Roll, and see a per-participant result showing each monster's d20 face(s), save bonus, total, success/fail status, and margin vs DC
   4. The Save Roller summary shows the correct count of successes and failures across all participants
   5. With disadvantage enabled on saves, both d20 faces are shown per participant and the lower value is used
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 04-01-PLAN.md — Domain model patch (Encounter.members) + MonsterLibrary.get_by_name + encounter DTOs package
+- [ ] 04-02-PLAN.md — EncounterService (Markdown I/O) + SaveRollService (seeded save mechanics) — TDD
+- [ ] 04-03-PLAN.md — EncounterMemberList widget + drag-drop MonsterTableModel + EncountersTab + app.py wiring
+- [ ] 04-04-PLAN.md — End-to-end human verification checkpoint
 
 ### Phase 5: Roll20 Macro Sandbox
 **Goal**: DMs with existing Roll20 macros can paste them into the Sandbox, resolve any query prompts, and get correct dice results — without needing Roll20 or an internet connection
@@ -130,7 +136,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 1. Dice Engine and Domain Foundation | 2/2 | Complete   | 2026-02-23 |
 | 2. Monster Import and Library | 4/4 | Complete   | 2026-02-24 |
 | 3. Attack Roller | 4/4 | Complete   | 2026-02-24 |
-| 4. Lists, Encounters, and Save Roller | 0/TBD | Not started | - |
+| 4. Lists, Encounters, and Save Roller | 0/4 | Not started | - |
 | 5. Roll20 Macro Sandbox | 0/TBD | Not started | - |
 | 6. Settings | 0/TBD | Not started | - |
 | 7. Packaging and Distribution | 0/TBD | Not started | - |

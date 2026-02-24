@@ -49,8 +49,10 @@ def test_monster_list_construction():
 
 def test_encounter_construction():
     goblin = Monster(name="Goblin", ac=15, hp=7, cr="1/4")
-    enc = Encounter(name="Ambush", members=[goblin])
+    enc = Encounter(name="Ambush", members=[(goblin, 1)])
     assert len(enc.members) == 1
+    assert enc.members[0][0] is goblin
+    assert enc.members[0][1] == 1
 
 
 def test_damage_type_enum_values():
