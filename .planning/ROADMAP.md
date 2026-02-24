@@ -68,7 +68,13 @@ Plans:
   4. Enabling the crit toggle with range 19 causes a roll of 19 to trigger double damage dice; a roll of 18 does not
   5. Adding a +1d4 bonus die entry causes each attack to include the d4 result in its total and breakdown
   6. The full roll output for any result can be copied to clipboard with a single click
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — RollService + roll models (TDD): pure-Python 5e rule translation layer with seeded golden tests
+- [ ] 03-02-PLAN.md — ToggleBar + BonusDiceList reusable UI widgets
+- [ ] 03-03-PLAN.md — AttackRollerTab + RollOutputPanel: full rolling UI with RAW/COMPARE modes, action list, all toggles
+- [ ] 03-04-PLAN.md — MainWindow + cross-tab wiring + end-to-end human verification
 
 ### Phase 4: Lists, Encounters, and Save Roller
 **Goal**: DMs can organize monsters into named lists and encounters, save and reload them as Markdown files, and run bulk saving throw rolls against an entire encounter group in seconds

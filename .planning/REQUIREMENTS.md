@@ -28,7 +28,7 @@
 - [x] **LIB-01**: Imported monsters persist in a runtime library accessible across tabs
 - [x] **LIB-02**: User can search the library by monster name with instant (keystroke-level) filtering
 - [x] **LIB-03**: Library displays monster list with name, AC, HP, and "incomplete" badge where applicable
-- [ ] **LIB-04**: User can view monster detail: AC, HP, ability scores, saving throw bonuses, and all actions
+- [x] **LIB-04**: User can view monster detail: AC, HP, ability scores, saving throw bonuses, and all actions
 - [x] **LIB-05**: Library supports a user-assignable tag per monster (for source or custom grouping)
 - [x] **LIB-06**: User can filter library by "incomplete" status
 
@@ -167,7 +167,7 @@ Which phases cover which requirements. Confirmed during roadmap creation 2026-02
 | LIB-01 | Phase 2 | Complete |
 | LIB-02 | Phase 2 | Complete |
 | LIB-03 | Phase 2 | Complete |
-| LIB-04 | Phase 2 | Pending |
+| LIB-04 | Phase 2 | Complete |
 | LIB-05 | Phase 2 | Complete |
 | LIB-06 | Phase 2 | Complete |
 | ATTACK-01 | Phase 3 | Pending |
