@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Dice Engine and Domain Foundation** - Pure-Python dice evaluator, seeded RNG, domain models, and workspace folder — the inner ring everything else imports (completed 2026-02-23)
 - [x] **Phase 2: Monster Import and Library** - Tolerant Markdown statblock parser, in-memory monster library with search and filtering, workspace file I/O (completed 2026-02-23)
-- [ ] **Phase 3: Attack Roller** - Full Attack Roller tab with RAW/COMPARE modes, all 5e toggles, roll breakdown output, and copy-to-clipboard
+- [x] **Phase 3: Attack Roller** - Full Attack Roller tab with RAW/COMPARE modes, all 5e toggles, roll breakdown output, and copy-to-clipboard (completed 2026-02-24)
 - [ ] **Phase 4: Lists, Encounters, and Save Roller** - Named monster lists and encounters with Markdown save/load, bulk per-participant Save Roller drawing from the active encounter
 - [ ] **Phase 5: Roll20 Macro Sandbox** - Free-text macro input resolving Roll20 inline rolls and query dialogs, multi-line support, unsupported-syntax warnings
 - [ ] **Phase 6: Settings** - Settings tab: seed toggle, default toggles, default AC/DC, default output mode
@@ -129,7 +129,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 |-------|----------------|--------|-----------|
 | 1. Dice Engine and Domain Foundation | 2/2 | Complete   | 2026-02-23 |
 | 2. Monster Import and Library | 4/4 | Complete   | 2026-02-24 |
-| 3. Attack Roller | 3/4 | In Progress|  |
+| 3. Attack Roller | 4/4 | Complete   | 2026-02-24 |
 | 4. Lists, Encounters, and Save Roller | 0/TBD | Not started | - |
 | 5. Roll20 Macro Sandbox | 0/TBD | Not started | - |
 | 6. Settings | 0/TBD | Not started | - |

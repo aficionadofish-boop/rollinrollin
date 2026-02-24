@@ -90,6 +90,8 @@ Recent decisions affecting current work:
 - [Phase 03-attack-roller]: RollOutputPanel is a QWidget container (not QTextEdit subclass) — owns QTextEdit internally for encapsulation and Copy button
 - [Phase 03-attack-roller]: Target AC widget uses setVisible(False/True) in _on_mode_changed — hides in RAW mode per CONTEXT.md decision (not setEnabled)
 - [Phase 03-attack-roller]: Result re-render: _last_result stores RollResult; mode switch calls _render_results() with no re-roll (03-03)
+- [Phase 03-attack-roller]: MainWindow connects monster_selected AFTER both tabs constructed — avoids signal-before-init pitfall
+- [Phase 03-attack-roller]: Roller(random.Random()) constructed once in MainWindow; unseeded; Phase 6 wires seed
 
 ### Pending Todos
 
