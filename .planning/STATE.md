@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-23)
 
 **Core value:** DMs can roll attacks and saving throws for groups of monsters in seconds, with full D&D 5e rule fidelity and clear hit/miss/damage breakdowns.
-**Current focus:** Phase 3 — Attack Roller (in progress)
+**Current focus:** Phase 4 — Lists, Encounters, and Save Roller (in progress)
 
 ## Current Position
 
-Phase: 3 of 7 (Attack Roller)
-Plan: 3 of 3 in current phase (Plans 01-03 complete; Phase 3 done)
-Status: Plan 03-03 complete — AttackRollerTab and RollOutputPanel widgets, 276 tests pass
-Last activity: 2026-02-24 — Completed 03-03: src/ui/attack_roller_tab.py and src/ui/roll_output.py
+Phase: 4 of 7 (Lists, Encounters, and Save Roller)
+Plan: 1 of 5 in current phase (Plan 04-01 complete)
+Status: Plan 04-01 complete — Domain model extensions and encounter DTOs, 276 tests pass
+Last activity: 2026-02-24 — Completed 04-01: Encounter.members shape, get_by_name, src/encounter/models.py
 
-Progress: [████████░░] 75%
+Progress: [████████░░] 78%
 
 ## Performance Metrics
 
@@ -40,6 +40,7 @@ Progress: [████████░░] 75%
 | Phase 03-attack-roller P01 | 1 | 1 TDD task | 4 files |
 | Phase 03-attack-roller P02 | 1 | 2 tasks | 2 files |
 | Phase 03-attack-roller P03 | 3 | 2 tasks | 2 files |
+| Phase 04-lists-encounters-and-save-roller P01 | 4 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -92,6 +93,9 @@ Recent decisions affecting current work:
 - [Phase 03-attack-roller]: Result re-render: _last_result stores RollResult; mode switch calls _render_results() with no re-roll (03-03)
 - [Phase 03-attack-roller]: MainWindow connects monster_selected AFTER both tabs constructed — avoids signal-before-init pitfall
 - [Phase 03-attack-roller]: Roller(random.Random()) constructed once in MainWindow; unseeded; Phase 6 wires seed
+- [Phase 04-01]: Encounter.members changed to list[tuple[Monster, int]] — same (monster, count) convention as MonsterList.entries
+- [Phase 04-01]: get_by_name raises KeyError on miss — callers must call has_name() first; no Optional return
+- [Phase 04-01]: SaveRequest.bonus_dice typed as list (untyped) — avoids importing BonusDiceEntry from roll.models into encounter layer
 
 ### Pending Todos
 
@@ -105,5 +109,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-24
-Stopped at: Completed 03-03-PLAN.md — AttackRollerTab and RollOutputPanel widgets, 276 tests passing
+Stopped at: Completed 04-01-PLAN.md — Encounter.members shape, get_by_name, src/encounter/models.py DTOs, 276 tests passing
 Resume file: None

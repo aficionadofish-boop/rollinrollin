@@ -59,16 +59,16 @@
 
 ### Lists
 
-- [ ] **LIST-01**: User can create a named list by selecting monsters from the library with a count per monster
-- [ ] **LIST-02**: User can edit list member counts
-- [ ] **LIST-03**: User can save a list to a Markdown file in the workspace `lists/` folder
-- [ ] **LIST-04**: User can load/import a list from a Markdown file
-- [ ] **LIST-05**: On list import, if a monster name does not match the library, the unresolved entry is shown in an "Unresolved Entries" panel for manual re-linking (not silently dropped)
+- [x] **LIST-01**: User can create a named list by selecting monsters from the library with a count per monster
+- [x] **LIST-02**: User can edit list member counts
+- [x] **LIST-03**: User can save a list to a Markdown file in the workspace `lists/` folder
+- [x] **LIST-04**: User can load/import a list from a Markdown file
+- [x] **LIST-05**: On list import, if a monster name does not match the library, the unresolved entry is shown in an "Unresolved Entries" panel for manual re-linking (not silently dropped)
 
 ### Encounters
 
-- [ ] **ENC-01**: User can create a named encounter by selecting monsters from the library (or from a list) with a count per monster
-- [ ] **ENC-02**: User can edit encounter member counts and labels
+- [x] **ENC-01**: User can create a named encounter by selecting monsters from the library (or from a list) with a count per monster
+- [x] **ENC-02**: User can edit encounter member counts and labels
 - [ ] **ENC-03**: User can save an encounter to a Markdown file in the workspace `encounters/` folder
 - [ ] **ENC-04**: User can load/import an encounter from a Markdown file
 - [ ] **ENC-05**: On encounter import, unresolved monster names are shown in an "Unresolved Entries" panel for manual re-linking
@@ -182,13 +182,13 @@ Which phases cover which requirements. Confirmed during roadmap creation 2026-02
 | ATTACK-10 | Phase 3 | Complete |
 | ATTACK-11 | Phase 3 | Complete |
 | ATTACK-12 | Phase 3 | Complete |
-| LIST-01 | Phase 4 | Pending |
-| LIST-02 | Phase 4 | Pending |
-| LIST-03 | Phase 4 | Pending |
-| LIST-04 | Phase 4 | Pending |
-| LIST-05 | Phase 4 | Pending |
-| ENC-01 | Phase 4 | Pending |
-| ENC-02 | Phase 4 | Pending |
+| LIST-01 | Phase 4 | Complete |
+| LIST-02 | Phase 4 | Complete |
+| LIST-03 | Phase 4 | Complete |
+| LIST-04 | Phase 4 | Complete |
+| LIST-05 | Phase 4 | Complete |
+| ENC-01 | Phase 4 | Complete |
+| ENC-02 | Phase 4 | Complete |
 | ENC-03 | Phase 4 | Pending |
 | ENC-04 | Phase 4 | Pending |
 | ENC-05 | Phase 4 | Pending |

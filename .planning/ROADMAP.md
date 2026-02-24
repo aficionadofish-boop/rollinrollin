@@ -89,7 +89,7 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 04-01-PLAN.md — Domain model patch (Encounter.members) + MonsterLibrary.get_by_name + encounter DTOs package
+- [x] 04-01-PLAN.md — Domain model patch (Encounter.members) + MonsterLibrary.get_by_name + encounter DTOs package — completed 2026-02-24
 - [ ] 04-02-PLAN.md — EncounterService (Markdown I/O) + SaveRollService (seeded save mechanics) — TDD
 - [ ] 04-03-PLAN.md — EncounterMemberList widget + drag-drop MonsterTableModel + EncountersTab + app.py wiring
 - [ ] 04-04-PLAN.md — End-to-end human verification checkpoint
@@ -136,7 +136,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 1. Dice Engine and Domain Foundation | 2/2 | Complete   | 2026-02-23 |
 | 2. Monster Import and Library | 4/4 | Complete   | 2026-02-24 |
 | 3. Attack Roller | 4/4 | Complete   | 2026-02-24 |
-| 4. Lists, Encounters, and Save Roller | 0/4 | Not started | - |
+| 4. Lists, Encounters, and Save Roller | 1/4 | In Progress|  |
 | 5. Roll20 Macro Sandbox | 0/TBD | Not started | - |
 | 6. Settings | 0/TBD | Not started | - |
 | 7. Packaging and Distribution | 0/TBD | Not started | - |
