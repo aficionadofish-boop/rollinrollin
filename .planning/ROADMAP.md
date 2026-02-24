@@ -104,7 +104,13 @@ Plans:
   3. A macro containing `?{Save type|STR,+2|DEX,+4}` shows a dialog prompting the user to choose, then substitutes the chosen value before evaluating
   4. A multi-line input with 3 non-empty lines produces 3 separate results displayed in order; a `/roll 1d20` prefix on any line is stripped without error
   5. A macro containing `@{target|ac}` emits a visible parse warning rather than crashing or silently producing a wrong result
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 05-01-PLAN.md — MacroPreprocessor + models + workspace update (TDD: /roll stripping, inline rolls, query extraction, unsupported token warnings)
+- [ ] 05-02-PLAN.md — MacroEditor (code-editor with line numbers, syntax highlighting, debounce) + QueryPanel (inline query resolution widget)
+- [ ] 05-03-PLAN.md — ResultPanel + MacroSidebar + MacroSandboxTab assembly + MainWindow wiring
+- [ ] 05-04-PLAN.md — End-to-end human verification checkpoint
 
 ### Phase 6: Settings
 **Goal**: DMs can configure the app's default behaviors once and have every session start with the right toggles, AC, DC, and RNG mode pre-set
@@ -137,6 +143,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 2. Monster Import and Library | 4/4 | Complete   | 2026-02-24 |
 | 3. Attack Roller | 4/4 | Complete   | 2026-02-24 |
 | 4. Lists, Encounters, and Save Roller | 4/4 | Complete   | 2026-02-24 |
-| 5. Roll20 Macro Sandbox | 0/TBD | Not started | - |
+| 5. Roll20 Macro Sandbox | 0/4 | Not started | - |
 | 6. Settings | 0/TBD | Not started | - |
 | 7. Packaging and Distribution | 0/TBD | Not started | - |
