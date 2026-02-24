@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-23)
 ## Current Position
 
 Phase: 7 of 7 (Packaging and Distribution)
-Plan: 1 of 2 in phase 7 complete
-Status: Phase 7 Plan 1 complete — build infrastructure (icon, version.txt, spec, build.bat, smoke_test) committed
-Last activity: 2026-02-24 — Completed 07-01: Build infrastructure for PyInstaller packaging
+Plan: 2 of 2 in phase 7 complete — ALL PHASES COMPLETE
+Status: Phase 7 Plan 2 complete — dist/RollinRollin.exe built, smoke tested, and human-verified; v1 shipping milestone reached
+Last activity: 2026-02-24 — Completed 07-02: Execute build and verify RollinRollin.exe
 
-Progress: [█████████░] 90% (Phase 7, Plan 1 of 2)
+Progress: [██████████] 100% (All 7 phases complete)
 
 ## Performance Metrics
 
@@ -134,6 +134,8 @@ Recent decisions affecting current work:
 - [Phase 07-01]: build.bat assumes activated venv — does not install deps; developer responsibility not build script concern
 - [Phase 07-01]: smoke_test.py checks alive-after-8s only; no pywinauto window/tab verification (out of scope)
 - [Phase 07-01]: dist/ and build/work/ gitignored; build/icon.ico, version.txt, RollinRollin.spec committed for reproducible builds
+- [Phase 07-02]: QApplication.setWindowIcon() required for taskbar/title-bar icon — PyInstaller icon= only sets Windows Explorer file icon; runtime icon needs explicit QApplication.setWindowIcon() with sys._MEIPASS path guard
+- [Phase 07-02]: Icon path resolution: sys._MEIPASS / "icon.ico" when frozen (PyInstaller), __file__-relative path for dev run
 
 ### Pending Todos
 
@@ -147,5 +149,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-24
-Stopped at: Completed 07-01-PLAN.md — Phase 7 Plan 1 complete; build infrastructure committed; next is 07-02 (execute build)
+Stopped at: Completed 07-02-PLAN.md — All phases complete; RollinRollin.exe built, human-verified, v1 milestone reached
 Resume file: None

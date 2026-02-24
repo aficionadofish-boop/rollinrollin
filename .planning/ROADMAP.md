@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Lists, Encounters, and Save Roller** - Named monster lists and encounters with Markdown save/load, bulk per-participant Save Roller drawing from the active encounter (completed 2026-02-24)
 - [x] **Phase 5: Roll20 Macro Sandbox** - Free-text macro input resolving Roll20 inline rolls and query dialogs, multi-line support, unsupported-syntax warnings (completed 2026-02-24)
 - [x] **Phase 6: Settings** - Settings tab: seed toggle, default toggles, default AC/DC, default output mode (completed 2026-02-24)
-- [ ] **Phase 7: Packaging and Distribution** - Portable Windows 10 .exe via PyInstaller, build script, smoke-tested on clean machine
+- [x] **Phase 7: Packaging and Distribution** - Portable Windows 10 .exe via PyInstaller, build script, smoke-tested on clean machine (completed 2026-02-24)
 
 ## Phase Details
 
@@ -123,8 +123,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 06-01-PLAN.md — AppSettings model + SettingsService persistence layer (TDD)
-- [ ] 06-02-PLAN.md — SettingsTab UI widget + MainWindow wiring + apply_defaults + seeded badge + unsaved-changes guard
+- [x] 06-01-PLAN.md — AppSettings model + SettingsService persistence layer (TDD)
+- [x] 06-02-PLAN.md — SettingsTab UI widget + MainWindow wiring + apply_defaults + seeded badge + unsaved-changes guard
 
 ### Phase 7: Packaging and Distribution
 **Goal**: The complete app ships as a single portable Windows 10 .exe that runs offline on a machine with no Python installed
@@ -137,8 +137,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 07-01-PLAN.md — Build infrastructure: icon generation, version resource, PyInstaller spec, build.bat, smoke test
-- [ ] 07-02-PLAN.md — Execute build, run smoke test, human verification of packaged .exe
+- [x] 07-01-PLAN.md — Build infrastructure: icon generation, version resource, PyInstaller spec, build.bat, smoke test
+- [x] 07-02-PLAN.md — Execute build, run smoke test, human verification of packaged .exe
 
 ## Progress
 
@@ -153,4 +153,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 4. Lists, Encounters, and Save Roller | 4/4 | Complete   | 2026-02-24 |
 | 5. Roll20 Macro Sandbox | 4/4 | Complete   | 2026-02-24 |
 | 6. Settings | 2/2 | Complete    | 2026-02-24 |
-| 7. Packaging and Distribution | 0/2 | Not started | - |
+| 7. Packaging and Distribution | 2/2 | Complete    | 2026-02-24 |
