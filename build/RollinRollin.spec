@@ -3,14 +3,19 @@
 # Source: pyinstaller.org/en/stable/spec-files.html
 # Build with: pyinstaller build/RollinRollin.spec  (from repo root)
 
+import os
 block_cipher = None
 
+# SPECPATH is the directory containing this spec file (i.e. build/).
+# Repo root is one level up from the spec file.
+REPO_ROOT = os.path.dirname(SPECPATH)
+
 a = Analysis(
-    ['src/main.py'],
-    pathex=['.'],           # repo root on PYTHONPATH so "src.*" imports resolve
+    [os.path.join(REPO_ROOT, 'src', 'main.py')],
+    pathex=[REPO_ROOT],     # repo root on PYTHONPATH so "src.*" imports resolve
     binaries=[],
     datas=[
-        ('build/icon.ico', '.'),  # bundle icon at root of frozen app
+        (os.path.join(REPO_ROOT, 'build', 'icon.ico'), '.'),  # bundle icon at root of frozen app
     ],
     hiddenimports=[],
     hookspath=[],
@@ -73,6 +78,6 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='build/icon.ico',
-    version='build/version.txt',
+    icon=os.path.join(REPO_ROOT, 'build', 'icon.ico'),
+    version=os.path.join(REPO_ROOT, 'build', 'version.txt'),
 )
