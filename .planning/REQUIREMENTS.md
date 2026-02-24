@@ -87,8 +87,8 @@
 ### Settings
 
 - [x] **SET-01**: User can enable/disable seeded RNG and set a seed value; all rolls in the session use the seed when enabled
-- [ ] **SET-02**: User can configure default toggles: crit enable, nat-1 always miss, nat-20 always hit
-- [ ] **SET-03**: User can set the default output mode (RAW or COMPARE) applied when opening the Attack Roller
+- [x] **SET-02**: User can configure default toggles: crit enable, nat-1 always miss, nat-20 always hit
+- [x] **SET-03**: User can set the default output mode (RAW or COMPARE) applied when opening the Attack Roller
 - [x] **SET-04**: User can set a default Target AC (pre-filled in COMPARE mode) and default Save DC (pre-filled in Save Roller)
 
 ### Workspace and Distribution
@@ -208,8 +208,8 @@ Which phases cover which requirements. Confirmed during roadmap creation 2026-02
 | SAND-06 | Phase 5 | Complete |
 | SAND-07 | Phase 5 | Complete |
 | SET-01 | Phase 6 | Complete |
-| SET-02 | Phase 6 | Pending |
-| SET-03 | Phase 6 | Pending |
+| SET-02 | Phase 6 | Complete |
+| SET-03 | Phase 6 | Complete |
 | SET-04 | Phase 6 | Complete |
 | WS-02 | Phase 7 | Pending |
 | WS-03 | Phase 7 | Pending |

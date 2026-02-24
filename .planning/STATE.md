@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-02-23)
 
 ## Current Position
 
-Phase: 6 of 7 in progress (Settings)
-Plan: 1 of 2 in phase 6 complete
-Status: Phase 6 Plan 01 complete — AppSettings dataclass + SettingsService persistence layer with TDD
-Last activity: 2026-02-24 — Completed 06-01: AppSettings model and SettingsService
+Phase: 6 of 7 complete (Settings)
+Plan: 2 of 2 in phase 6 complete
+Status: Phase 6 complete — SettingsTab UI, apply_defaults wiring, seeded badge, MainWindow unsaved-changes guard
+Last activity: 2026-02-24 — Completed 06-02: SettingsTab UI and MainWindow wiring
 
-Progress: [█░░░░░░░░░] 50% (Phase 6, Plan 1 of 2)
+Progress: [██████████] 100% (Phase 6, Plan 2 of 2)
 
 ## Performance Metrics
 
@@ -46,6 +46,7 @@ Progress: [█░░░░░░░░░] 50% (Phase 6, Plan 1 of 2)
 | Phase 05-roll20-macro-sandbox P02 | 2 | 2 tasks | 2 files |
 | Phase 05-roll20-macro-sandbox P03 | 5 | 2 tasks | 4 files |
 | Phase 06-settings P01 | 2 | 2 tasks | 4 files |
+| Phase 06-settings P02 | 4 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -125,6 +126,10 @@ Recent decisions affecting current work:
 - [Phase 06-01]: dataclasses.fields(AppSettings) used for known-key filtering — public API per RESEARCH.md Pitfall 4 (not __dataclass_fields__)
 - [Phase 06-01]: SettingsService catches both json.JSONDecodeError and OSError in single except clause — both return default AppSettings
 - [Phase 06-01]: _FILENAME = 'settings.json' is module-level constant, not instance state
+- [Phase 06-02]: blockSignals(True/False) on SettingsTab around apply_settings() prevents _mark_dirty() firing during bulk widget assignment
+- [Phase 06-02]: set_seeded_mode() added as thin public method on AttackRollerTab delegating to _output_panel — avoids MainWindow reaching into private attributes
+- [Phase 06-02]: seed_value is None in current_settings() when seeded RNG unchecked — consistent with AppSettings Optional[int] typing
+- [Phase 06-02]: Advantage mode .capitalize() converts stored "normal"/"advantage"/"disadvantage" to ToggleBar labels "Normal"/"Advantage"/"Disadvantage"
 
 ### Pending Todos
 
@@ -138,5 +143,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-24
-Stopped at: Completed 06-01-PLAN.md — settings service layer complete; next is 06-02 SettingsTab UI
+Stopped at: Completed 06-02-PLAN.md — Phase 6 complete; Settings UI + MainWindow wiring delivered; next is Phase 7 (Packaging)
 Resume file: None
