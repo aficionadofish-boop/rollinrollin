@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-23)
 
 **Core value:** DMs can roll attacks and saving throws for groups of monsters in seconds, with full D&D 5e rule fidelity and clear hit/miss/damage breakdowns.
-**Current focus:** Phase 6 — Settings (in progress)
+**Current focus:** Phase 7 — Packaging and Distribution (in progress)
 
 ## Current Position
 
-Phase: 6 of 7 complete (Settings)
-Plan: 2 of 2 in phase 6 complete
-Status: Phase 6 complete — SettingsTab UI, apply_defaults wiring, seeded badge, MainWindow unsaved-changes guard
-Last activity: 2026-02-24 — Completed 06-02: SettingsTab UI and MainWindow wiring
+Phase: 7 of 7 (Packaging and Distribution)
+Plan: 1 of 2 in phase 7 complete
+Status: Phase 7 Plan 1 complete — build infrastructure (icon, version.txt, spec, build.bat, smoke_test) committed
+Last activity: 2026-02-24 — Completed 07-01: Build infrastructure for PyInstaller packaging
 
-Progress: [██████████] 100% (Phase 6, Plan 2 of 2)
+Progress: [█████████░] 90% (Phase 7, Plan 1 of 2)
 
 ## Performance Metrics
 
@@ -130,6 +130,10 @@ Recent decisions affecting current work:
 - [Phase 06-02]: set_seeded_mode() added as thin public method on AttackRollerTab delegating to _output_panel — avoids MainWindow reaching into private attributes
 - [Phase 06-02]: seed_value is None in current_settings() when seeded RNG unchecked — consistent with AppSettings Optional[int] typing
 - [Phase 06-02]: Advantage mode .capitalize() converts stored "normal"/"advantage"/"disadvantage" to ToggleBar labels "Normal"/"Advantage"/"Disadvantage"
+- [Phase 07-01]: Pillow 12.x ICO save: sizes= parameter resizes master 256px image to each target size; append_images= does NOT produce multi-resolution ICO (creates single-frame file)
+- [Phase 07-01]: build.bat assumes activated venv — does not install deps; developer responsibility not build script concern
+- [Phase 07-01]: smoke_test.py checks alive-after-8s only; no pywinauto window/tab verification (out of scope)
+- [Phase 07-01]: dist/ and build/work/ gitignored; build/icon.ico, version.txt, RollinRollin.spec committed for reproducible builds
 
 ### Pending Todos
 
@@ -143,5 +147,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-24
-Stopped at: Completed 06-02-PLAN.md — Phase 6 complete; Settings UI + MainWindow wiring delivered; next is Phase 7 (Packaging)
+Stopped at: Completed 07-01-PLAN.md — Phase 7 Plan 1 complete; build infrastructure committed; next is 07-02 (execute build)
 Resume file: None

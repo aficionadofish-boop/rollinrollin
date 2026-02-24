@@ -94,8 +94,8 @@
 ### Workspace and Distribution
 
 - [x] **WS-01**: User can select or change the workspace folder; app reads/writes all Markdown files within it under `monsters/`, `lists/`, `encounters/`, `exports/` subfolders
-- [ ] **WS-02**: App launches and runs fully offline with no internet connection required
-- [ ] **WS-03**: App is distributed as a single portable `.exe` for Windows 10 (no Python install required on target machine)
+- [x] **WS-02**: App launches and runs fully offline with no internet connection required
+- [x] **WS-03**: App is distributed as a single portable `.exe` for Windows 10 (no Python install required on target machine)
 
 ---
 
@@ -211,8 +211,8 @@ Which phases cover which requirements. Confirmed during roadmap creation 2026-02
 | SET-02 | Phase 6 | Complete |
 | SET-03 | Phase 6 | Complete |
 | SET-04 | Phase 6 | Complete |
-| WS-02 | Phase 7 | Pending |
-| WS-03 | Phase 7 | Pending |
+| WS-02 | Phase 7 | Complete |
+| WS-03 | Phase 7 | Complete |
 
 **Coverage:**
 - v1 requirements: 56 total
