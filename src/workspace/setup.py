@@ -1,7 +1,15 @@
+import sys
 from pathlib import Path
 from typing import Optional
 
 WORKSPACE_SUBFOLDERS: tuple[str, ...] = ("monsters", "lists", "encounters", "exports", "macros")
+
+
+def resolve_workspace_root() -> Path:
+    """Return workspace root: next to .exe when frozen, home/RollinRollin in dev."""
+    if getattr(sys, 'frozen', False):
+        return Path(sys.executable).parent
+    return Path.home() / "RollinRollin"
 
 
 class WorkspaceError(Exception):

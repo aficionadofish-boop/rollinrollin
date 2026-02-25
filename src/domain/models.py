@@ -65,3 +65,33 @@ class MonsterList:
 class Encounter:
     name: str
     members: list[tuple[Monster, int]] = field(default_factory=list)  # (monster, count)
+
+
+class SaveProficiencyState(str, Enum):
+    """Save proficiency state for a given ability score."""
+    NON_PROFICIENT = "non_proficient"
+    PROFICIENT = "proficient"
+    EXPERTISE = "expertise"
+    CUSTOM = "custom"
+
+
+@dataclass
+class SpellcastingInfo:
+    """Spellcasting details parsed or inferred from a monster's statblock."""
+    trait_name: str           # "Spellcasting" or "Innate Spellcasting"
+    casting_ability: str      # "INT", "WIS", "CHA", etc.
+    is_assumed: bool          # True if casting ability was guessed (not found in text)
+    focus_bonus: int = 0      # user-settable in Phase 9 editor
+
+
+@dataclass
+class MonsterModification:
+    """User overrides applied on top of a base monster from the library."""
+    base_name: str                                                          # key into MonsterLibrary
+    custom_name: Optional[str] = None                                       # if user renamed the modified copy
+    ability_scores: dict[str, int] = field(default_factory=dict)            # override scores
+    saves: dict[str, int] = field(default_factory=dict)                     # override saves
+    hp: Optional[int] = None
+    ac: Optional[int] = None
+    cr: Optional[str] = None
+    spellcasting_infos: list[SpellcastingInfo] = field(default_factory=list)
