@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 9 of 13 (Monster Editor and Equipment Presets)
-Plan: 2 of 5 in current phase
+Plan: 4 of 5 in current phase
 Status: In progress
-Last activity: 2026-02-25 — Plan 09-01 complete: domain model patches (Monster.size/skills, Action.damage_bonus, EquipmentItem, BuffItem, MonsterModification.from_dict, SRD equipment data tables)
+Last activity: 2026-02-25 — Plan 09-03 complete: MonsterEditorDialog skeleton (CollapsibleSection, two-column layout, live preview, undo stack, unsaved-changes guard, Edit button wired from Library tab)
 
-Progress: [████████░░░░░] 62% (Phase 8 complete, Phase 9 plan 02 of 5 done)
+Progress: [█████████░░░░] 66% (Phase 8 complete, Phase 9 plan 03 of 5 done)
 
 ## Performance Metrics
 
@@ -63,6 +63,10 @@ Recent decisions affecting current work:
 - [Phase 09-02]: scale_dice() is module-level function (not method) for standalone import by Plans 03-04
 - [Phase 09-02]: compute_armor_ac str_requirement_met uses >= comparison; str_requirement=0 means always met
 - [Phase 09-02]: Ranged non-thrown weapons always use DEX; thrown non-finesse use STR (D&D 5e rule)
+- [Phase 09-03]: hp_formula stored in UI only (QLineEdit); Monster has no hp_formula field — Plan 05 persists via MonsterModification.hp_formula
+- [Phase 09-03]: closeEvent Save button is stub (accepts+closes); Plan 05 replaces with real save logic
+- [Phase 09-03]: _apply_save_value() Non-Prof removes ability from saves dict (clean Monster convention)
+- [Phase 09-03]: reject() routes through close() so Escape triggers closeEvent unsaved-changes guard
 
 ### Pending Todos
 
@@ -76,5 +80,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-25
-Stopped at: Completed 09-01-PLAN.md (domain model patches, SRD equipment data tables, parser size/skills extraction)
-Resume file: .planning/phases/09-monster-editor-and-equipment-presets/09-01-SUMMARY.md
+Stopped at: Completed 09-03-PLAN.md (MonsterEditorDialog skeleton, Edit button wiring in Library tab)
+Resume file: .planning/phases/09-monster-editor-and-equipment-presets/09-03-SUMMARY.md

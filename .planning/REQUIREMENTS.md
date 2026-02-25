@@ -15,12 +15,12 @@ Requirements for milestone v2.0 (Combat Manager). Each maps to roadmap phases.
 
 ### Monster Editor
 
-- [ ] **EDIT-01**: User can activate edit mode on a selected monster in the Library tab
-- [ ] **EDIT-02**: User can modify base attributes (STR, DEX, CON, INT, WIS, CHA)
-- [ ] **EDIT-03**: User can modify saving throw bonuses
+- [x] **EDIT-01**: User can activate edit mode on a selected monster in the Library tab
+- [x] **EDIT-02**: User can modify base attributes (STR, DEX, CON, INT, WIS, CHA)
+- [x] **EDIT-03**: User can modify saving throw bonuses
 - [x] **EDIT-04**: User can modify hit points
 - [x] **EDIT-05**: User can modify skill bonus values
-- [ ] **EDIT-06**: User can modify challenge rating (recalculates proficiency bonus)
+- [x] **EDIT-06**: User can modify challenge rating (recalculates proficiency bonus)
 - [ ] **EDIT-07**: User can edit existing actions (name, to-hit, damage)
 - [ ] **EDIT-08**: User can add new actions to a monster
 - [ ] **EDIT-09**: When saving, user chooses: save as new copy (custom name), overwrite base monster, or discard
@@ -154,12 +154,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MATH-03 | Phase 8 | Complete |
 | MATH-04 | Phase 8 | Complete |
 | MATH-05 | Phase 8 | Complete |
-| EDIT-01 | Phase 9 | Pending |
-| EDIT-02 | Phase 9 | Pending |
-| EDIT-03 | Phase 9 | Pending |
+| EDIT-01 | Phase 9 | Complete |
+| EDIT-02 | Phase 9 | Complete |
+| EDIT-03 | Phase 9 | Complete |
 | EDIT-04 | Phase 9 | Complete |
 | EDIT-05 | Phase 9 | Complete |
-| EDIT-06 | Phase 9 | Pending |
+| EDIT-06 | Phase 9 | Complete |
 | EDIT-07 | Phase 9 | Pending |
 | EDIT-08 | Phase 9 | Pending |
 | EDIT-09 | Phase 9 | Pending |
