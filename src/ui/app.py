@@ -4,10 +4,12 @@ from __future__ import annotations
 import random
 from pathlib import Path
 
+from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QMainWindow, QTabWidget, QMessageBox
 
 from src.engine.roller import Roller
 from src.library.service import MonsterLibrary
+from src.persistence.service import PersistenceService
 from src.settings.service import SettingsService
 from src.settings.models import AppSettings
 from src.ui.library_tab import MonsterLibraryTab
@@ -15,7 +17,7 @@ from src.ui.attack_roller_tab import AttackRollerTab
 from src.ui.encounters_tab import EncountersTab
 from src.ui.macro_sandbox_tab import MacroSandboxTab
 from src.ui.settings_tab import SettingsTab
-from src.workspace.setup import WorkspaceManager
+from src.workspace.setup import WorkspaceManager, resolve_workspace_root
 
 
 class MainWindow(QMainWindow):
@@ -29,12 +31,16 @@ class MainWindow(QMainWindow):
         # Shared state — one instance each for the entire session
         self._library = MonsterLibrary()
         self._roller = Roller(random.Random())  # unseeded; seeding handled via settings
-        self._workspace_manager = WorkspaceManager(Path.home() / "RollinRollin")
+        self._workspace_manager = WorkspaceManager(resolve_workspace_root())
         self._workspace_manager.initialize()
 
         # Settings service: load persisted settings before constructing tabs
         self._settings_service = SettingsService(self._workspace_manager.root)
         self._current_settings = self._settings_service.load()
+
+        # Persistence service: load session data on startup
+        self._persistence = PersistenceService(self._workspace_manager.root)
+        self._load_persisted_data()
 
         # Tabs
         self._tab_widget = QTabWidget()
@@ -67,8 +73,12 @@ class MainWindow(QMainWindow):
             self._attack_roller_tab.set_creatures
         )
 
-        # Settings tab signal
+        # Settings tab signals
         self._settings_tab.settings_saved.connect(self._on_settings_saved)
+
+        # Flush signals from Settings tab → PersistenceService
+        self._settings_tab.flush_requested.connect(self._on_flush_category)
+        self._settings_tab.clear_all_requested.connect(self._on_clear_all)
 
         # Initialize settings tab with loaded settings
         self._settings_tab.apply_settings(self._current_settings)
@@ -81,6 +91,15 @@ class MainWindow(QMainWindow):
         self._settings_tab_index = self._tab_widget.indexOf(self._settings_tab)
         self._prev_tab_index = self._tab_widget.currentIndex()
         self._tab_widget.currentChanged.connect(self._on_tab_changed)
+
+        # Auto-save timer: fires every 30 seconds
+        self._autosave_timer = QTimer(self)
+        self._autosave_timer.setInterval(30_000)  # 30 seconds
+        self._autosave_timer.timeout.connect(self._autosave)
+        self._autosave_timer.start()
+
+        # Status bar initial message
+        self.statusBar().showMessage("Ready")
 
     # ------------------------------------------------------------------
     # Settings wiring
@@ -129,3 +148,83 @@ class MainWindow(QMainWindow):
             else:
                 self._settings_tab.discard()
         self._prev_tab_index = new_index
+
+        # Refresh flush counts when switching TO the settings tab
+        if new_index == self._settings_tab_index:
+            self._refresh_flush_counts()
+
+    # ------------------------------------------------------------------
+    # Persistence lifecycle
+    # ------------------------------------------------------------------
+
+    def _load_persisted_data(self) -> None:
+        """Load all persistence categories from disk into instance variables.
+
+        Phase 8 skeleton — later phases will wire these to Library, EncountersTab, etc.
+        """
+        self._persisted_monsters = self._persistence.load_loaded_monsters()
+        self._persisted_encounters = self._persistence.load_encounters()
+        self._persisted_modifications = self._persistence.load_modified_monsters()
+        self._persisted_macros = self._persistence.load_macros()
+
+    def _save_persisted_data(self) -> None:
+        """Save all persistence categories to disk."""
+        self._persistence.save_loaded_monsters(self._persisted_monsters)
+        self._persistence.save_encounters(self._persisted_encounters)
+        self._persistence.save_modified_monsters(self._persisted_modifications)
+        self._persistence.save_macros(self._persisted_macros)
+
+    def _autosave(self) -> None:
+        """Timer callback: save all persistence data and briefly show status."""
+        self._save_persisted_data()
+        self.statusBar().showMessage("Saved", 2000)
+
+    def closeEvent(self, event) -> None:
+        """Save data and handle unsaved settings before closing."""
+        # Guard: if Settings tab is dirty, prompt save/discard
+        if self._settings_tab.is_dirty():
+            reply = QMessageBox.question(
+                self,
+                "Unsaved Settings",
+                "You have unsaved settings changes.\nSave or discard?",
+                QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard,
+            )
+            if reply == QMessageBox.StandardButton.Save:
+                self._settings_tab.save()
+            else:
+                self._settings_tab.discard()
+
+        self._save_persisted_data()
+        event.accept()
+
+    # ------------------------------------------------------------------
+    # Flush wiring
+    # ------------------------------------------------------------------
+
+    def _on_flush_category(self, category: str) -> None:
+        """Flush a single persistence category and reset the in-memory cache."""
+        self._persistence.flush(category)
+        # Reset the corresponding in-memory variable to empty
+        if category == "loaded_monsters":
+            self._persisted_monsters = []
+        elif category == "encounters":
+            self._persisted_encounters = []
+        elif category == "modified_monsters":
+            self._persisted_modifications = {}
+        elif category == "macros":
+            self._persisted_macros = []
+        self._refresh_flush_counts()
+
+    def _on_clear_all(self) -> None:
+        """Flush all persistence categories and reset all in-memory caches."""
+        self._persistence.flush_all()
+        self._persisted_monsters = []
+        self._persisted_encounters = []
+        self._persisted_modifications = {}
+        self._persisted_macros = []
+        self._refresh_flush_counts()
+
+    def _refresh_flush_counts(self) -> None:
+        """Update flush count labels in the Settings tab from current persistence state."""
+        counts = {cat: self._persistence.count(cat) for cat in self._persistence.categories()}
+        self._settings_tab.refresh_counts(counts)
