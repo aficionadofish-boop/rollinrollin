@@ -60,7 +60,13 @@ Plans:
   4. User can save an edited monster as a new named copy; both the original and the copy appear in the library independently; edited monsters display a badge next to their name in the library
   5. Equipment-modified stat values display in a distinct color on the statblock, distinguishing them from base values
   6. User can add a custom named bonus (e.g. "+1d4 Bless") to a monster and it persists when switching between Library, Attack, and Saves tabs
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+- [ ] 09-01-PLAN.md -- Domain model patches + SRD equipment data tables
+- [ ] 09-02-PLAN.md -- EquipmentService math (TDD)
+- [ ] 09-03-PLAN.md -- MonsterEditorDialog skeleton with core editing sections
+- [ ] 09-04-PLAN.md -- Equipment UI + Actions + Buffs + color highlighting
+- [ ] 09-05-PLAN.md -- Save/copy workflow + library badge + persistence
 
 ### Phase 10: Persistent Encounter Sidebar
 **Goal**: The active encounter is always visible and accessible no matter which main tab the DM is on — a collapsible sidebar panel that persists across tab switches and app restarts, with full add/remove/save/load capability
@@ -125,7 +131,7 @@ Phase 8 → Phase 9 (parallel with 10) → Phase 10 → Phase 11 → Phase 12 �
 | 6. Settings | v1.0 | 2/2 | Complete | 2026-02-24 |
 | 7. Packaging and Distribution | v1.0 | 2/2 | Complete | 2026-02-24 |
 | 8. Domain Expansion and Persistence Foundation | 3/3 | Complete    | 2026-02-25 | - |
-| 9. Monster Editor and Equipment Presets | v2.0 | 0/? | Not started | - |
+| 9. Monster Editor and Equipment Presets | v2.0 | 0/5 | Planned | - |
 | 10. Persistent Encounter Sidebar | v2.0 | 0/? | Not started | - |
 | 11. Combat Tracker | v2.0 | 0/? | Not started | - |
 | 12. Save Roller Upgrades | v2.0 | 0/? | Not started | - |
