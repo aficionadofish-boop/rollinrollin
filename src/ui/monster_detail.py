@@ -28,7 +28,7 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QTextEdit,
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 
 from src.domain.models import Monster, Action
 
@@ -83,7 +83,15 @@ class MonsterDetailPanel(QWidget):
     Scroll area wraps all content.  The lore section is HIDDEN by default;
     a QPushButton toggle shows/hides a QTextEdit containing the lore text
     with Markdown syntax stripped.
+
+    Signals
+    -------
+    edit_requested : Signal(object)
+        Emitted when the Edit button is clicked.  Carries the currently
+        displayed Monster so the caller can open MonsterEditorDialog.
     """
+
+    edit_requested = Signal(object)  # Monster
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -108,14 +116,23 @@ class MonsterDetailPanel(QWidget):
         self._content_layout = QVBoxLayout(content_widget)
         self._content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        # 1. Name label (large, bold)
+        # 1. Name label (large, bold) + Edit button in a row
+        name_row = QHBoxLayout()
         self._name_label = QLabel("")
         font = self._name_label.font()
         font.setPointSize(14)
         font.setBold(True)
         self._name_label.setFont(font)
         self._name_label.setWordWrap(True)
-        self._content_layout.addWidget(self._name_label)
+        name_row.addWidget(self._name_label, 1)
+
+        self._edit_btn = QPushButton("Edit")
+        self._edit_btn.setEnabled(False)
+        self._edit_btn.setFixedWidth(60)
+        self._edit_btn.clicked.connect(self._on_edit_clicked)
+        name_row.addWidget(self._edit_btn)
+
+        self._content_layout.addLayout(name_row)
 
         # 2. Stats grid: AC | HP | CR | Type
         stats_grid = QGridLayout()
@@ -213,6 +230,7 @@ class MonsterDetailPanel(QWidget):
     def show_monster(self, monster: Monster) -> None:
         """Populate all widgets with the given monster's data."""
         self._current_monster = monster
+        self._edit_btn.setEnabled(True)
 
         # Name
         self._name_label.setText(monster.name)
@@ -260,6 +278,7 @@ class MonsterDetailPanel(QWidget):
     def clear(self) -> None:
         """Clear all widgets; called when no monster is selected."""
         self._current_monster = None
+        self._edit_btn.setEnabled(False)
         self._name_label.setText("")
         self._ac_label.setText("")
         self._hp_label.setText("")
@@ -280,6 +299,11 @@ class MonsterDetailPanel(QWidget):
     # ------------------------------------------------------------------
     # Private helpers
     # ------------------------------------------------------------------
+
+    def _on_edit_clicked(self) -> None:
+        """Emit edit_requested with the currently displayed Monster."""
+        if self._current_monster is not None:
+            self.edit_requested.emit(self._current_monster)
 
     def _toggle_lore(self) -> None:
         """Show or hide the lore QTextEdit when the toggle button is clicked."""

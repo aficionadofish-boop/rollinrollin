@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QHeaderView,
     QAbstractItemView,
+    QDialog,
 )
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QDragEnterEvent, QDragLeaveEvent, QDropEvent
@@ -39,6 +40,7 @@ from src.ui.monster_table import MonsterTableModel
 from src.ui.monster_filter import MonsterFilterProxyModel
 from src.ui.monster_detail import MonsterDetailPanel
 from src.ui.import_log import ImportLogPanel
+from src.ui.monster_editor import MonsterEditorDialog
 
 
 class EncounterDropZone(QLabel):
@@ -219,6 +221,7 @@ class MonsterLibraryTab(QWidget):
         self._table.selectionModel().selectionChanged.connect(
             self._on_selection_changed
         )
+        self._detail_panel.edit_requested.connect(self._on_edit_monster)
 
     # ------------------------------------------------------------------
     # Slot handlers
@@ -249,6 +252,18 @@ class MonsterLibraryTab(QWidget):
         monster = self._model.monster_at(source_index.row())
         self._detail_panel.show_monster(monster)
         self.monster_selected.emit(monster)   # NEW — cross-tab signal
+
+    def _on_edit_monster(self, monster) -> None:
+        """Open MonsterEditorDialog for the given monster (modal).
+
+        After the dialog closes, if the result is Accepted (Plan 05 wires
+        a real save), the table model is refreshed to reflect any changes.
+        """
+        dialog = MonsterEditorDialog(monster, parent=self.window())
+        dialog.exec()
+        if dialog.result() == QDialog.DialogCode.Accepted:
+            # Plan 05 wires real save logic; this refresh handles it when ready.
+            self._refresh_model()
 
     # ------------------------------------------------------------------
     # Import actions
