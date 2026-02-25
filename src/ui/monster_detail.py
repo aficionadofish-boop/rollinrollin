@@ -179,6 +179,21 @@ class MonsterDetailPanel(QWidget):
         saves_row.addWidget(self._saves_label, 1)
         self._content_layout.addLayout(saves_row)
 
+        # 4b. Skills
+        skills_row = QHBoxLayout()
+        skills_row.addWidget(QLabel("Skills:"))
+        self._skills_label = QLabel("None")
+        self._skills_label.setWordWrap(True)
+        skills_row.addWidget(self._skills_label, 1)
+        self._content_layout.addLayout(skills_row)
+
+        # 4c. Flags (stealth disadvantage, etc.)
+        self._flags_label = QLabel("")
+        self._flags_label.setWordWrap(True)
+        self._flags_label.setStyleSheet("color: #E63946; font-style: italic;")
+        self._flags_label.setVisible(False)
+        self._content_layout.addWidget(self._flags_label)
+
         # 5. Actions section label + dynamic action rows
         self._actions_label = QLabel("Actions")
         actions_header_font = self._actions_label.font()
@@ -257,6 +272,28 @@ class MonsterDetailPanel(QWidget):
         else:
             self._saves_label.setText("None")
 
+        # Skills
+        skills = getattr(monster, "skills", {})
+        if skills:
+            skills_parts = [
+                f"{name} {'+' if val >= 0 else ''}{val}"
+                for name, val in skills.items()
+            ]
+            self._skills_label.setText(", ".join(skills_parts))
+        else:
+            self._skills_label.setText("None")
+
+        # Flags (stealth disadvantage from armor)
+        flags = []
+        stealth_disadv = getattr(monster, "_stealth_disadvantage", False)
+        if stealth_disadv:
+            flags.append("Stealth Disadvantage (armor)")
+        if flags:
+            self._flags_label.setText("; ".join(flags))
+            self._flags_label.setVisible(True)
+        else:
+            self._flags_label.setVisible(False)
+
         # Actions — clear and rebuild
         self._clear_actions_layout()
         for action in monster.actions:
@@ -287,6 +324,8 @@ class MonsterDetailPanel(QWidget):
         for ability in ABILITY_LABELS:
             self._ability_labels[ability].setText("")
         self._saves_label.setText("")
+        self._skills_label.setText("")
+        self._flags_label.setVisible(False)
         self._clear_actions_layout()
         self._tags_edit.blockSignals(True)
         self._tags_edit.clear()

@@ -92,11 +92,11 @@ _TOGGLE_LABELS: list[str] = ["Non-Prof", "Prof", "Expertise", "Custom"]
 _MAGIC_BONUS_OPTIONS: list[str] = ["+0 (nonmagical)", "+1", "+2", "+3"]
 _FOCUS_BONUS_OPTIONS: list[str] = ["+1", "+2", "+3"]
 
-# Three-tier color highlighting constants
-STYLE_EQUIPMENT   = "color: #4EA8DE;"   # steel blue — equipment-modified values
-STYLE_MANUAL      = "color: #F4A261;"   # amber — manually edited values
-STYLE_CUSTOM_FLAG = "color: #E63946;"   # red — custom override (doesn't match prof math)
-STYLE_BASE        = ""                  # no style — unmodified base values
+# Three-tier color highlighting hex values (used in rich text spans)
+COLOR_EQUIPMENT   = "#4EA8DE"   # steel blue — equipment-modified values
+COLOR_MANUAL      = "#F4A261"   # amber — manually edited values
+COLOR_CUSTOM_FLAG = "#E63946"   # red — custom override (doesn't match prof math)
+COLOR_BASE        = ""          # empty — unmodified base values (no color wrapping)
 
 # Buff target options
 _BUFF_TARGETS: list[str] = [
@@ -253,6 +253,9 @@ class MonsterEditorDialog(QDialog):
         # Modification source tracking for three-tier highlighting
         # Maps field key -> "equipment" | "manual" | "custom"
         self._mod_sources: dict[str, str] = {}
+
+        # Load existing buffs from monster (e.g. from a previous save/persistence)
+        self._initial_buffs: list[BuffItem] = list(getattr(monster, "buffs", []))
 
         # Window properties
         self.setModal(True)
@@ -730,8 +733,10 @@ class MonsterEditorDialog(QDialog):
         add_buff_btn.clicked.connect(self._on_add_buff)
         self._buffs_edit_layout.addWidget(add_buff_btn)
 
-        # Editor-level buff list (parallel to working_copy, since Monster has no buffs field)
-        self._buff_items: list[BuffItem] = []
+        # Editor-level buff list — load from monster if previously saved
+        self._buff_items: list[BuffItem] = list(self._initial_buffs)
+        if self._buff_items:
+            self._dirty = False  # Don't mark as dirty just from loading
 
         section = CollapsibleSection("Buffs", content, expanded=False)
         self._edit_layout.addWidget(section)
@@ -864,12 +869,14 @@ class MonsterEditorDialog(QDialog):
         # Update armor display
         self._armor_display.setText(display_name)
 
-        # Warnings
+        # Warnings + flag on working_copy for statblock display
         if armor_result["stealth_disadvantage"]:
             self._armor_stealth_warn.setText("Stealth Disadvantage")
             self._armor_stealth_warn.setVisible(True)
+            self._working_copy._stealth_disadvantage = True
         else:
             self._armor_stealth_warn.setVisible(False)
+            self._working_copy._stealth_disadvantage = False
 
         if not armor_result["str_requirement_met"]:
             self._armor_str_warn.setText(
@@ -900,6 +907,7 @@ class MonsterEditorDialog(QDialog):
         self._armor_display.setText("None")
         self._armor_stealth_warn.setVisible(False)
         self._armor_str_warn.setVisible(False)
+        self._working_copy._stealth_disadvantage = False
 
         if "ac" in self._mod_sources:
             del self._mod_sources["ac"]
@@ -1091,6 +1099,43 @@ class MonsterEditorDialog(QDialog):
         target_text = target_combo.currentText()
         self._buff_items[buff_index].targets = target_text.lower().replace(" ", "_")
         self._rebuild_preview()
+
+    def _recompute_equipped_weapon_actions(self) -> None:
+        """Recompute all equipment-generated actions with current ability scores.
+
+        Called when ability scores change so weapon to-hit and damage cascade
+        correctly (e.g. STR 24 -> 30 should update longsword to-hit).
+        """
+        if not self._equipped_weapons:
+            return
+
+        for i, (equip_item, old_action_dict) in enumerate(self._equipped_weapons):
+            old_name = old_action_dict["name"]
+            # Find the SRD weapon data
+            base_weapon_name = equip_item.item_name.split(" +")[0]
+            weapon_data = next(
+                (w for w in SRD_WEAPONS if w.name == base_weapon_name), None
+            )
+            if weapon_data is None:
+                continue
+
+            # Recompute with current ability scores
+            new_action_dict = self._equip_service.compute_weapon_action(
+                weapon_data, equip_item.magic_bonus, self._working_copy
+            )
+            new_action_dict["name"] = old_name  # Preserve the display name
+
+            # Update stored action dict
+            self._equipped_weapons[i] = (equip_item, new_action_dict)
+
+            # Update the corresponding Action on working_copy
+            for j, action in enumerate(self._working_copy.actions):
+                if action.name == old_name and action.is_equipment_generated:
+                    self._working_copy.actions[j] = self._dict_to_action(new_action_dict)
+                    break
+
+        # Refresh action editor rows to show updated values
+        self._rebuild_action_rows()
 
     # ------------------------------------------------------------------
     # Action rows rebuild
@@ -1317,30 +1362,30 @@ class MonsterEditorDialog(QDialog):
         # AC highlighting
         if self._working_copy.ac != self._base_monster.ac:
             source = self._mod_sources.get("ac", "manual")
-            style = STYLE_EQUIPMENT if source == "equipment" else STYLE_MANUAL
+            color = COLOR_EQUIPMENT if source == "equipment" else COLOR_MANUAL
             tooltip = f"Base: {self._base_monster.ac}"
-            self._set_label_highlight(self._preview_panel._ac_label, style, tooltip)
+            self._set_label_highlight(self._preview_panel._ac_label, color, tooltip)
         else:
-            self._set_label_highlight(self._preview_panel._ac_label, STYLE_BASE, "")
+            self._set_label_highlight(self._preview_panel._ac_label, COLOR_BASE, "")
 
         # HP highlighting
         if self._working_copy.hp != self._base_monster.hp:
             self._set_label_highlight(
                 self._preview_panel._hp_label,
-                STYLE_MANUAL,
+                COLOR_MANUAL,
                 f"Base: {self._base_monster.hp}",
             )
         else:
-            self._set_label_highlight(self._preview_panel._hp_label, STYLE_BASE, "")
+            self._set_label_highlight(self._preview_panel._hp_label, COLOR_BASE, "")
 
         # Ability score highlighting
         for ability, label in self._preview_panel._ability_labels.items():
             base_score = self._base_monster.ability_scores.get(ability, 10)
             curr_score = self._working_copy.ability_scores.get(ability, 10)
             if curr_score != base_score:
-                self._set_label_highlight(label, STYLE_MANUAL, f"Base: {base_score}")
+                self._set_label_highlight(label, COLOR_MANUAL, f"Base: {base_score}")
             else:
-                self._set_label_highlight(label, STYLE_BASE, "")
+                self._set_label_highlight(label, COLOR_BASE, "")
 
         # Saving throws highlighting — use MathValidator to detect custom
         derived = self._engine.recalculate(self._working_copy)
@@ -1359,18 +1404,29 @@ class MonsterEditorDialog(QDialog):
                 for sv in save_validations.values()
                 if hasattr(sv, "state")
             )
-            style = STYLE_CUSTOM_FLAG if has_custom else STYLE_MANUAL
-            self._set_label_highlight(self._preview_panel._saves_label, style, "")
+            color = COLOR_CUSTOM_FLAG if has_custom else COLOR_MANUAL
+            self._set_label_highlight(self._preview_panel._saves_label, color, "")
         else:
-            self._set_label_highlight(self._preview_panel._saves_label, STYLE_BASE, "")
+            self._set_label_highlight(self._preview_panel._saves_label, COLOR_BASE, "")
 
-    def _set_label_highlight(self, label, style: str, tooltip: str) -> None:
-        """Apply a stylesheet and tooltip to a QLabel in the preview panel."""
+    def _set_label_highlight(self, label, color: str, tooltip: str) -> None:
+        """Apply color highlighting to a QLabel using rich text for reliability.
+
+        Uses HTML <span> wrapping instead of setStyleSheet to avoid
+        Qt stylesheet cascade issues on Windows.
+        """
         try:
-            label.setStyleSheet(style)
+            current_text = label.text()
+            # Strip any existing HTML wrapping
+            if current_text.startswith("<span"):
+                import re as _re
+                current_text = _re.sub(r"<[^>]+>", "", current_text)
+            if color:
+                label.setText(f'<span style="color: {color};">{current_text}</span>')
+            else:
+                label.setText(current_text)
             label.setToolTip(tooltip)
         except (AttributeError, RuntimeError):
-            # Label may not exist or may have been deleted
             pass
 
     # ------------------------------------------------------------------
@@ -1389,7 +1445,12 @@ class MonsterEditorDialog(QDialog):
             self._rebuild_preview()
 
     def _on_ability_changed(self) -> None:
-        """Collect all spinbox values, update working copy, rebuild preview."""
+        """Collect all spinbox values, update working copy, rebuild preview.
+
+        Also cascades ability score changes to:
+        - Saving throws (recomputed for Prof/Expertise state)
+        - Equipment-generated action to-hit and damage
+        """
         if self._recalculating:
             return
         self._push_undo()
@@ -1401,7 +1462,10 @@ class MonsterEditorDialog(QDialog):
                 self._mod_sources[f"ability_{ability}"] = "manual"
             else:
                 self._mod_sources.pop(f"ability_{ability}", None)
-        self._sync_save_toggles()
+        # Cascade: recompute saves based on new ability modifiers
+        self._sync_save_toggles(recompute_values=True)
+        # Cascade: recompute equipment-generated actions with new ability mods
+        self._recompute_equipped_weapon_actions()
         self._rebuild_preview()
 
     def _on_save_toggle_changed(self) -> None:
@@ -1661,16 +1725,21 @@ class MonsterEditorDialog(QDialog):
 
             # Rebuild action rows (restores from working_copy)
             self._rebuild_action_rows()
+            # Rebuild buff rows (restores from _buff_items)
+            self._rebuild_buff_rows()
 
         finally:
             self._recalculating = False
 
-    def _sync_save_toggles(self) -> None:
+    def _sync_save_toggles(self, recompute_values: bool = False) -> None:
         """Sync the saving throw toggle buttons from working_copy saves.
 
         Determines the SaveState for each ability by comparing the monster's
         actual save value against the expected non-prof / prof / expertise
         values from the math engine.
+
+        When recompute_values is True (e.g. after ability score changes),
+        non-Custom saves are recalculated to reflect new ability modifiers.
         """
         derived = self._engine.recalculate(self._working_copy)
 
@@ -1698,6 +1767,11 @@ class MonsterEditorDialog(QDialog):
                     state_label = "Non-Prof"
                 else:
                     state_label = "Custom"
+
+            # When ability scores change, recompute non-Custom save values
+            # so they cascade with the new ability modifier
+            if recompute_values and state_label != "Custom":
+                self._apply_save_value(ability, state_label)
 
             for btn in group:
                 btn.blockSignals(True)
