@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 8 of 13 (Domain Expansion and Persistence Foundation)
-Plan: 0 of ? in current phase
-Status: Ready to plan
-Last activity: 2026-02-25 — v2.0 roadmap created; phases 8-13 defined
+Plan: 1 of ? in current phase
+Status: In progress
+Last activity: 2026-02-25 — Plan 08-01 complete: PersistenceService + domain model dataclasses
 
-Progress: [███████░░░░░░] 54% (7/13 phases complete — v1.0 phases done)
+Progress: [███████░░░░░░] 54% (7/13 phases complete — v1.0 phases done, Phase 8 in progress)
 
 ## Performance Metrics
 
@@ -38,6 +38,9 @@ Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
 - Persistence: JSON only — no SQLite; mirrors existing SettingsService pattern; zero new pip dependencies
+- PersistenceService category defaults: modified_monsters={}, all others=[] (list vs dict by access pattern)
+- Corrupt JSON files return empty defaults without overwriting (preserves user recovery chance)
+- SpellcastingInfo is a standalone flat dataclass, not nested inside MonsterModification at model level
 - Sidebar: QDockWidget at RightDockWidgetArea — not a tab-embedded widget; no direct tab references to sidebar
 - Encounter persistence format: `{name: str, count: int}` only — never serialize Monster objects; resolve by name at access time
 - Monster Math: pure Python engine (no Qt), guard all QSpinBox.valueChanged slots with _recalculating flag + blockSignals()
@@ -57,5 +60,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-25
-Stopped at: Phase 8 context gathered
-Resume file: .planning/phases/08-domain-expansion-and-persistence-foundation/08-CONTEXT.md
+Stopped at: Completed 08-01-PLAN.md (PersistenceService + domain model dataclasses)
+Resume file: .planning/phases/08-domain-expansion-and-persistence-foundation/08-01-SUMMARY.md
