@@ -29,11 +29,11 @@ Requirements for milestone v2.0 (Combat Manager). Each maps to roadmap phases.
 
 ### Monster Math Engine
 
-- [ ] **MATH-01**: When any base attribute changes (STR, DEX, CON, INT, WIS, CHA), all derived values cascade: ability modifier, save bonuses, skill bonuses, attack to-hit, damage bonuses for all actions using that attribute
-- [ ] **MATH-02**: When CR changes, proficiency bonus updates and cascades to saves, skills, and attack bonuses
-- [ ] **MATH-03**: Engine validates attack to-hit = proficiency + relevant ability modifier and damage bonuses on attacks; flags mismatches
-- [ ] **MATH-04**: Engine validates saving throw bonuses against three accepted states: non-proficient (ability mod only), proficient (ability mod + prof bonus), expertise (ability mod + 2x prof bonus); any other value flagged as custom
-- [ ] **MATH-05**: On modified monsters with spellcasting features, engine validates spell attack bonus = spellcasting ability mod + prof bonus + focus bonus, and spell save DC = 8 + spellcasting ability mod + prof bonus + focus bonus
+- [x] **MATH-01**: When any base attribute changes (STR, DEX, CON, INT, WIS, CHA), all derived values cascade: ability modifier, save bonuses, skill bonuses, attack to-hit, damage bonuses for all actions using that attribute
+- [x] **MATH-02**: When CR changes, proficiency bonus updates and cascades to saves, skills, and attack bonuses
+- [x] **MATH-03**: Engine validates attack to-hit = proficiency + relevant ability modifier and damage bonuses on attacks; flags mismatches
+- [x] **MATH-04**: Engine validates saving throw bonuses against three accepted states: non-proficient (ability mod only), proficient (ability mod + prof bonus), expertise (ability mod + 2x prof bonus); any other value flagged as custom
+- [x] **MATH-05**: On modified monsters with spellcasting features, engine validates spell attack bonus = spellcasting ability mod + prof bonus + focus bonus, and spell save DC = 8 + spellcasting ability mod + prof bonus + focus bonus
 
 ### Equipment Presets
 
@@ -149,11 +149,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PERSIST-01 | Phase 8 | Complete |
 | PERSIST-02 | Phase 8 | Complete |
 | PERSIST-03 | Phase 8 | Pending |
-| MATH-01 | Phase 8 | Pending |
-| MATH-02 | Phase 8 | Pending |
-| MATH-03 | Phase 8 | Pending |
-| MATH-04 | Phase 8 | Pending |
-| MATH-05 | Phase 8 | Pending |
+| MATH-01 | Phase 8 | Complete |
+| MATH-02 | Phase 8 | Complete |
+| MATH-03 | Phase 8 | Complete |
+| MATH-04 | Phase 8 | Complete |
+| MATH-05 | Phase 8 | Complete |
 | EDIT-01 | Phase 9 | Pending |
 | EDIT-02 | Phase 9 | Pending |
 | EDIT-03 | Phase 9 | Pending |

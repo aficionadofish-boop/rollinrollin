@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 8 of 13 (Domain Expansion and Persistence Foundation)
-Plan: 1 of ? in current phase
+Plan: 2 of ? in current phase
 Status: In progress
-Last activity: 2026-02-25 — Plan 08-01 complete: PersistenceService + domain model dataclasses
+Last activity: 2026-02-25 — Plan 08-02 complete: Monster Math Engine, MathValidator, SpellcastingDetector
 
 Progress: [███████░░░░░░] 54% (7/13 phases complete — v1.0 phases done, Phase 8 in progress)
 
@@ -44,6 +44,11 @@ Recent decisions affecting current work:
 - Sidebar: QDockWidget at RightDockWidgetArea — not a tab-embedded widget; no direct tab references to sidebar
 - Encounter persistence format: `{name: str, count: int}` only — never serialize Monster objects; resolve by name at access time
 - Monster Math: pure Python engine (no Qt), guard all QSpinBox.valueChanged slots with _recalculating flag + blockSignals()
+- damage_bonus on Action accessed via getattr with None default — forward-compat before formal domain model field addition
+- SpellcastingInfo in spellcasting.py (runtime detection) is separate from any persistence domain model version
+- SaveState uses (str, Enum) for JSON serialization without conversion overhead
+- damage expected = ability_mod only (no prof) — D&D 5e rule: proficiency applies to attack rolls not damage
+- Fallback mental stat: WIS > INT > CHA by score; WIS default when no mental stats present
 - Combat state: CombatTrackerService is authoritative; widgets are display-only, never hold HP state
 - Feature detection: search Monster.actions (not raw_text) to avoid lore-paragraph false positives
 - QWebEngineView: explicitly rejected for template rendering — 130-150MB bundle bloat violates portable .exe constraint
@@ -60,5 +65,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-25
-Stopped at: Completed 08-01-PLAN.md (PersistenceService + domain model dataclasses)
-Resume file: .planning/phases/08-domain-expansion-and-persistence-foundation/08-01-SUMMARY.md
+Stopped at: Completed 08-02-PLAN.md (Monster Math Engine, MathValidator, SpellcastingDetector)
+Resume file: .planning/phases/08-domain-expansion-and-persistence-foundation/08-02-SUMMARY.md
