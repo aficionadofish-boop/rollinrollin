@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QCheckBox,
     QSpinBox,
+    QMessageBox,
 )
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QFont
@@ -49,6 +50,8 @@ class SettingsTab(QWidget):
     """
 
     settings_saved = Signal(object)
+    flush_requested = Signal(str)
+    clear_all_requested = Signal()
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -92,6 +95,9 @@ class SettingsTab(QWidget):
         grid.addWidget(self._build_output_group(), 1, 1)
 
         outer.addWidget(grid_widget)
+
+        # Data Management flush section
+        outer.addWidget(self._build_data_flush_group())
 
         # Save button — spans bottom row
         self._save_btn = QPushButton("Save Settings")
@@ -225,6 +231,62 @@ class SettingsTab(QWidget):
 
         return group
 
+    def _build_data_flush_group(self) -> QGroupBox:
+        group = QGroupBox("Data Management")
+        layout = QVBoxLayout(group)
+
+        self._flush_labels: dict[str, QLabel] = {}
+        self._flush_btns: dict[str, QPushButton] = {}
+
+        _CATEGORIES = [
+            ("loaded_monsters", "Loaded Monsters"),
+            ("encounters", "Encounters"),
+            ("modified_monsters", "Modified Monsters"),
+            ("macros", "Macros"),
+        ]
+
+        for category_key, display_name in _CATEGORIES:
+            row = QHBoxLayout()
+            label = QLabel(f"{display_name}: -- entries")
+            btn = QPushButton(f"Flush {display_name}")
+            self._flush_labels[category_key] = label
+            self._flush_btns[category_key] = btn
+            # Use default args to capture loop variables by value
+            btn.clicked.connect(
+                lambda checked=False, cat=category_key, dn=display_name: self._on_flush(cat, dn)
+            )
+            row.addWidget(label)
+            row.addWidget(btn)
+            layout.addLayout(row)
+
+        clear_all_btn = QPushButton("Clear All Data")
+        clear_all_btn.clicked.connect(self._on_clear_all)
+        layout.addWidget(clear_all_btn)
+
+        return group
+
+    def _on_flush(self, category: str, display_name: str) -> None:
+        """Show confirmation dialog and emit flush_requested if confirmed."""
+        reply = QMessageBox.question(
+            self,
+            "Flush Data",
+            f"Flush all {display_name} data? This cannot be undone.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            self.flush_requested.emit(category)
+
+    def _on_clear_all(self) -> None:
+        """Show confirmation dialog and emit clear_all_requested if confirmed."""
+        reply = QMessageBox.question(
+            self,
+            "Clear All Data",
+            "Clear ALL persistent data? This cannot be undone.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            self.clear_all_requested.emit()
+
     # ------------------------------------------------------------------
     # Dirty tracking
     # ------------------------------------------------------------------
@@ -317,3 +379,17 @@ class SettingsTab(QWidget):
     def discard(self) -> None:
         """Revert all widgets to the last-saved settings."""
         self.apply_settings(self._last_saved)
+
+    def refresh_counts(self, counts: dict[str, int]) -> None:
+        """Update flush label texts with current entry counts.
+
+        Parameters
+        ----------
+        counts:
+            Mapping of category key -> entry count.
+        """
+        for category_key, label in self._flush_labels.items():
+            count = counts.get(category_key, 0)
+            display_name = category_key.replace("_", " ").title()
+            noun = "entry" if count == 1 else "entries"
+            label.setText(f"{display_name}: {count} {noun}")
