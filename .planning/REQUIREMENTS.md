@@ -23,9 +23,9 @@ Requirements for milestone v2.0 (Combat Manager). Each maps to roadmap phases.
 - [x] **EDIT-06**: User can modify challenge rating (recalculates proficiency bonus)
 - [ ] **EDIT-07**: User can edit existing actions (name, to-hit, damage)
 - [ ] **EDIT-08**: User can add new actions to a monster
-- [ ] **EDIT-09**: When saving, user chooses: save as new copy (custom name), overwrite base monster, or discard
-- [ ] **EDIT-10**: User can add custom named bonuses to a monster (e.g. "+1d4 Bless", "+2 Rage") that persist across tabs
-- [ ] **EDIT-11**: Edited monsters display a badge next to their name in the library indicating they have been modified
+- [x] **EDIT-09**: When saving, user chooses: save as new copy (custom name), overwrite base monster, or discard
+- [x] **EDIT-10**: User can add custom named bonuses to a monster (e.g. "+1d4 Bless", "+2 Rage") that persist across tabs
+- [x] **EDIT-11**: Edited monsters display a badge next to their name in the library indicating they have been modified
 
 ### Monster Math Engine
 
@@ -162,9 +162,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EDIT-06 | Phase 9 | Complete |
 | EDIT-07 | Phase 9 | Pending |
 | EDIT-08 | Phase 9 | Pending |
-| EDIT-09 | Phase 9 | Pending |
-| EDIT-10 | Phase 9 | Pending |
-| EDIT-11 | Phase 9 | Pending |
+| EDIT-09 | Phase 9 | Complete |
+| EDIT-10 | Phase 9 | Complete |
+| EDIT-11 | Phase 9 | Complete |
 | EQUIP-01 | Phase 9 | Complete |
 | EQUIP-02 | Phase 9 | Complete |
 | EQUIP-03 | Phase 9 | Complete |

@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 9 of 13 (Monster Editor and Equipment Presets)
-Plan: 5 of 5 in current phase
-Status: In progress
-Last activity: 2026-02-26 — Plan 09-04 complete: Equipment/Actions/Buffs sections + three-tier color highlighting added to MonsterEditorDialog
+Plan: 5 of 5 in current phase (Task 1 complete, awaiting human-verify checkpoint)
+Status: Awaiting human verification (checkpoint:human-verify)
+Last activity: 2026-02-26 — Plan 09-05 Task 1 complete: save workflows, library badge, cross-tab buff wiring implemented
 
-Progress: [██████████░░░] 72% (Phase 8 complete, Phase 9 plan 04 of 5 done)
+Progress: [████████████░] 78% (Phase 8 complete, Phase 9 plan 05 task 1 of 2 done)
 
 ## Performance Metrics
 
@@ -67,6 +67,11 @@ Recent decisions affecting current work:
 - [Phase 09-03]: closeEvent Save button is stub (accepts+closes); Plan 05 replaces with real save logic
 - [Phase 09-03]: _apply_save_value() Non-Prof removes ability from saves dict (clean Monster convention)
 - [Phase 09-03]: reject() routes through close() so Escape triggers closeEvent unsaved-changes guard
+- [Phase 09-05]: Monster.buffs lives on Monster dataclass (not editor-local) so buffs flow through library to AttackRollerTab without extra wiring
+- [Phase 09-05]: Modification diff stores only changed fields — empty saves/skills/ability_scores if unchanged, keeps JSON minimal
+- [Phase 09-05]: PersistenceService load+merge in _save_override: load current dict, update key, save back — avoids clobbering other saved modifications
+- [Phase 09-05]: Badge collision priority: incomplete "!" > modified pencil > "" (incomplete takes precedence)
+- [Phase 09-05]: closeEvent Save calls real _save_override() with event.ignore() so dialog controls its own close lifecycle
 
 ### Pending Todos
 
@@ -80,5 +85,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 09-04-PLAN.md (Equipment/Actions/Buffs sections, three-tier color highlighting)
-Resume file: .planning/phases/09-monster-editor-and-equipment-presets/09-04-SUMMARY.md
+Stopped at: 09-05-PLAN.md Task 1 complete — awaiting human verification (Task 2 checkpoint:human-verify)
+Resume file: .planning/phases/09-monster-editor-and-equipment-presets/09-05-SUMMARY.md
