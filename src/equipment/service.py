@@ -18,6 +18,7 @@ from src.equipment.data import WeaponData, ArmorData, SIZE_DICE_MULTIPLIER
 
 # ---------------------------------------------------------------------------
 # Proficiency bonus table indexed by CR string
+# Inline copy — avoids coupling to MonsterMathEngine internals.
 # ---------------------------------------------------------------------------
 
 _PROF_BY_CR: dict[str, int] = {
@@ -33,12 +34,20 @@ _PROF_BY_CR: dict[str, int] = {
 }
 
 
+def _ability_mod(score: int) -> int:
+    """Compute D&D 5e ability modifier using floor division (matches engine.py)."""
+    return (score - 10) // 2
+
+
 # ---------------------------------------------------------------------------
-# Module-level helper
+# Module-level helper: scale weapon dice by size
 # ---------------------------------------------------------------------------
 
 def scale_dice(base_dice: str, size: str) -> str:
     """Scale weapon damage dice by monster size.
+
+    Parses 'NdM' format, multiplies N by SIZE_DICE_MULTIPLIER[size],
+    returns 'ScaledNdM'.
 
     Parameters
     ----------
@@ -50,14 +59,19 @@ def scale_dice(base_dice: str, size: str) -> str:
     Returns
     -------
     str
-        Scaled dice string (e.g. '2d8' for Large 1d8).
+        Scaled dice string (e.g. '2d8' for Large 1d8, '8d6' for Gargantuan 2d6).
 
-    Raises
-    ------
-    NotImplementedError
-        Always — this is a stub for the RED phase.
+    Examples
+    --------
+    >>> scale_dice('1d8', 'Large')
+    '2d8'
+    >>> scale_dice('2d6', 'Gargantuan')
+    '8d6'
     """
-    raise NotImplementedError
+    multiplier = SIZE_DICE_MULTIPLIER.get(size, 1)
+    n_str, die = base_dice.split('d')
+    scaled_n = int(n_str) * multiplier
+    return f"{scaled_n}d{die}"
 
 
 # ---------------------------------------------------------------------------
@@ -68,7 +82,17 @@ class EquipmentService:
     """Computes D&D 5e equipment math for the monster editor.
 
     Pure calculation class — no state, no Qt, no I/O.
+
+    Design notes:
+    - Proficiency bonus and ability modifiers are computed inline to avoid
+      coupling to MonsterMathEngine (which takes a full Monster with all fields).
+    - Ability selection for finesse weapons: uses whichever of DEX/STR mod is
+      higher. Ranged (non-thrown) always use DEX. Thrown non-finesse use STR.
     """
+
+    # ------------------------------------------------------------------
+    # Weapon action
+    # ------------------------------------------------------------------
 
     def compute_weapon_action(
         self,
@@ -81,23 +105,61 @@ class EquipmentService:
         Parameters
         ----------
         weapon : WeaponData
-            SRD weapon entry.
+            SRD weapon entry with damage dice and property flags.
         magic_bonus : int
             Magic enhancement bonus (+0/+1/+2/+3).
         monster : Monster
-            Monster receiving the weapon.
+            Monster receiving the weapon. Uses monster.cr, monster.ability_scores,
+            and monster.size.
 
         Returns
         -------
-        dict with keys: name, to_hit_bonus, damage_dice, damage_bonus,
-                        damage_type, is_equipment_generated.
+        dict
+            Keys: name, to_hit_bonus, damage_dice, damage_bonus,
+                  damage_type, is_equipment_generated.
 
-        Raises
-        ------
-        NotImplementedError
-            Always — this is a stub for the RED phase.
+        Notes
+        -----
+        D&D 5e rules:
+        - Ranged (non-thrown): always DEX
+        - Finesse: use whichever of DEX/STR modifier is higher
+        - Thrown (non-finesse): use STR
+        - Default: STR
         """
-        raise NotImplementedError
+        str_score = monster.ability_scores.get("STR", 10)
+        dex_score = monster.ability_scores.get("DEX", 10)
+        str_mod = _ability_mod(str_score)
+        dex_mod = _ability_mod(dex_score)
+
+        # Ability selection per D&D 5e rules
+        if weapon.is_ranged and not weapon.is_thrown:
+            # Pure ranged weapons (bow, crossbow) always use DEX
+            ability_mod = dex_mod
+        elif weapon.is_finesse:
+            # Finesse: pick the higher of STR or DEX
+            ability_mod = max(str_mod, dex_mod)
+        else:
+            # Default (melee) and thrown non-finesse: use STR
+            ability_mod = str_mod
+
+        prof_bonus = _PROF_BY_CR.get(monster.cr, 2)
+
+        to_hit_bonus = ability_mod + prof_bonus + magic_bonus
+        damage_dice = scale_dice(weapon.damage_dice, monster.size)
+        damage_bonus = ability_mod + magic_bonus
+
+        return {
+            "name": weapon.name,
+            "to_hit_bonus": to_hit_bonus,
+            "damage_dice": damage_dice,
+            "damage_bonus": damage_bonus,
+            "damage_type": weapon.damage_type,
+            "is_equipment_generated": True,
+        }
+
+    # ------------------------------------------------------------------
+    # Armor AC
+    # ------------------------------------------------------------------
 
     def compute_armor_ac(
         self,
@@ -110,23 +172,56 @@ class EquipmentService:
         Parameters
         ----------
         armor : ArmorData
-            SRD armor entry.
+            SRD armor entry with base_ac, dex_limit, stealth_disadvantage,
+            and str_requirement.
         magic_bonus : int
             Magic enhancement bonus (+0/+1/+2/+3).
         monster : Monster
-            Monster wearing the armor.
+            Monster wearing the armor. Uses monster.ability_scores["DEX"] and
+            monster.ability_scores["STR"].
 
         Returns
         -------
-        dict with keys: ac, stealth_disadvantage, str_requirement_met,
-                        armor_name, magic_bonus.
+        dict
+            Keys: ac, stealth_disadvantage, str_requirement_met,
+                  armor_name, magic_bonus.
 
-        Raises
-        ------
-        NotImplementedError
-            Always — this is a stub for the RED phase.
+        Notes
+        -----
+        D&D 5e armor DEX rules:
+        - dex_limit is None (light): full DEX modifier
+        - dex_limit is 0 (heavy): no DEX contribution
+        - dex_limit is 2 (medium): capped at +2
         """
-        raise NotImplementedError
+        dex_score = monster.ability_scores.get("DEX", 10)
+        str_score = monster.ability_scores.get("STR", 10)
+        dex_mod = _ability_mod(dex_score)
+
+        if armor.dex_limit is None:
+            # Light armor — full DEX modifier
+            ac_dex = dex_mod
+        elif armor.dex_limit == 0:
+            # Heavy armor — no DEX contribution
+            ac_dex = 0
+        else:
+            # Medium armor — DEX capped at dex_limit
+            ac_dex = min(dex_mod, armor.dex_limit)
+
+        total_ac = armor.base_ac + ac_dex + magic_bonus
+
+        str_requirement_met = (str_score >= armor.str_requirement)
+
+        return {
+            "ac": total_ac,
+            "stealth_disadvantage": armor.stealth_disadvantage,
+            "str_requirement_met": str_requirement_met,
+            "armor_name": armor.name,
+            "magic_bonus": magic_bonus,
+        }
+
+    # ------------------------------------------------------------------
+    # Shield bonus
+    # ------------------------------------------------------------------
 
     def compute_shield_bonus(self, magic_bonus: int) -> int:
         """Return the AC bonus from a shield.
@@ -139,30 +234,30 @@ class EquipmentService:
         Returns
         -------
         int
-            2 + magic_bonus.
-
-        Raises
-        ------
-        NotImplementedError
-            Always — this is a stub for the RED phase.
+            2 + magic_bonus (shields always grant +2 AC base).
         """
-        raise NotImplementedError
+        return 2 + magic_bonus
+
+    # ------------------------------------------------------------------
+    # Spellcasting focus bonus
+    # ------------------------------------------------------------------
 
     def compute_focus_bonus(self, focus_magic_bonus: int) -> dict:
-        """Return spell attack and spell save DC bonuses from a focus.
+        """Return spell attack and spell save DC bonuses from a spellcasting focus.
 
         Parameters
         ----------
         focus_magic_bonus : int
-            Focus magic bonus (+1/+2/+3).
+            Focus magic bonus (+1/+2/+3). A +0 focus is not valid per the
+            equipment constraints but handled gracefully (returns 0 bonuses).
 
         Returns
         -------
-        dict with keys: spell_attack_bonus, spell_dc_bonus.
-
-        Raises
-        ------
-        NotImplementedError
-            Always — this is a stub for the RED phase.
+        dict
+            Keys: spell_attack_bonus, spell_dc_bonus.
+            Both equal focus_magic_bonus.
         """
-        raise NotImplementedError
+        return {
+            "spell_attack_bonus": focus_magic_bonus,
+            "spell_dc_bonus": focus_magic_bonus,
+        }
