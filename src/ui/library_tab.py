@@ -93,16 +93,18 @@ class MonsterLibraryTab(QWidget):
     """Complete Monster Library tab widget.
 
     Args:
-        library: Shared MonsterLibrary instance (owned by the caller / main window).
-        parent:  Optional parent QWidget.
+        library:     Shared MonsterLibrary instance (owned by the caller / main window).
+        persistence: Optional PersistenceService for modified monster tracking.
+        parent:      Optional parent QWidget.
     """
 
     monster_selected = Signal(object)         # emitted when user selects a row
     monster_added_to_encounter = Signal(object)  # emitted when monster dropped onto drop zone
 
-    def __init__(self, library: MonsterLibrary, parent=None) -> None:
+    def __init__(self, library: MonsterLibrary, persistence=None, parent=None) -> None:
         super().__init__(parent)
         self._library = library
+        self._persistence = persistence
         self._setup_ui()
         self._connect_signals()
 
@@ -256,14 +258,30 @@ class MonsterLibraryTab(QWidget):
     def _on_edit_monster(self, monster) -> None:
         """Open MonsterEditorDialog for the given monster (modal).
 
-        After the dialog closes, if the result is Accepted (Plan 05 wires
-        a real save), the table model is refreshed to reflect any changes.
+        Passes library and persistence so the editor can save directly.
+        Connects the monster_saved signal before exec() so it fires before
+        dialog teardown.
         """
-        dialog = MonsterEditorDialog(monster, parent=self.window())
+        dialog = MonsterEditorDialog(
+            monster,
+            parent=self.window(),
+            library=self._library,
+            persistence=self._persistence,
+        )
+        dialog.monster_saved.connect(self._on_monster_saved)
         dialog.exec()
-        if dialog.result() == QDialog.DialogCode.Accepted:
-            # Plan 05 wires real save logic; this refresh handles it when ready.
-            self._refresh_model()
+
+    def _on_monster_saved(self, monster) -> None:
+        """Refresh the table after a monster is saved in the editor."""
+        self._model.reset_monsters(self._library.all())
+        self._model.set_modified_names(self._get_modified_names())
+        self._refresh_type_combo()
+
+    def _get_modified_names(self) -> set[str]:
+        """Return the set of monster names that have persisted modifications."""
+        if self._persistence is None:
+            return set()
+        return set(self._persistence.load_modified_monsters().keys())
 
     # ------------------------------------------------------------------
     # Import actions

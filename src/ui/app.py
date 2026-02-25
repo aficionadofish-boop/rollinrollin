@@ -7,6 +7,7 @@ from pathlib import Path
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QMainWindow, QTabWidget, QMessageBox
 
+from src.domain.models import MonsterModification
 from src.engine.roller import Roller
 from src.library.service import MonsterLibrary
 from src.persistence.service import PersistenceService
@@ -44,7 +45,7 @@ class MainWindow(QMainWindow):
 
         # Tabs
         self._tab_widget = QTabWidget()
-        self._library_tab = MonsterLibraryTab(library=self._library)
+        self._library_tab = MonsterLibraryTab(library=self._library, persistence=self._persistence)
         self._attack_roller_tab = AttackRollerTab(roller=self._roller)
         self._encounters_tab = EncountersTab(
             library=self._library,
@@ -86,6 +87,9 @@ class MainWindow(QMainWindow):
         # Apply loaded settings to all tabs and shared roller
         # Called AFTER all tabs are fully constructed
         self._apply_settings(self._current_settings)
+
+        # Apply persisted monster modifications to library and populate badge set
+        self._apply_persisted_modifications()
 
         # Unsaved-changes guard — track Settings tab index and previous tab
         self._settings_tab_index = self._tab_widget.indexOf(self._settings_tab)
@@ -158,14 +162,95 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
 
     def _load_persisted_data(self) -> None:
-        """Load all persistence categories from disk into instance variables.
-
-        Phase 8 skeleton — later phases will wire these to Library, EncountersTab, etc.
-        """
+        """Load all persistence categories from disk into instance variables."""
         self._persisted_monsters = self._persistence.load_loaded_monsters()
         self._persisted_encounters = self._persistence.load_encounters()
         self._persisted_modifications = self._persistence.load_modified_monsters()
         self._persisted_macros = self._persistence.load_macros()
+
+    def _apply_persisted_modifications(self) -> None:
+        """Apply persisted MonsterModifications to the library on startup.
+
+        For each key in _persisted_modifications:
+          - Reconstruct MonsterModification via from_dict()
+          - If the base monster exists in the library, apply overrides to
+            produce a modified Monster and replace it (or add it as new for
+            save-as-copy entries with a custom_name different from base_name).
+          - Populate the library tab's modified names badge set.
+        """
+        import copy as _copy
+        import dataclasses as _dc
+
+        for key, mod_dict in self._persisted_modifications.items():
+            try:
+                mod = MonsterModification.from_dict(mod_dict)
+            except Exception:
+                continue
+
+            base_name = mod.base_name
+            if not self._library.has_name(base_name):
+                continue  # Base monster not loaded — skip
+
+            base_monster = self._library.get_by_name(base_name)
+            modified = _copy.deepcopy(base_monster)
+
+            # Apply field overrides
+            if mod.ability_scores:
+                for ability, score in mod.ability_scores.items():
+                    modified.ability_scores[ability] = score
+            if mod.saves:
+                modified.saves = dict(mod.saves)
+            if mod.skills:
+                modified.skills = dict(mod.skills)
+            if mod.hp is not None:
+                modified.hp = mod.hp
+            if mod.ac is not None:
+                modified.ac = mod.ac
+            if mod.cr is not None:
+                modified.cr = mod.cr
+            if mod.size is not None:
+                modified.size = mod.size
+            if mod.buffs:
+                modified.buffs = list(mod.buffs)
+
+            # Apply action overrides
+            if mod.actions:
+                from src.domain.models import Action, DamagePart
+                reconstructed_actions = []
+                for a_dict in mod.actions:
+                    damage_parts = [
+                        DamagePart(
+                            dice_expr=dp.get("dice_expr", "1d6"),
+                            damage_type=dp.get("damage_type", "bludgeoning"),
+                            raw_text=dp.get("raw_text", ""),
+                        )
+                        for dp in a_dict.get("damage_parts", [])
+                    ]
+                    reconstructed_actions.append(Action(
+                        name=a_dict.get("name", ""),
+                        to_hit_bonus=a_dict.get("to_hit_bonus"),
+                        damage_parts=damage_parts,
+                        raw_text=a_dict.get("raw_text", ""),
+                        is_parsed=a_dict.get("is_parsed", True),
+                        damage_bonus=a_dict.get("damage_bonus"),
+                        is_equipment_generated=a_dict.get("is_equipment_generated", False),
+                    ))
+                modified.actions = reconstructed_actions
+
+            # For save-as-copy: custom_name differs from base_name → add as new
+            if mod.custom_name and mod.custom_name != base_name:
+                modified.name = mod.custom_name
+                if not self._library.has_name(mod.custom_name):
+                    self._library.add(modified)
+                else:
+                    self._library.replace(modified)
+            else:
+                # Override: replace the base monster
+                self._library.replace(modified)
+
+        # Populate modified badge set in library tab's table model
+        modified_names = set(self._persisted_modifications.keys())
+        self._library_tab._model.set_modified_names(modified_names)
 
     def _save_persisted_data(self) -> None:
         """Save all persistence categories to disk."""

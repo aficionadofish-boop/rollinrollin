@@ -68,6 +68,7 @@ class Monster:
     tags: list[str] = field(default_factory=list) # user-assignable tags (LIB-05)
     size: str = "Medium"                           # "Tiny", "Small", "Medium", "Large", "Huge", "Gargantuan"
     skills: dict[str, int] = field(default_factory=dict)  # e.g. {"Perception": 5, "Stealth": 4}
+    buffs: list["BuffItem"] = field(default_factory=list)  # active buffs carried from editor (EDIT-10)
 
 
 @dataclass

@@ -285,6 +285,22 @@ class AttackRollerTab(QWidget):
             self._action_list_layout.insertWidget(insert_idx, header_label)
             self._action_rows.append(header_label)
 
+            # Buff label — show active buffs if any (EDIT-10 cross-tab visibility)
+            buffs = getattr(monster, "buffs", [])
+            if buffs:
+                buff_parts = [
+                    f"{b.name} ({b.bonus_value} {b.targets.replace('_', ' ')})"
+                    for b in buffs
+                ]
+                buff_label = QLabel(f"Buffs: {', '.join(buff_parts)}")
+                buff_label.setStyleSheet(
+                    "color: #8ecae6; font-size: 8pt; padding: 0 0 2px 16px;"
+                )
+                buff_label.setWordWrap(True)
+                insert_idx = self._action_list_layout.count() - 1
+                self._action_list_layout.insertWidget(insert_idx, buff_label)
+                self._action_rows.append(buff_label)
+
             # Action rows for this creature
             for action in rollable:
                 row = self._make_action_row(action)

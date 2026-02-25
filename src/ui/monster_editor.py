@@ -29,6 +29,7 @@ widgets, and refreshes the preview.
 from __future__ import annotations
 
 import copy
+import dataclasses
 from typing import Optional
 
 from PySide6.QtCore import Qt, Signal
@@ -38,6 +39,7 @@ from PySide6.QtWidgets import (
     QDialog,
     QGridLayout,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
     QLineEdit,
     QListWidget,
@@ -59,6 +61,7 @@ from src.domain.models import (
     DamagePart,
     EquipmentItem,
     Monster,
+    MonsterModification,
     SKILL_TO_ABILITY,
 )
 from src.equipment.data import SRD_ARMORS, SRD_WEAPONS
@@ -214,8 +217,18 @@ class MonsterEditorDialog(QDialog):
 
     monster_saved = Signal(object)  # Monster
 
-    def __init__(self, monster: Monster, parent: Optional[QWidget] = None) -> None:
+    def __init__(
+        self,
+        monster: Monster,
+        parent: Optional[QWidget] = None,
+        library=None,
+        persistence=None,
+    ) -> None:
         super().__init__(parent)
+
+        # Library and persistence (passed from LibraryTab, optional for backward compat)
+        self._library = library
+        self._persistence = persistence
 
         # Core state
         self._base_monster: Monster = monster
@@ -320,11 +333,11 @@ class MonsterEditorDialog(QDialog):
 
         toolbar.addStretch()
 
-        # Save button with drop-down menu (stubs — Plan 05 wires)
+        # Save button with drop-down menu
         save_btn = QPushButton("Save")
         save_menu = QMenu(save_btn)
-        save_menu.addAction("Save (override base)", self._save_override_stub)
-        save_menu.addAction("Save as Copy...", self._save_copy_stub)
+        save_menu.addAction("Save (override base)", self._save_override)
+        save_menu.addAction("Save as Copy...", self._save_as_copy)
         save_btn.setMenu(save_menu)
         toolbar.addWidget(save_btn)
 
@@ -1595,10 +1608,9 @@ class MonsterEditorDialog(QDialog):
 
         clicked = box.clickedButton()
         if clicked == save_btn:
-            # Save is a stub in this plan — Plan 05 wires real save logic.
-            # For now, treat as discard and close so the dialog does not hang.
-            self._dirty = False
-            event.accept()
+            # Real save logic: suppress event and let _save_override handle close.
+            event.ignore()
+            self._save_override()
         elif clicked == discard_btn:
             self._dirty = False
             event.accept()
@@ -1799,13 +1811,166 @@ class MonsterEditorDialog(QDialog):
         return self._focus_bonus
 
     # ------------------------------------------------------------------
-    # Stub save handlers (Plan 05 wires real logic)
+    # Save handlers
     # ------------------------------------------------------------------
 
-    def _save_override_stub(self) -> None:
-        """Stub: Save (override base) — Plan 05 wires this."""
-        pass
+    def _build_modification(self, base_name: str, custom_name: Optional[str] = None) -> MonsterModification:
+        """Build a MonsterModification from the diff between _base_monster and _working_copy.
 
-    def _save_copy_stub(self) -> None:
-        """Stub: Save as Copy — Plan 05 wires this."""
-        pass
+        Only stores fields that actually changed from the base monster so the
+        persisted dict stays minimal.
+        """
+        base = self._base_monster
+        wc = self._working_copy
+
+        # Changed ability scores only
+        changed_ability_scores = {
+            ability: score
+            for ability, score in wc.ability_scores.items()
+            if score != base.ability_scores.get(ability, 10)
+        }
+
+        # Changed saves only
+        changed_saves = dict(wc.saves) if wc.saves != base.saves else {}
+
+        # Changed skills only
+        changed_skills = dict(wc.skills) if wc.skills != base.skills else {}
+
+        # HP and AC — store if changed
+        hp = wc.hp if wc.hp != base.hp else None
+        ac = wc.ac if wc.ac != base.ac else None
+        cr = wc.cr if wc.cr != base.cr else None
+        size = wc.size if wc.size != base.size else None
+
+        # HP formula from UI widget (if filled in)
+        hp_formula_text = self._hp_formula_edit.text().strip() or None
+
+        # Serialize actions
+        serialized_actions = []
+        for action in wc.actions:
+            serialized_actions.append({
+                "name": action.name,
+                "to_hit_bonus": action.to_hit_bonus,
+                "damage_bonus": action.damage_bonus,
+                "is_equipment_generated": action.is_equipment_generated,
+                "damage_parts": [
+                    {
+                        "dice_expr": dp.dice_expr,
+                        "damage_type": dp.damage_type,
+                        "raw_text": dp.raw_text,
+                    }
+                    for dp in action.damage_parts
+                ],
+                "raw_text": action.raw_text,
+                "is_parsed": action.is_parsed,
+            })
+
+        return MonsterModification(
+            base_name=base_name,
+            custom_name=custom_name,
+            ability_scores=changed_ability_scores,
+            saves=changed_saves,
+            skills=changed_skills,
+            hp=hp,
+            hp_formula=hp_formula_text,
+            ac=ac,
+            cr=cr,
+            size=size,
+            equipment=self.get_equipment_items(),
+            buffs=self.get_buff_items(),
+            actions=serialized_actions,
+        )
+
+    def _modification_to_dict(self, mod: MonsterModification) -> dict:
+        """Serialize a MonsterModification to a JSON-compatible dict."""
+        return {
+            "base_name": mod.base_name,
+            "custom_name": mod.custom_name,
+            "ability_scores": mod.ability_scores,
+            "saves": mod.saves,
+            "skills": mod.skills,
+            "hp": mod.hp,
+            "hp_formula": mod.hp_formula,
+            "ac": mod.ac,
+            "cr": mod.cr,
+            "size": mod.size,
+            "equipment": [dataclasses.asdict(e) for e in mod.equipment],
+            "buffs": [dataclasses.asdict(b) for b in mod.buffs],
+            "actions": mod.actions,
+            "spellcasting_infos": [],
+        }
+
+    def _save_override(self) -> None:
+        """Save the working copy as an override of the base monster.
+
+        - Replaces the base monster in the library.
+        - Persists the MonsterModification.
+        - Emits monster_saved and closes.
+        """
+        # Carry buffs onto the Monster object so AttackRollerTab sees them
+        self._working_copy.buffs = list(self._buff_items)
+
+        if self._library is not None:
+            self._library.replace(self._working_copy)
+
+        if self._persistence is not None:
+            mod = self._build_modification(base_name=self._base_monster.name)
+            persisted = self._persistence.load_modified_monsters()
+            key = self._working_copy.name
+            persisted[key] = self._modification_to_dict(mod)
+            self._persistence.save_modified_monsters(persisted)
+
+        self._dirty = False
+        self.monster_saved.emit(self._working_copy)
+        self.accept()
+
+    def _save_as_copy(self) -> None:
+        """Save the working copy as a new named monster in the library.
+
+        Prompts for a name, validates uniqueness, then adds the copy to the
+        library and persists it with custom_name set.
+        """
+        while True:
+            proposed_name, ok = QInputDialog.getText(
+                self,
+                "Save as Copy",
+                "Enter a name for the copy:",
+            )
+            if not ok:
+                return  # User cancelled
+
+            proposed_name = proposed_name.strip()
+            if not proposed_name:
+                QMessageBox.warning(self, "Invalid Name", "Name cannot be empty.")
+                continue
+
+            if self._library is not None and self._library.has_name(proposed_name):
+                QMessageBox.warning(
+                    self,
+                    "Name Already Exists",
+                    f'"{proposed_name}" already exists in the library.\nPlease choose a different name.',
+                )
+                continue
+
+            break  # Valid unique name obtained
+
+        # Apply the proposed name to the working copy
+        self._working_copy.name = proposed_name
+        # Carry buffs onto the Monster object
+        self._working_copy.buffs = list(self._buff_items)
+
+        if self._library is not None:
+            self._library.add(self._working_copy)
+
+        if self._persistence is not None:
+            mod = self._build_modification(
+                base_name=self._base_monster.name,
+                custom_name=proposed_name,
+            )
+            persisted = self._persistence.load_modified_monsters()
+            persisted[proposed_name] = self._modification_to_dict(mod)
+            self._persistence.save_modified_monsters(persisted)
+
+        self._dirty = False
+        self.monster_saved.emit(self._working_copy)
+        self.accept()

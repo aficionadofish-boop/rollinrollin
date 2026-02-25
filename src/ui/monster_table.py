@@ -51,6 +51,7 @@ class MonsterTableModel(QAbstractTableModel):
     def __init__(self, monsters: list | None = None, parent=None) -> None:
         super().__init__(parent)
         self._monsters: list[Monster] = list(monsters) if monsters is not None else []
+        self._modified_names: set[str] = set()
 
     # ------------------------------------------------------------------
     # Required QAbstractTableModel overrides
@@ -82,7 +83,12 @@ class MonsterTableModel(QAbstractTableModel):
             if col == 2:
                 return monster.creature_type
             if col == 3:
-                return "!" if monster.incomplete else ""
+                # Priority: incomplete "!" > modified "✎" > ""
+                if monster.incomplete:
+                    return "!"
+                if monster.name in self._modified_names:
+                    return "\u270e"  # pencil/edit symbol
+                return ""
             return None
 
         if role == Qt.UserRole:
@@ -94,7 +100,19 @@ class MonsterTableModel(QAbstractTableModel):
             if col == 2:
                 return monster.creature_type.lower()
             if col == 3:
-                return 1 if monster.incomplete else 0
+                if monster.incomplete:
+                    return 2
+                if monster.name in self._modified_names:
+                    return 1
+                return 0
+            return None
+
+        if role == Qt.ToolTipRole:
+            if col == 3:
+                if monster.incomplete:
+                    return "Incomplete statblock"
+                if monster.name in self._modified_names:
+                    return "Modified"
             return None
 
         return None
@@ -120,6 +138,14 @@ class MonsterTableModel(QAbstractTableModel):
         self.beginResetModel()
         self._monsters = list(monsters)
         self.endResetModel()
+
+    def set_modified_names(self, names: set[str]) -> None:
+        """Set the collection of monster names that have been modified.
+
+        Triggers a full layout refresh so badge column updates immediately.
+        """
+        self._modified_names = set(names)
+        self.layoutChanged.emit()
 
     def monster_at(self, row: int) -> Monster:
         """Return the Monster at *row*.
