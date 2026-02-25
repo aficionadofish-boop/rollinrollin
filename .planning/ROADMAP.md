@@ -131,7 +131,7 @@ Phase 8 → Phase 9 (parallel with 10) → Phase 10 → Phase 11 → Phase 12 �
 | 6. Settings | v1.0 | 2/2 | Complete | 2026-02-24 |
 | 7. Packaging and Distribution | v1.0 | 2/2 | Complete | 2026-02-24 |
 | 8. Domain Expansion and Persistence Foundation | 3/3 | Complete    | 2026-02-25 | - |
-| 9. Monster Editor and Equipment Presets | v2.0 | 0/5 | Planned | - |
+| 9. Monster Editor and Equipment Presets | 2/5 | In Progress|  | - |
 | 10. Persistent Encounter Sidebar | v2.0 | 0/? | Not started | - |
 | 11. Combat Tracker | v2.0 | 0/? | Not started | - |
 | 12. Save Roller Upgrades | v2.0 | 0/? | Not started | - |

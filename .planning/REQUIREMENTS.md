@@ -37,14 +37,14 @@ Requirements for milestone v2.0 (Combat Manager). Each maps to roadmap phases.
 
 ### Equipment Presets
 
-- [ ] **EQUIP-01**: User can give a monster a +0/+1/+2/+3 weapon with correct to-hit (ability mod + prof + magic) and damage (size-scaled dice + ability mod + magic)
-- [ ] **EQUIP-02**: Weapon uses STR by default; DEX if finesse and DEX > STR; always DEX for ranged (except thrown like javelin)
-- [ ] **EQUIP-03**: Weapon damage dice scale by monster size: Medium=1x, Large=2x, Huge=3x, Gargantuan=4x
-- [ ] **EQUIP-04**: User can give a monster armor from the full SRD armor list with correct AC calculation (armor type + DEX mod + magic bonus)
-- [ ] **EQUIP-05**: Armor with stealth disadvantage displays that flag on the statblock
-- [ ] **EQUIP-06**: Armor with strength requirements checks if the monster meets them; flags movement penalty if not
-- [ ] **EQUIP-07**: User can give a monster a +0/+1/+2/+3 shield (+2 AC + magic); only the highest-bonus shield applies
-- [ ] **EQUIP-08**: User can give a monster a +1/+2/+3 spellcasting focus item (Rod of the Pact Keeper, Bloodwell Vial, Moon Sickle, Arcane Grimoire) which adds +X to spell attack bonus and spell save DC
+- [x] **EQUIP-01**: User can give a monster a +0/+1/+2/+3 weapon with correct to-hit (ability mod + prof + magic) and damage (size-scaled dice + ability mod + magic)
+- [x] **EQUIP-02**: Weapon uses STR by default; DEX if finesse and DEX > STR; always DEX for ranged (except thrown like javelin)
+- [x] **EQUIP-03**: Weapon damage dice scale by monster size: Medium=1x, Large=2x, Huge=3x, Gargantuan=4x
+- [x] **EQUIP-04**: User can give a monster armor from the full SRD armor list with correct AC calculation (armor type + DEX mod + magic bonus)
+- [x] **EQUIP-05**: Armor with stealth disadvantage displays that flag on the statblock
+- [x] **EQUIP-06**: Armor with strength requirements checks if the monster meets them; flags movement penalty if not
+- [x] **EQUIP-07**: User can give a monster a +0/+1/+2/+3 shield (+2 AC + magic); only the highest-bonus shield applies
+- [x] **EQUIP-08**: User can give a monster a +1/+2/+3 spellcasting focus item (Rod of the Pact Keeper, Bloodwell Vial, Moon Sickle, Arcane Grimoire) which adds +X to spell attack bonus and spell save DC
 - [ ] **EQUIP-09**: All equipment-modified values display in a distinct color on the statblock
 
 ### Persistent Encounter Sidebar
@@ -165,14 +165,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EDIT-09 | Phase 9 | Pending |
 | EDIT-10 | Phase 9 | Pending |
 | EDIT-11 | Phase 9 | Pending |
-| EQUIP-01 | Phase 9 | Pending |
-| EQUIP-02 | Phase 9 | Pending |
-| EQUIP-03 | Phase 9 | Pending |
-| EQUIP-04 | Phase 9 | Pending |
-| EQUIP-05 | Phase 9 | Pending |
-| EQUIP-06 | Phase 9 | Pending |
-| EQUIP-07 | Phase 9 | Pending |
-| EQUIP-08 | Phase 9 | Pending |
+| EQUIP-01 | Phase 9 | Complete |
+| EQUIP-02 | Phase 9 | Complete |
+| EQUIP-03 | Phase 9 | Complete |
+| EQUIP-04 | Phase 9 | Complete |
+| EQUIP-05 | Phase 9 | Complete |
+| EQUIP-06 | Phase 9 | Complete |
+| EQUIP-07 | Phase 9 | Complete |
+| EQUIP-08 | Phase 9 | Complete |
 | EQUIP-09 | Phase 9 | Pending |
 | SIDEBAR-01 | Phase 10 | Pending |
 | SIDEBAR-02 | Phase 10 | Pending |

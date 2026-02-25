@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** DMs can manage the full combat loop — prep monsters, roll attacks and saves, and track combat state — in seconds, with D&D 5e rule fidelity and persistent data.
-**Current focus:** Phase 8 — Domain Expansion and Persistence Foundation
+**Current focus:** Phase 9 — Monster Editor and Equipment Presets
 
 ## Current Position
 
-Phase: 8 of 13 (Domain Expansion and Persistence Foundation)
-Plan: 3 of ? in current phase
+Phase: 9 of 13 (Monster Editor and Equipment Presets)
+Plan: 3 of 5 in current phase
 Status: In progress
-Last activity: 2026-02-25 — Plan 08-03 complete: PersistenceService lifecycle, auto-save timer, Data Management flush UI
+Last activity: 2026-02-25 — Plan 09-02 complete: EquipmentService TDD (49 tests, all EQUIP requirements)
 
-Progress: [███████░░░░░░] 54% (7/13 phases complete — v1.0 phases done, Phase 8 in progress)
+Progress: [████████░░░░░] 62% (Phase 8 complete, Phase 9 plan 02 of 5 done)
 
 ## Performance Metrics
 
@@ -56,6 +56,10 @@ Recent decisions affecting current work:
 - [Phase 08]: closeEvent guards unsaved settings before saving persistence data on close
 - [Phase 08]: Lambda captures category and display_name by value in flush button wiring to avoid closure variable capture bug
 - [Phase 08]: resolve_workspace_root() replaces hardcoded Path.home()/RollinRollin for portable exe support
+- [Phase 09-02]: EquipmentService uses inline _PROF_BY_CR table (avoids coupling to MonsterMathEngine internals)
+- [Phase 09-02]: scale_dice() is module-level function (not method) for standalone import by Plans 03-04
+- [Phase 09-02]: compute_armor_ac str_requirement_met uses >= comparison; str_requirement=0 means always met
+- [Phase 09-02]: Ranged non-thrown weapons always use DEX; thrown non-finesse use STR (D&D 5e rule)
 
 ### Pending Todos
 
@@ -69,5 +73,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-25
-Stopped at: Completed 08-03-PLAN.md (PersistenceService lifecycle, auto-save timer, Data Management flush UI)
-Resume file: .planning/phases/08-domain-expansion-and-persistence-foundation/08-03-SUMMARY.md
+Stopped at: Completed 09-02-PLAN.md (EquipmentService TDD — 49 tests, EQUIP-01 through EQUIP-08)
+Resume file: .planning/phases/09-monster-editor-and-equipment-presets/09-02-SUMMARY.md
