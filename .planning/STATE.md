@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 9 of 13 (Monster Editor and Equipment Presets)
-Plan: 3 of 5 in current phase
+Plan: 2 of 5 in current phase
 Status: In progress
-Last activity: 2026-02-25 — Plan 09-02 complete: EquipmentService TDD (49 tests, all EQUIP requirements)
+Last activity: 2026-02-25 — Plan 09-01 complete: domain model patches (Monster.size/skills, Action.damage_bonus, EquipmentItem, BuffItem, MonsterModification.from_dict, SRD equipment data tables)
 
 Progress: [████████░░░░░] 62% (Phase 8 complete, Phase 9 plan 02 of 5 done)
 
@@ -56,6 +56,9 @@ Recent decisions affecting current work:
 - [Phase 08]: closeEvent guards unsaved settings before saving persistence data on close
 - [Phase 08]: Lambda captures category and display_name by value in flush button wiring to avoid closure variable capture bug
 - [Phase 08]: resolve_workspace_root() replaces hardcoded Path.home()/RollinRollin for portable exe support
+- [Phase 09-01]: SKILL_TO_ABILITY covers 5 abilities (no CON — D&D 5e has no CON-based skill)
+- [Phase 09-01]: MonsterModification.from_dict() shallow copies input dict and filters unknown keys for forward-compat
+- [Phase 09-01]: Parser _extract_size() defaults to "Medium" when no valid size found in type/alignment line
 - [Phase 09-02]: EquipmentService uses inline _PROF_BY_CR table (avoids coupling to MonsterMathEngine internals)
 - [Phase 09-02]: scale_dice() is module-level function (not method) for standalone import by Plans 03-04
 - [Phase 09-02]: compute_armor_ac str_requirement_met uses >= comparison; str_requirement=0 means always met
@@ -73,5 +76,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-25
-Stopped at: Completed 09-02-PLAN.md (EquipmentService TDD — 49 tests, EQUIP-01 through EQUIP-08)
-Resume file: .planning/phases/09-monster-editor-and-equipment-presets/09-02-SUMMARY.md
+Stopped at: Completed 09-01-PLAN.md (domain model patches, SRD equipment data tables, parser size/skills extraction)
+Resume file: .planning/phases/09-monster-editor-and-equipment-presets/09-01-SUMMARY.md

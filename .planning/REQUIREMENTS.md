@@ -18,8 +18,8 @@ Requirements for milestone v2.0 (Combat Manager). Each maps to roadmap phases.
 - [ ] **EDIT-01**: User can activate edit mode on a selected monster in the Library tab
 - [ ] **EDIT-02**: User can modify base attributes (STR, DEX, CON, INT, WIS, CHA)
 - [ ] **EDIT-03**: User can modify saving throw bonuses
-- [ ] **EDIT-04**: User can modify hit points
-- [ ] **EDIT-05**: User can modify skill bonus values
+- [x] **EDIT-04**: User can modify hit points
+- [x] **EDIT-05**: User can modify skill bonus values
 - [ ] **EDIT-06**: User can modify challenge rating (recalculates proficiency bonus)
 - [ ] **EDIT-07**: User can edit existing actions (name, to-hit, damage)
 - [ ] **EDIT-08**: User can add new actions to a monster
@@ -157,8 +157,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EDIT-01 | Phase 9 | Pending |
 | EDIT-02 | Phase 9 | Pending |
 | EDIT-03 | Phase 9 | Pending |
-| EDIT-04 | Phase 9 | Pending |
-| EDIT-05 | Phase 9 | Pending |
+| EDIT-04 | Phase 9 | Complete |
+| EDIT-05 | Phase 9 | Complete |
 | EDIT-06 | Phase 9 | Pending |
 | EDIT-07 | Phase 9 | Pending |
 | EDIT-08 | Phase 9 | Pending |
