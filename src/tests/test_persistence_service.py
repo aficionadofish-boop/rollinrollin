@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from src.domain.models import MonsterModification
+from src.domain.models import MonsterModification, EquipmentItem, BuffItem
 from src.persistence.service import PersistenceService
 
 
@@ -144,3 +144,72 @@ def test_modified_monsters_round_trip_with_dataclass(tmp_path):
     loaded = svc.load_modified_monsters()
 
     assert loaded["Boss Goblin"] == as_dict
+
+
+def test_modified_monsters_round_trip_with_equipment_and_buffs(tmp_path):
+    """MonsterModification with equipment and buffs round-trips through PersistenceService."""
+    svc = make_service(tmp_path)
+
+    mod = MonsterModification(
+        base_name="Goblin",
+        custom_name="Armored Goblin",
+        skills={"Stealth": 6},
+        hp_formula="2d6",
+        size="Small",
+        equipment=[
+            EquipmentItem(item_type="weapon", item_name="Shortsword", magic_bonus=1),
+            EquipmentItem(item_type="armor", item_name="Leather", magic_bonus=0),
+        ],
+        buffs=[
+            BuffItem(name="Bless", bonus_value="+1d4", targets="attack_rolls"),
+        ],
+    )
+    as_dict = dataclasses.asdict(mod)
+
+    svc.save_modified_monsters({"Armored Goblin": as_dict})
+    loaded = svc.load_modified_monsters()
+
+    loaded_dict = loaded["Armored Goblin"]
+    assert loaded_dict == as_dict
+
+    # Verify from_dict reconstructs nested dataclasses
+    restored = MonsterModification.from_dict(loaded_dict)
+    assert restored.base_name == "Goblin"
+    assert len(restored.equipment) == 2
+    assert isinstance(restored.equipment[0], EquipmentItem)
+    assert restored.equipment[0].item_name == "Shortsword"
+    assert restored.equipment[0].magic_bonus == 1
+    assert len(restored.buffs) == 1
+    assert isinstance(restored.buffs[0], BuffItem)
+    assert restored.buffs[0].name == "Bless"
+    assert restored.skills == {"Stealth": 6}
+    assert restored.hp_formula == "2d6"
+    assert restored.size == "Small"
+
+
+def test_modified_monsters_from_dict_old_format_loads_without_error(tmp_path):
+    """Old-format MonsterModification dict (without new fields) loads via from_dict without error."""
+    svc = make_service(tmp_path)
+
+    # Simulate an old JSON dict that only has original fields (no equipment/buffs/skills/etc.)
+    old_format = {
+        "base_name": "Goblin",
+        "custom_name": None,
+        "ability_scores": {"STR": 8},
+        "saves": {},
+        "hp": None,
+        "ac": None,
+        "cr": None,
+        "spellcasting_infos": [],
+    }
+    svc.save_modified_monsters({"Goblin": old_format})
+    loaded = svc.load_modified_monsters()
+
+    # from_dict must not raise even with missing new fields
+    mod = MonsterModification.from_dict(loaded["Goblin"])
+    assert mod.base_name == "Goblin"
+    assert mod.equipment == []
+    assert mod.buffs == []
+    assert mod.skills == {}
+    assert mod.hp_formula is None
+    assert mod.size is None

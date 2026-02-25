@@ -1,4 +1,9 @@
-from src.domain.models import Monster, Action, DamagePart, MonsterList, Encounter, DamageType
+import dataclasses
+
+from src.domain.models import (
+    Monster, Action, DamagePart, MonsterList, Encounter, DamageType,
+    EquipmentItem, BuffItem, MonsterModification, SKILL_TO_ABILITY,
+)
 
 
 def test_monster_minimal():
@@ -166,3 +171,129 @@ def test_parse_failure_with_name():
     f = ParseFailure(source_file="b.md", monster_name="Goblin", reason="no AC")
     assert f.monster_name == "Goblin"
     assert f.reason == "no AC"
+
+
+# --- Phase 9: Domain model extension tests ---
+
+def test_monster_default_size():
+    """Monster.size defaults to 'Medium'."""
+    m = Monster(name="Goblin", ac=15, hp=7, cr="1/4")
+    assert m.size == "Medium"
+
+
+def test_monster_size_settable():
+    """Monster.size can be explicitly set."""
+    m = Monster(name="Fire Giant", ac=18, hp=162, cr="9", size="Huge")
+    assert m.size == "Huge"
+
+
+def test_monster_default_skills():
+    """Monster.skills defaults to empty dict."""
+    m = Monster(name="Goblin", ac=15, hp=7, cr="1/4")
+    assert m.skills == {}
+
+
+def test_monster_skills_no_shared_mutable_default():
+    """Monster.skills dict is not shared between instances."""
+    m1 = Monster(name="A", ac=10, hp=10, cr="0")
+    m2 = Monster(name="B", ac=10, hp=10, cr="0")
+    m1.skills["Perception"] = 5
+    assert m2.skills == {}, "mutable default shared between Monster instances"
+
+
+def test_action_default_damage_bonus():
+    """Action.damage_bonus defaults to None."""
+    a = Action(name="Bite", to_hit_bonus=4)
+    assert a.damage_bonus is None
+
+
+def test_action_default_is_equipment_generated():
+    """Action.is_equipment_generated defaults to False."""
+    a = Action(name="Bite", to_hit_bonus=4)
+    assert a.is_equipment_generated is False
+
+
+def test_action_damage_bonus_settable():
+    """Action.damage_bonus can be set as an integer."""
+    a = Action(name="Longsword", to_hit_bonus=5, damage_bonus=3)
+    assert a.damage_bonus == 3
+
+
+def test_action_is_equipment_generated_settable():
+    """Action.is_equipment_generated can be set to True."""
+    a = Action(name="Longsword", to_hit_bonus=5, is_equipment_generated=True)
+    assert a.is_equipment_generated is True
+
+
+def test_equipment_item_round_trip():
+    """EquipmentItem round-trips via dataclasses.asdict()."""
+    item = EquipmentItem(item_type="weapon", item_name="Longsword", magic_bonus=2)
+    d = dataclasses.asdict(item)
+    assert d == {"item_type": "weapon", "item_name": "Longsword", "magic_bonus": 2}
+    restored = EquipmentItem(**d)
+    assert restored == item
+
+
+def test_buff_item_round_trip():
+    """BuffItem round-trips via dataclasses.asdict()."""
+    buf = BuffItem(name="Bless", bonus_value="+1d4", targets="attack_rolls")
+    d = dataclasses.asdict(buf)
+    assert d == {"name": "Bless", "bonus_value": "+1d4", "targets": "attack_rolls"}
+    restored = BuffItem(**d)
+    assert restored == buf
+
+
+def test_monster_modification_from_dict_old_format():
+    """MonsterModification.from_dict() handles old JSON format (missing new fields)."""
+    old_data = {"base_name": "Goblin"}
+    mod = MonsterModification.from_dict(old_data)
+    assert mod.base_name == "Goblin"
+    assert mod.equipment == []
+    assert mod.buffs == []
+    assert mod.skills == {}
+    assert mod.hp_formula is None
+    assert mod.size is None
+
+
+def test_monster_modification_from_dict_new_format():
+    """MonsterModification.from_dict() reconstructs EquipmentItem and BuffItem lists."""
+    data = {
+        "base_name": "Goblin",
+        "equipment": [{"item_type": "weapon", "item_name": "Shortsword", "magic_bonus": 1}],
+        "buffs": [{"name": "Rage", "bonus_value": "+2", "targets": "attack_rolls"}],
+        "skills": {"Stealth": 6},
+        "hp_formula": "2d6",
+        "size": "Small",
+    }
+    mod = MonsterModification.from_dict(data)
+    assert len(mod.equipment) == 1
+    assert isinstance(mod.equipment[0], EquipmentItem)
+    assert mod.equipment[0].item_name == "Shortsword"
+    assert mod.equipment[0].magic_bonus == 1
+    assert len(mod.buffs) == 1
+    assert isinstance(mod.buffs[0], BuffItem)
+    assert mod.buffs[0].name == "Rage"
+    assert mod.skills == {"Stealth": 6}
+    assert mod.hp_formula == "2d6"
+    assert mod.size == "Small"
+
+
+def test_monster_modification_from_dict_filters_unknown_keys():
+    """MonsterModification.from_dict() ignores unknown future fields gracefully."""
+    data = {"base_name": "Orc", "future_unknown_field": "should_be_ignored"}
+    mod = MonsterModification.from_dict(data)
+    assert mod.base_name == "Orc"
+    assert not hasattr(mod, "future_unknown_field")
+
+
+def test_skill_to_ability_has_18_entries():
+    """SKILL_TO_ABILITY maps exactly 18 D&D 5e skills."""
+    assert len(SKILL_TO_ABILITY) == 18
+
+
+def test_skill_to_ability_covers_expected_abilities():
+    """SKILL_TO_ABILITY covers the 5 ability scores that govern skills (CON has no skill in 5e)."""
+    abilities = set(SKILL_TO_ABILITY.values())
+    # D&D 5e has no CON-based skill — all other 5 abilities are represented
+    assert abilities == {"STR", "DEX", "INT", "WIS", "CHA"}
+    assert "CON" not in abilities

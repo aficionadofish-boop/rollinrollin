@@ -39,6 +39,13 @@ CR_RE = re.compile(r'\*\*Challenge\*\*\s+([\d/]+)')
 SAVES_RE = re.compile(r'\*\*Saving Throws\*\*\s+(.+)')
 SAVE_BONUS_RE = re.compile(r'(Str|Dex|Con|Int|Wis|Cha)\s*([+-]\d+)', re.IGNORECASE)
 
+# Skills line: "**Skills** Perception +5, Stealth +4"
+SKILLS_RE = re.compile(r'\*\*Skills\*\*\s+(.+)')
+SKILL_ENTRY_RE = re.compile(r'([A-Za-z ]+?)\s*([+-]\d+)')
+
+# Valid D&D 5e size names for extraction from type/alignment line
+_VALID_SIZES = {"Tiny", "Small", "Medium", "Large", "Huge", "Gargantuan"}
+
 # Ability score table cell: "|10 (+0)|" or "|15 (+2)|"
 ABILITY_CELL_RE = re.compile(r'\|(\d+)\s*\([+-]\d+\)')
 ABILITIES = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA']
@@ -135,6 +142,41 @@ def _extract_saves(clean_text: str) -> dict[str, int]:
         ab.upper(): int(bonus)
         for ab, bonus in SAVE_BONUS_RE.findall(saves_text)
     }
+
+
+def _extract_size(clean_text: str) -> str:
+    """Extract monster size from the '*Size Type, Alignment*' italic line.
+
+    The first word of that line is the size category. Returns "Medium" if
+    no recognizable size can be found.
+    """
+    for line in clean_text.splitlines():
+        line = line.strip()
+        m = TYPE_RE.match(line)
+        if m:
+            size_and_type = m.group(1).strip()
+            first_word = size_and_type.split()[0] if size_and_type.split() else ""
+            if first_word in _VALID_SIZES:
+                return first_word
+    return "Medium"
+
+
+def _extract_skills(clean_text: str) -> dict[str, int]:
+    """Extract skill bonuses from '**Skills** Perception +5, Stealth +4' line."""
+    m = SKILLS_RE.search(clean_text)
+    if not m:
+        return {}
+    skills_text = m.group(1)
+    result: dict[str, int] = {}
+    # Split on commas then match each "Skill Name +N" pair
+    for part in skills_text.split(","):
+        part = part.strip()
+        skill_m = SKILL_ENTRY_RE.match(part)
+        if skill_m:
+            skill_name = skill_m.group(1).strip().title()
+            bonus = int(skill_m.group(2))
+            result[skill_name] = bonus
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -362,6 +404,8 @@ def parse_fivetools(content: str) -> ParseResult:
         ability_scores = _extract_ability_scores(clean)
         saves = _extract_saves(clean)
         actions = _extract_actions(clean)
+        size = _extract_size(clean)
+        skills = _extract_skills(clean)
 
         monster = Monster(
             name=name,
@@ -375,6 +419,8 @@ def parse_fivetools(content: str) -> ParseResult:
             lore=lore_text,
             raw_text=raw_block_text,
             incomplete=incomplete,
+            size=size,
+            skills=skills,
         )
         monsters.append(monster)
 
