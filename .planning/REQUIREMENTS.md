@@ -11,7 +11,7 @@ Requirements for milestone v2.0 (Combat Manager). Each maps to roadmap phases.
 
 - [x] **PERSIST-01**: App stores loaded monsters, encounters, modified monsters, and macros in an internal data store that survives between sessions
 - [x] **PERSIST-02**: User can flush specific persistent data categories (loaded monsters, encounters, modified monsters, macros) from Settings
-- [ ] **PERSIST-03**: Data store loads automatically on app start and saves on close/change
+- [x] **PERSIST-03**: Data store loads automatically on app start and saves on close/change
 
 ### Monster Editor
 
@@ -148,7 +148,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | PERSIST-01 | Phase 8 | Complete |
 | PERSIST-02 | Phase 8 | Complete |
-| PERSIST-03 | Phase 8 | Pending |
+| PERSIST-03 | Phase 8 | Complete |
 | MATH-01 | Phase 8 | Complete |
 | MATH-02 | Phase 8 | Complete |
 | MATH-03 | Phase 8 | Complete |

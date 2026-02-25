@@ -24,7 +24,7 @@
 
 **Milestone Goal:** Evolve from bulk dice roller into a lightweight D&D 5e combat manager with monster editing, combat state tracking, data persistence, and polished output.
 
-- [ ] **Phase 8: Domain Expansion and Persistence Foundation** - New domain models, JSON persistence service, and Monster Math Engine — the prerequisite layer for all v2.0 features
+- [x] **Phase 8: Domain Expansion and Persistence Foundation** - New domain models, JSON persistence service, and Monster Math Engine — the prerequisite layer for all v2.0 features (completed 2026-02-25)
 - [ ] **Phase 9: Monster Editor and Equipment Presets** - Full stat editing with live cascading recalculation, equipment presets (+X weapons/armor/shields/foci), and persistent monster overrides
 - [ ] **Phase 10: Persistent Encounter Sidebar** - QDockWidget sidebar visible across Library, Attack, and Saves tabs; SavesTab extracted from EncountersTab as standalone tab
 - [ ] **Phase 11: Combat Tracker** - New Combat Tracker tab with HP bars, condition tracking, initiative ordering, turn cycling, and player character subtab
@@ -124,7 +124,7 @@ Phase 8 → Phase 9 (parallel with 10) → Phase 10 → Phase 11 → Phase 12 �
 | 5. Roll20 Macro Sandbox | v1.0 | 4/4 | Complete | 2026-02-24 |
 | 6. Settings | v1.0 | 2/2 | Complete | 2026-02-24 |
 | 7. Packaging and Distribution | v1.0 | 2/2 | Complete | 2026-02-24 |
-| 8. Domain Expansion and Persistence Foundation | 2/3 | In Progress|  | - |
+| 8. Domain Expansion and Persistence Foundation | 3/3 | Complete   | 2026-02-25 | - |
 | 9. Monster Editor and Equipment Presets | v2.0 | 0/? | Not started | - |
 | 10. Persistent Encounter Sidebar | v2.0 | 0/? | Not started | - |
 | 11. Combat Tracker | v2.0 | 0/? | Not started | - |

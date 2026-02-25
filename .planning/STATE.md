@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 8 of 13 (Domain Expansion and Persistence Foundation)
-Plan: 2 of ? in current phase
+Plan: 3 of ? in current phase
 Status: In progress
-Last activity: 2026-02-25 — Plan 08-02 complete: Monster Math Engine, MathValidator, SpellcastingDetector
+Last activity: 2026-02-25 — Plan 08-03 complete: PersistenceService lifecycle, auto-save timer, Data Management flush UI
 
 Progress: [███████░░░░░░] 54% (7/13 phases complete — v1.0 phases done, Phase 8 in progress)
 
@@ -29,6 +29,7 @@ Progress: [███████░░░░░░] 54% (7/13 phases complete �
 |-------|-------|--------|
 | 1-7 (v1.0) | 16/16 | Complete |
 | 8-13 (v2.0) | 0/? | Not started |
+| Phase 08 P03 | 2 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -52,6 +53,9 @@ Recent decisions affecting current work:
 - Combat state: CombatTrackerService is authoritative; widgets are display-only, never hold HP state
 - Feature detection: search Monster.actions (not raw_text) to avoid lore-paragraph false positives
 - QWebEngineView: explicitly rejected for template rendering — 130-150MB bundle bloat violates portable .exe constraint
+- [Phase 08]: closeEvent guards unsaved settings before saving persistence data on close
+- [Phase 08]: Lambda captures category and display_name by value in flush button wiring to avoid closure variable capture bug
+- [Phase 08]: resolve_workspace_root() replaces hardcoded Path.home()/RollinRollin for portable exe support
 
 ### Pending Todos
 
@@ -65,5 +69,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-25
-Stopped at: Completed 08-02-PLAN.md (Monster Math Engine, MathValidator, SpellcastingDetector)
-Resume file: .planning/phases/08-domain-expansion-and-persistence-foundation/08-02-SUMMARY.md
+Stopped at: Completed 08-03-PLAN.md (PersistenceService lifecycle, auto-save timer, Data Management flush UI)
+Resume file: .planning/phases/08-domain-expansion-and-persistence-foundation/08-03-SUMMARY.md
