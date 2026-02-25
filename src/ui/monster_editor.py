@@ -7,12 +7,17 @@ Provides:
 Layout:
   - Toolbar: editable name, Save dropdown (stub), Discard, Undo
   - Left (scroll area): collapsible sections for Ability Scores, Saving Throws,
-    Skills, Hit Points, Challenge Rating
+    Skills, Hit Points, Challenge Rating, Equipment, Actions, Buffs
   - Right: MonsterDetailPanel preview, updated live on every change
 
 The editor never mutates the original Monster object.  All changes are applied
 to a deep copy (_working_copy) and reflected immediately in the right-hand
 preview via MonsterMathEngine.recalculate().
+
+Equipment tracking:
+  The editor maintains its own equipment state separate from Monster (which has
+  no equipment field).  Equipping items updates Monster.ac and Monster.actions
+  as side effects.  Plan 05 will persist these via MonsterModification.
 
 Unsaved-changes guard: closing/escaping with a dirty working copy prompts the
 user to confirm discard (Save option is a stub; wired in Plan 05).
@@ -35,6 +40,8 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QListWidget,
+    QListWidgetItem,
     QMenu,
     QMessageBox,
     QPushButton,
@@ -46,7 +53,16 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from src.domain.models import Monster, SKILL_TO_ABILITY
+from src.domain.models import (
+    Action,
+    BuffItem,
+    DamagePart,
+    EquipmentItem,
+    Monster,
+    SKILL_TO_ABILITY,
+)
+from src.equipment.data import SRD_ARMORS, SRD_WEAPONS
+from src.equipment.service import EquipmentService
 from src.monster_math.engine import MonsterMathEngine
 from src.monster_math.validator import MathValidator, SaveState
 from src.ui.monster_detail import MonsterDetailPanel
@@ -68,6 +84,25 @@ _ABILITY_LABELS: list[str] = ["STR", "DEX", "CON", "INT", "WIS", "CHA"]
 
 # Toggle state labels for save/skill rows
 _TOGGLE_LABELS: list[str] = ["Non-Prof", "Prof", "Expertise", "Custom"]
+
+# Magic bonus options for equipment pickers
+_MAGIC_BONUS_OPTIONS: list[str] = ["+0 (nonmagical)", "+1", "+2", "+3"]
+_FOCUS_BONUS_OPTIONS: list[str] = ["+1", "+2", "+3"]
+
+# Three-tier color highlighting constants
+STYLE_EQUIPMENT   = "color: #4EA8DE;"   # steel blue — equipment-modified values
+STYLE_MANUAL      = "color: #F4A261;"   # amber — manually edited values
+STYLE_CUSTOM_FLAG = "color: #E63946;"   # red — custom override (doesn't match prof math)
+STYLE_BASE        = ""                  # no style — unmodified base values
+
+# Buff target options
+_BUFF_TARGETS: list[str] = [
+    "Attack Rolls",
+    "Saving Throws",
+    "Ability Checks",
+    "Damage",
+    "All",
+]
 
 
 # ---------------------------------------------------------------------------
@@ -167,6 +202,10 @@ class MonsterEditorDialog(QDialog):
     MonsterMathEngine.recalculate() is called on every change to keep the
     preview panel in sync.
 
+    Equipment state is tracked separately from Monster (which has no equipment
+    field).  Equipping items updates _working_copy.ac and _working_copy.actions
+    as side effects.  Plan 05 persists these via MonsterModification.
+
     Signals
     -------
     monster_saved : Signal(object)
@@ -188,6 +227,19 @@ class MonsterEditorDialog(QDialog):
         # Math helpers
         self._engine = MonsterMathEngine()
         self._validator = MathValidator()
+        self._equip_service = EquipmentService()
+
+        # Equipment editor state (separate from Monster dataclass)
+        # These track what is currently equipped so effects can be computed
+        self._equipped_weapons: list[tuple[EquipmentItem, dict]] = []  # (item, action_dict)
+        self._equipped_armor: Optional[tuple[EquipmentItem, dict]] = None  # (item, armor_result)
+        self._equipped_shield: Optional[EquipmentItem] = None
+        self._equipped_focus: Optional[EquipmentItem] = None  # focus_bonus stored here
+        self._focus_bonus: int = 0  # focus_magic_bonus
+
+        # Modification source tracking for three-tier highlighting
+        # Maps field key -> "equipment" | "manual" | "custom"
+        self._mod_sources: dict[str, str] = {}
 
         # Window properties
         self.setModal(True)
@@ -236,6 +288,9 @@ class MonsterEditorDialog(QDialog):
         self._build_skills_section()
         self._build_hp_section()
         self._build_cr_section()
+        self._build_equipment_section()
+        self._build_actions_section()
+        self._build_buffs_section()
 
         self._edit_layout.addStretch(1)
         left_scroll.setWidget(left_content)
@@ -498,6 +553,813 @@ class MonsterEditorDialog(QDialog):
         section = CollapsibleSection("Challenge Rating", content, expanded=False)
         self._edit_layout.addWidget(section)
 
+    def _build_equipment_section(self) -> None:
+        """Build the Equipment section with weapon/armor/shield/focus pickers."""
+        content = QWidget()
+        layout = QVBoxLayout(content)
+        layout.setSpacing(8)
+
+        # ---- Weapons sub-area ----
+        layout.addWidget(self._make_section_header("Weapons"))
+
+        self._weapon_list = QListWidget()
+        self._weapon_list.setMaximumHeight(100)
+        layout.addWidget(self._weapon_list)
+
+        weapon_picker_row = QHBoxLayout()
+        weapon_picker_row.addWidget(QLabel("Weapon:"))
+        self._weapon_combo = QComboBox()
+        for w in SRD_WEAPONS:
+            self._weapon_combo.addItem(w.name)
+        weapon_picker_row.addWidget(self._weapon_combo, 1)
+
+        weapon_picker_row.addWidget(QLabel("Bonus:"))
+        self._weapon_bonus_combo = QComboBox()
+        for opt in _MAGIC_BONUS_OPTIONS:
+            self._weapon_bonus_combo.addItem(opt)
+        weapon_picker_row.addWidget(self._weapon_bonus_combo)
+
+        add_weapon_btn = QPushButton("Add Weapon")
+        add_weapon_btn.clicked.connect(self._on_add_weapon)
+        weapon_picker_row.addWidget(add_weapon_btn)
+        layout.addLayout(weapon_picker_row)
+
+        remove_weapon_btn = QPushButton("Remove Selected Weapon")
+        remove_weapon_btn.clicked.connect(self._on_remove_weapon)
+        layout.addWidget(remove_weapon_btn)
+
+        # ---- Armor sub-area ----
+        layout.addWidget(self._make_section_header("Armor"))
+
+        self._armor_display = QLabel("None")
+        layout.addWidget(self._armor_display)
+
+        self._armor_stealth_warn = QLabel("")
+        self._armor_stealth_warn.setStyleSheet("color: orange;")
+        self._armor_stealth_warn.setVisible(False)
+        layout.addWidget(self._armor_stealth_warn)
+
+        self._armor_str_warn = QLabel("")
+        self._armor_str_warn.setStyleSheet("color: red;")
+        self._armor_str_warn.setVisible(False)
+        layout.addWidget(self._armor_str_warn)
+
+        armor_picker_row = QHBoxLayout()
+        armor_picker_row.addWidget(QLabel("Armor:"))
+        self._armor_combo = QComboBox()
+        for a in SRD_ARMORS:
+            self._armor_combo.addItem(a.name)
+        armor_picker_row.addWidget(self._armor_combo, 1)
+
+        armor_picker_row.addWidget(QLabel("Bonus:"))
+        self._armor_bonus_combo = QComboBox()
+        for opt in _MAGIC_BONUS_OPTIONS:
+            self._armor_bonus_combo.addItem(opt)
+        armor_picker_row.addWidget(self._armor_bonus_combo)
+
+        set_armor_btn = QPushButton("Set Armor")
+        set_armor_btn.clicked.connect(self._on_set_armor)
+        armor_picker_row.addWidget(set_armor_btn)
+        layout.addLayout(armor_picker_row)
+
+        remove_armor_btn = QPushButton("Remove Armor")
+        remove_armor_btn.clicked.connect(self._on_remove_armor)
+        layout.addWidget(remove_armor_btn)
+
+        # ---- Shield sub-area ----
+        layout.addWidget(self._make_section_header("Shield"))
+
+        self._shield_display = QLabel("None")
+        layout.addWidget(self._shield_display)
+
+        shield_picker_row = QHBoxLayout()
+        shield_picker_row.addWidget(QLabel("Bonus:"))
+        self._shield_bonus_combo = QComboBox()
+        for opt in _MAGIC_BONUS_OPTIONS:
+            self._shield_bonus_combo.addItem(opt)
+        shield_picker_row.addWidget(self._shield_bonus_combo)
+
+        set_shield_btn = QPushButton("Set Shield")
+        set_shield_btn.clicked.connect(self._on_set_shield)
+        shield_picker_row.addWidget(set_shield_btn)
+
+        remove_shield_btn = QPushButton("Remove Shield")
+        remove_shield_btn.clicked.connect(self._on_remove_shield)
+        shield_picker_row.addWidget(remove_shield_btn)
+        shield_picker_row.addStretch()
+        layout.addLayout(shield_picker_row)
+
+        # ---- Spellcasting Focus sub-area ----
+        layout.addWidget(self._make_section_header("Spellcasting Focus"))
+
+        self._focus_display = QLabel("None")
+        layout.addWidget(self._focus_display)
+
+        focus_picker_row = QHBoxLayout()
+        focus_picker_row.addWidget(QLabel("Bonus:"))
+        self._focus_bonus_combo = QComboBox()
+        for opt in _FOCUS_BONUS_OPTIONS:
+            self._focus_bonus_combo.addItem(opt)
+        focus_picker_row.addWidget(self._focus_bonus_combo)
+
+        set_focus_btn = QPushButton("Set Focus")
+        set_focus_btn.clicked.connect(self._on_set_focus)
+        focus_picker_row.addWidget(set_focus_btn)
+
+        remove_focus_btn = QPushButton("Remove Focus")
+        remove_focus_btn.clicked.connect(self._on_remove_focus)
+        focus_picker_row.addWidget(remove_focus_btn)
+        focus_picker_row.addStretch()
+        layout.addLayout(focus_picker_row)
+
+        self._equipment_section = CollapsibleSection("Equipment", content, expanded=False)
+        self._edit_layout.addWidget(self._equipment_section)
+
+    def _build_actions_section(self) -> None:
+        """Build the Actions section with structured editable rows."""
+        content = QWidget()
+        self._actions_edit_layout = QVBoxLayout(content)
+        self._actions_edit_layout.setSpacing(4)
+
+        # Action rows container (rebuilt on every change)
+        self._action_rows_widget = QWidget()
+        self._action_rows_layout = QVBoxLayout(self._action_rows_widget)
+        self._action_rows_layout.setContentsMargins(0, 0, 0, 0)
+        self._action_rows_layout.setSpacing(4)
+        self._actions_edit_layout.addWidget(self._action_rows_widget)
+
+        # "Add Action" button
+        add_action_btn = QPushButton("Add Action")
+        add_action_btn.clicked.connect(self._on_add_action)
+        self._actions_edit_layout.addWidget(add_action_btn)
+
+        section = CollapsibleSection("Actions", content, expanded=False)
+        self._edit_layout.addWidget(section)
+
+        # Build initial action rows
+        self._rebuild_action_rows()
+
+    def _build_buffs_section(self) -> None:
+        """Build the Buffs section with name + value + target rows."""
+        content = QWidget()
+        self._buffs_edit_layout = QVBoxLayout(content)
+        self._buffs_edit_layout.setSpacing(4)
+
+        # Buff rows container (rebuilt on every change)
+        self._buff_rows_widget = QWidget()
+        self._buff_rows_layout = QVBoxLayout(self._buff_rows_widget)
+        self._buff_rows_layout.setContentsMargins(0, 0, 0, 0)
+        self._buff_rows_layout.setSpacing(4)
+        self._buffs_edit_layout.addWidget(self._buff_rows_widget)
+
+        # "Add Buff" button
+        add_buff_btn = QPushButton("Add Buff")
+        add_buff_btn.clicked.connect(self._on_add_buff)
+        self._buffs_edit_layout.addWidget(add_buff_btn)
+
+        # Editor-level buff list (parallel to working_copy, since Monster has no buffs field)
+        self._buff_items: list[BuffItem] = []
+
+        section = CollapsibleSection("Buffs", content, expanded=False)
+        self._edit_layout.addWidget(section)
+
+    # ------------------------------------------------------------------
+    # Equipment signal handlers
+    # ------------------------------------------------------------------
+
+    def _on_add_weapon(self) -> None:
+        """Add the selected weapon (with magic bonus) to the equipped weapons."""
+        weapon_name = self._weapon_combo.currentText()
+        magic_bonus = self._weapon_bonus_combo.currentIndex()  # 0=+0, 1=+1, 2=+2, 3=+3
+
+        # Find the weapon data
+        weapon_data = next((w for w in SRD_WEAPONS if w.name == weapon_name), None)
+        if weapon_data is None:
+            return
+
+        # Compute action from weapon
+        action_dict = self._equip_service.compute_weapon_action(
+            weapon_data, magic_bonus, self._working_copy
+        )
+        action_name = action_dict["name"]
+        if magic_bonus > 0:
+            action_name = f"{weapon_data.name} +{magic_bonus}"
+            action_dict["name"] = action_name
+
+        # Check for conflict with existing actions
+        existing_action = next(
+            (a for a in self._working_copy.actions if a.name == weapon_data.name or a.name == action_name),
+            None,
+        )
+
+        if existing_action is not None:
+            reply = QMessageBox.question(
+                self,
+                "Action Conflict",
+                f"An action named '{existing_action.name}' already exists.\n"
+                "Replace the existing action, or add as a new separate action?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Yes,
+            )
+            # Yes = Replace, No = Add as New, Cancel = abort
+            if reply == QMessageBox.StandardButton.Cancel:
+                return
+            if reply == QMessageBox.StandardButton.Yes:
+                # Replace: remove old action
+                self._working_copy.actions = [
+                    a for a in self._working_copy.actions if a is not existing_action
+                ]
+
+        self._push_undo()
+
+        # Add to working_copy.actions
+        new_action = self._dict_to_action(action_dict)
+        self._working_copy.actions.append(new_action)
+
+        # Track equipped weapon
+        equip_item = EquipmentItem(item_type="weapon", item_name=action_name, magic_bonus=magic_bonus)
+        self._equipped_weapons.append((equip_item, action_dict))
+        self._mod_sources["actions"] = "equipment"
+
+        self._update_weapon_list_widget()
+        self._update_equipment_summary()
+        self._rebuild_action_rows()
+        self._rebuild_preview()
+
+    def _on_remove_weapon(self) -> None:
+        """Remove the selected weapon from the equipped weapons list."""
+        selected = self._weapon_list.currentRow()
+        if selected < 0 or selected >= len(self._equipped_weapons):
+            return
+
+        self._push_undo()
+        equip_item, action_dict = self._equipped_weapons.pop(selected)
+        action_name = action_dict["name"]
+
+        # Remove auto-generated action with matching name
+        self._working_copy.actions = [
+            a for a in self._working_copy.actions
+            if not (a.name == action_name and a.is_equipment_generated)
+        ]
+
+        self._update_weapon_list_widget()
+        self._update_equipment_summary()
+        self._rebuild_action_rows()
+        self._rebuild_preview()
+
+    def _on_set_armor(self) -> None:
+        """Set/replace the equipped armor."""
+        armor_name = self._armor_combo.currentText()
+        magic_bonus = self._armor_bonus_combo.currentIndex()
+
+        armor_data = next((a for a in SRD_ARMORS if a.name == armor_name), None)
+        if armor_data is None:
+            return
+
+        self._push_undo()
+
+        # Remove old armor AC contribution if any
+        if self._equipped_armor is not None:
+            old_item, old_result = self._equipped_armor
+            # Restore base AC (remove armor contribution)
+            self._working_copy.ac = self._base_monster.ac
+            # Also account for any currently equipped shield
+            if self._equipped_shield is not None:
+                shield_bonus = self._equip_service.compute_shield_bonus(
+                    self._equipped_shield.magic_bonus
+                )
+                self._working_copy.ac = self._base_monster.ac + shield_bonus
+
+        armor_result = self._equip_service.compute_armor_ac(
+            armor_data, magic_bonus, self._working_copy
+        )
+
+        # Apply armor AC (start from armor result, add shield if present)
+        new_ac = armor_result["ac"]
+        if self._equipped_shield is not None:
+            new_ac += self._equip_service.compute_shield_bonus(
+                self._equipped_shield.magic_bonus
+            )
+        self._working_copy.ac = new_ac
+
+        # Track armor
+        display_name = armor_name if magic_bonus == 0 else f"{armor_name} +{magic_bonus}"
+        equip_item = EquipmentItem(item_type="armor", item_name=display_name, magic_bonus=magic_bonus)
+        self._equipped_armor = (equip_item, armor_result)
+        self._mod_sources["ac"] = "equipment"
+
+        # Update armor display
+        self._armor_display.setText(display_name)
+
+        # Warnings
+        if armor_result["stealth_disadvantage"]:
+            self._armor_stealth_warn.setText("Stealth Disadvantage")
+            self._armor_stealth_warn.setVisible(True)
+        else:
+            self._armor_stealth_warn.setVisible(False)
+
+        if not armor_result["str_requirement_met"]:
+            self._armor_str_warn.setText(
+                f"STR requirement not met (needs STR {armor_data.str_requirement})"
+            )
+            self._armor_str_warn.setVisible(True)
+        else:
+            self._armor_str_warn.setVisible(False)
+
+        self._update_equipment_summary()
+        self._rebuild_preview()
+
+    def _on_remove_armor(self) -> None:
+        """Remove the equipped armor and restore base AC."""
+        if self._equipped_armor is None:
+            return
+        self._push_undo()
+
+        # Restore base AC (+ shield if present)
+        base_ac = self._base_monster.ac
+        if self._equipped_shield is not None:
+            base_ac += self._equip_service.compute_shield_bonus(
+                self._equipped_shield.magic_bonus
+            )
+        self._working_copy.ac = base_ac
+
+        self._equipped_armor = None
+        self._armor_display.setText("None")
+        self._armor_stealth_warn.setVisible(False)
+        self._armor_str_warn.setVisible(False)
+
+        if "ac" in self._mod_sources:
+            del self._mod_sources["ac"]
+
+        self._update_equipment_summary()
+        self._rebuild_preview()
+
+    def _on_set_shield(self) -> None:
+        """Set/replace the equipped shield, adding +2+bonus to AC."""
+        magic_bonus = self._shield_bonus_combo.currentIndex()
+
+        self._push_undo()
+
+        # Remove old shield bonus if any
+        if self._equipped_shield is not None:
+            old_bonus = self._equip_service.compute_shield_bonus(
+                self._equipped_shield.magic_bonus
+            )
+            self._working_copy.ac -= old_bonus
+
+        shield_bonus = self._equip_service.compute_shield_bonus(magic_bonus)
+        self._working_copy.ac += shield_bonus
+        self._mod_sources["ac"] = "equipment"
+
+        display_name = "Shield" if magic_bonus == 0 else f"Shield +{magic_bonus}"
+        self._equipped_shield = EquipmentItem(
+            item_type="shield", item_name=display_name, magic_bonus=magic_bonus
+        )
+        self._shield_display.setText(display_name)
+
+        self._update_equipment_summary()
+        self._rebuild_preview()
+
+    def _on_remove_shield(self) -> None:
+        """Remove the equipped shield and subtract its AC bonus."""
+        if self._equipped_shield is None:
+            return
+        self._push_undo()
+
+        shield_bonus = self._equip_service.compute_shield_bonus(
+            self._equipped_shield.magic_bonus
+        )
+        self._working_copy.ac -= shield_bonus
+        self._equipped_shield = None
+        self._shield_display.setText("None")
+
+        # Remove ac mod source if no armor either
+        if self._equipped_armor is None and "ac" in self._mod_sources:
+            del self._mod_sources["ac"]
+
+        self._update_equipment_summary()
+        self._rebuild_preview()
+
+    def _on_set_focus(self) -> None:
+        """Set the spellcasting focus bonus (+1/+2/+3)."""
+        # Focus bonus options are +1/+2/+3, so index 0 = +1
+        focus_bonus = self._focus_bonus_combo.currentIndex() + 1
+
+        self._push_undo()
+        self._focus_bonus = focus_bonus
+        display_name = f"Focus +{focus_bonus}"
+        self._equipped_focus = EquipmentItem(
+            item_type="focus", item_name=display_name, magic_bonus=focus_bonus
+        )
+        self._focus_display.setText(display_name)
+        self._mod_sources["focus"] = "equipment"
+
+        self._update_equipment_summary()
+        self._rebuild_preview()
+
+    def _on_remove_focus(self) -> None:
+        """Remove the spellcasting focus."""
+        if self._equipped_focus is None:
+            return
+        self._push_undo()
+        self._focus_bonus = 0
+        self._equipped_focus = None
+        self._focus_display.setText("None")
+        if "focus" in self._mod_sources:
+            del self._mod_sources["focus"]
+
+        self._update_equipment_summary()
+        self._rebuild_preview()
+
+    # ------------------------------------------------------------------
+    # Actions section signal handlers
+    # ------------------------------------------------------------------
+
+    def _on_add_action(self) -> None:
+        """Add a new empty action to working_copy."""
+        self._push_undo()
+        new_action = Action(
+            name="New Action",
+            to_hit_bonus=0,
+            damage_parts=[DamagePart(dice_expr="1d6", damage_type="bludgeoning", raw_text="1d6 bludgeoning")],
+            raw_text="New Action",
+            is_parsed=True,
+            damage_bonus=0,
+            is_equipment_generated=False,
+        )
+        self._working_copy.actions.append(new_action)
+        self._rebuild_action_rows()
+        self._rebuild_preview()
+
+    def _on_remove_action(self, action_index: int) -> None:
+        """Remove an action by index from working_copy."""
+        if 0 <= action_index < len(self._working_copy.actions):
+            self._push_undo()
+            removed = self._working_copy.actions.pop(action_index)
+            # Also remove from equipped weapons tracking if equipment-generated
+            if removed.is_equipment_generated:
+                self._equipped_weapons = [
+                    (item, ad) for item, ad in self._equipped_weapons
+                    if ad["name"] != removed.name
+                ]
+                self._update_weapon_list_widget()
+                self._update_equipment_summary()
+            self._rebuild_action_rows()
+            self._rebuild_preview()
+
+    def _on_action_field_changed(self, action_index: int) -> None:
+        """Read action row widgets and update working_copy action."""
+        if self._recalculating:
+            return
+        if action_index < 0 or action_index >= len(self._working_copy.actions):
+            return
+        action = self._working_copy.actions[action_index]
+        row_widgets = self._action_row_widgets.get(action_index)
+        if row_widgets is None:
+            return
+
+        name_edit, to_hit_spin, dmg_dice_edit, dmg_bonus_spin, dmg_type_edit = row_widgets
+
+        self._push_undo()
+        action.name = name_edit.text().strip() or action.name
+        action.to_hit_bonus = to_hit_spin.value()
+        action.damage_bonus = dmg_bonus_spin.value()
+        # Equipment-generated flag: lose it when user edits the action
+        action.is_equipment_generated = False
+
+        # Update damage parts
+        new_dice = dmg_dice_edit.text().strip() or "1d6"
+        new_type = dmg_type_edit.text().strip() or "bludgeoning"
+        if action.damage_parts:
+            action.damage_parts[0].dice_expr = new_dice
+            action.damage_parts[0].damage_type = new_type
+            action.damage_parts[0].raw_text = f"{new_dice} {new_type}"
+        else:
+            action.damage_parts = [
+                DamagePart(dice_expr=new_dice, damage_type=new_type, raw_text=f"{new_dice} {new_type}")
+            ]
+
+        self._rebuild_preview()
+
+    # ------------------------------------------------------------------
+    # Buffs section signal handlers
+    # ------------------------------------------------------------------
+
+    def _on_add_buff(self) -> None:
+        """Add a new empty buff to the buff list."""
+        self._push_undo()
+        new_buff = BuffItem(name="New Buff", bonus_value="+0", targets="all")
+        self._buff_items.append(new_buff)
+        self._rebuild_buff_rows()
+        self._rebuild_preview()
+
+    def _on_remove_buff(self, buff_index: int) -> None:
+        """Remove a buff by index."""
+        if 0 <= buff_index < len(self._buff_items):
+            self._push_undo()
+            self._buff_items.pop(buff_index)
+            self._rebuild_buff_rows()
+            self._rebuild_preview()
+
+    def _on_buff_field_changed(self, buff_index: int) -> None:
+        """Read buff row widgets and update the buff list."""
+        if self._recalculating:
+            return
+        if buff_index < 0 or buff_index >= len(self._buff_items):
+            return
+        row_widgets = self._buff_row_widgets.get(buff_index)
+        if row_widgets is None:
+            return
+        name_edit, bonus_edit, target_combo = row_widgets
+
+        self._push_undo()
+        self._buff_items[buff_index].name = name_edit.text().strip() or "Buff"
+        self._buff_items[buff_index].bonus_value = bonus_edit.text().strip() or "+0"
+        target_text = target_combo.currentText()
+        self._buff_items[buff_index].targets = target_text.lower().replace(" ", "_")
+        self._rebuild_preview()
+
+    # ------------------------------------------------------------------
+    # Action rows rebuild
+    # ------------------------------------------------------------------
+
+    def _rebuild_action_rows(self) -> None:
+        """Clear and rebuild all action editor rows from working_copy.actions."""
+        # Clear existing rows
+        layout = self._action_rows_layout
+        while layout.count():
+            item = layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+
+        self._action_row_widgets: dict[int, tuple] = {}
+
+        for idx, action in enumerate(self._working_copy.actions):
+            row_widget = QWidget()
+            row_layout = QHBoxLayout(row_widget)
+            row_layout.setContentsMargins(0, 0, 0, 0)
+            row_layout.setSpacing(4)
+
+            # Name
+            name_edit = QLineEdit(action.name)
+            name_edit.setFixedWidth(120)
+            name_edit.editingFinished.connect(
+                lambda _idx=idx: self._on_action_field_changed(_idx)
+            )
+            row_layout.addWidget(name_edit)
+
+            # To-hit bonus
+            to_hit_spin = QSpinBox()
+            to_hit_spin.setRange(-10, 30)
+            to_hit_spin.setValue(action.to_hit_bonus if action.to_hit_bonus is not None else 0)
+            to_hit_spin.setFixedWidth(55)
+            to_hit_spin.setToolTip("To-hit bonus")
+            to_hit_spin.editingFinished.connect(
+                lambda _idx=idx: self._on_action_field_changed(_idx)
+            )
+            row_layout.addWidget(to_hit_spin)
+
+            # Damage dice
+            first_dp = action.damage_parts[0] if action.damage_parts else None
+            dmg_dice_edit = QLineEdit(first_dp.dice_expr if first_dp else "1d6")
+            dmg_dice_edit.setFixedWidth(70)
+            dmg_dice_edit.setPlaceholderText("e.g. 2d6+3")
+            dmg_dice_edit.editingFinished.connect(
+                lambda _idx=idx: self._on_action_field_changed(_idx)
+            )
+            row_layout.addWidget(dmg_dice_edit)
+
+            # Damage bonus
+            dmg_bonus_spin = QSpinBox()
+            dmg_bonus_spin.setRange(-10, 30)
+            dmg_bonus_spin.setValue(
+                getattr(action, "damage_bonus", 0) or 0
+            )
+            dmg_bonus_spin.setFixedWidth(55)
+            dmg_bonus_spin.setToolTip("Damage bonus")
+            dmg_bonus_spin.editingFinished.connect(
+                lambda _idx=idx: self._on_action_field_changed(_idx)
+            )
+            row_layout.addWidget(dmg_bonus_spin)
+
+            # Damage type
+            dmg_type_edit = QLineEdit(first_dp.damage_type if first_dp else "bludgeoning")
+            dmg_type_edit.setFixedWidth(90)
+            dmg_type_edit.editingFinished.connect(
+                lambda _idx=idx: self._on_action_field_changed(_idx)
+            )
+            row_layout.addWidget(dmg_type_edit)
+
+            # [auto] badge for equipment-generated actions
+            if action.is_equipment_generated:
+                auto_label = QLabel("[auto]")
+                auto_label.setStyleSheet("color: #4EA8DE; font-size: 8pt;")
+                row_layout.addWidget(auto_label)
+
+            # Remove button
+            remove_btn = QPushButton("X")
+            remove_btn.setFixedWidth(24)
+            remove_btn.clicked.connect(
+                lambda _checked, _idx=idx: self._on_remove_action(_idx)
+            )
+            row_layout.addWidget(remove_btn)
+
+            row_layout.addStretch()
+            layout.addWidget(row_widget)
+            self._action_row_widgets[idx] = (
+                name_edit, to_hit_spin, dmg_dice_edit, dmg_bonus_spin, dmg_type_edit
+            )
+
+    # ------------------------------------------------------------------
+    # Buff rows rebuild
+    # ------------------------------------------------------------------
+
+    def _rebuild_buff_rows(self) -> None:
+        """Clear and rebuild all buff editor rows from _buff_items."""
+        layout = self._buff_rows_layout
+        while layout.count():
+            item = layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+
+        self._buff_row_widgets: dict[int, tuple] = {}
+
+        for idx, buff in enumerate(self._buff_items):
+            row_widget = QWidget()
+            row_layout = QHBoxLayout(row_widget)
+            row_layout.setContentsMargins(0, 0, 0, 0)
+            row_layout.setSpacing(4)
+
+            # Name
+            name_edit = QLineEdit(buff.name)
+            name_edit.setFixedWidth(100)
+            name_edit.editingFinished.connect(
+                lambda _idx=idx: self._on_buff_field_changed(_idx)
+            )
+            row_layout.addWidget(name_edit)
+
+            # Bonus value
+            bonus_edit = QLineEdit(buff.bonus_value)
+            bonus_edit.setFixedWidth(60)
+            bonus_edit.setPlaceholderText("+1d4")
+            bonus_edit.editingFinished.connect(
+                lambda _idx=idx: self._on_buff_field_changed(_idx)
+            )
+            row_layout.addWidget(bonus_edit)
+
+            # Target
+            target_combo = QComboBox()
+            for tgt in _BUFF_TARGETS:
+                target_combo.addItem(tgt)
+            # Set current target
+            stored = buff.targets.replace("_", " ").title()
+            if stored in _BUFF_TARGETS:
+                target_combo.setCurrentText(stored)
+            target_combo.currentIndexChanged.connect(
+                lambda _i, _idx=idx: self._on_buff_field_changed(_idx)
+            )
+            row_layout.addWidget(target_combo)
+
+            # Remove button
+            remove_btn = QPushButton("X")
+            remove_btn.setFixedWidth(24)
+            remove_btn.clicked.connect(
+                lambda _checked, _idx=idx: self._on_remove_buff(_idx)
+            )
+            row_layout.addWidget(remove_btn)
+
+            row_layout.addStretch()
+            layout.addWidget(row_widget)
+            self._buff_row_widgets[idx] = (name_edit, bonus_edit, target_combo)
+
+    # ------------------------------------------------------------------
+    # Equipment helpers
+    # ------------------------------------------------------------------
+
+    def _update_weapon_list_widget(self) -> None:
+        """Refresh the weapon QListWidget from _equipped_weapons."""
+        self._weapon_list.clear()
+        for equip_item, _action_dict in self._equipped_weapons:
+            self._weapon_list.addItem(equip_item.item_name)
+
+    def _update_equipment_summary(self) -> None:
+        """Update the collapsed Equipment section header with a summary."""
+        self._equipment_section.set_summary(self._equipment_summary_text())
+
+    def _equipment_summary_text(self) -> str:
+        """Build a comma-separated equipment summary string."""
+        parts = []
+        for equip_item, _ in self._equipped_weapons:
+            parts.append(equip_item.item_name)
+        if self._equipped_armor is not None:
+            parts.append(self._equipped_armor[0].item_name)
+        if self._equipped_shield is not None:
+            parts.append(self._equipped_shield.item_name)
+        if self._equipped_focus is not None:
+            parts.append(self._equipped_focus.item_name)
+        return ", ".join(parts) if parts else ""
+
+    def _dict_to_action(self, action_dict: dict) -> Action:
+        """Convert a compute_weapon_action() result dict to an Action."""
+        return Action(
+            name=action_dict["name"],
+            to_hit_bonus=action_dict["to_hit_bonus"],
+            damage_parts=[
+                DamagePart(
+                    dice_expr=action_dict["damage_dice"],
+                    damage_type=action_dict["damage_type"],
+                    raw_text=f"{action_dict['damage_dice']} {action_dict['damage_type']}",
+                )
+            ],
+            raw_text=action_dict["name"],
+            is_parsed=True,
+            damage_bonus=action_dict.get("damage_bonus", 0),
+            is_equipment_generated=action_dict.get("is_equipment_generated", True),
+        )
+
+    @staticmethod
+    def _make_section_header(text: str) -> QLabel:
+        """Create a bold sub-section header label."""
+        label = QLabel(text)
+        font = label.font()
+        font.setBold(True)
+        label.setFont(font)
+        return label
+
+    # ------------------------------------------------------------------
+    # Three-tier color highlighting
+    # ------------------------------------------------------------------
+
+    def _apply_highlights(self) -> None:
+        """Apply three-tier color highlighting to preview panel labels.
+
+        Compares working_copy against base_monster field by field.
+        Colors:
+          - equipment (steel blue): AC changed by armor/shield, actions from weapon
+          - manual (amber): any field manually edited by user
+          - custom (red): save/skill that doesn't match expected prof math
+        """
+        # AC highlighting
+        if self._working_copy.ac != self._base_monster.ac:
+            source = self._mod_sources.get("ac", "manual")
+            style = STYLE_EQUIPMENT if source == "equipment" else STYLE_MANUAL
+            tooltip = f"Base: {self._base_monster.ac}"
+            self._set_label_highlight(self._preview_panel._ac_label, style, tooltip)
+        else:
+            self._set_label_highlight(self._preview_panel._ac_label, STYLE_BASE, "")
+
+        # HP highlighting
+        if self._working_copy.hp != self._base_monster.hp:
+            self._set_label_highlight(
+                self._preview_panel._hp_label,
+                STYLE_MANUAL,
+                f"Base: {self._base_monster.hp}",
+            )
+        else:
+            self._set_label_highlight(self._preview_panel._hp_label, STYLE_BASE, "")
+
+        # Ability score highlighting
+        for ability, label in self._preview_panel._ability_labels.items():
+            base_score = self._base_monster.ability_scores.get(ability, 10)
+            curr_score = self._working_copy.ability_scores.get(ability, 10)
+            if curr_score != base_score:
+                self._set_label_highlight(label, STYLE_MANUAL, f"Base: {base_score}")
+            else:
+                self._set_label_highlight(label, STYLE_BASE, "")
+
+        # Saving throws highlighting — use MathValidator to detect custom
+        derived = self._engine.recalculate(self._working_copy)
+        save_validations = {
+            sv.ability: sv
+            for sv in self._validator.validate_saves(self._working_copy, derived)
+        }
+        # saves_label is a single label — color it if any save is modified
+        any_save_modified = bool(self._working_copy.saves) and (
+            self._working_copy.saves != self._base_monster.saves
+        )
+        if any_save_modified:
+            # Check if any save is "custom" (doesn't match prof math)
+            has_custom = any(
+                sv.state.value == "custom"
+                for sv in save_validations.values()
+                if hasattr(sv, "state")
+            )
+            style = STYLE_CUSTOM_FLAG if has_custom else STYLE_MANUAL
+            self._set_label_highlight(self._preview_panel._saves_label, style, "")
+        else:
+            self._set_label_highlight(self._preview_panel._saves_label, STYLE_BASE, "")
+
+    def _set_label_highlight(self, label, style: str, tooltip: str) -> None:
+        """Apply a stylesheet and tooltip to a QLabel in the preview panel."""
+        try:
+            label.setStyleSheet(style)
+            label.setToolTip(tooltip)
+        except (AttributeError, RuntimeError):
+            # Label may not exist or may have been deleted
+            pass
+
     # ------------------------------------------------------------------
     # Signal handlers — user edits
     # ------------------------------------------------------------------
@@ -519,7 +1381,13 @@ class MonsterEditorDialog(QDialog):
             return
         self._push_undo()
         for ability, spinbox in self._ability_spinboxes.items():
-            self._working_copy.ability_scores[ability] = spinbox.value()
+            old_score = self._base_monster.ability_scores.get(ability, 10)
+            new_score = spinbox.value()
+            self._working_copy.ability_scores[ability] = new_score
+            if new_score != old_score:
+                self._mod_sources[f"ability_{ability}"] = "manual"
+            else:
+                self._mod_sources.pop(f"ability_{ability}", None)
         self._sync_save_toggles()
         self._rebuild_preview()
 
@@ -546,6 +1414,13 @@ class MonsterEditorDialog(QDialog):
 
         self._push_undo()
         self._apply_save_value(ability, state_label)
+        # Mark source
+        if state_label == "Custom":
+            self._mod_sources[f"save_{ability}"] = "custom"
+        elif state_label != "Non-Prof":
+            self._mod_sources[f"save_{ability}"] = "manual"
+        else:
+            self._mod_sources.pop(f"save_{ability}", None)
         self._rebuild_preview()
 
     def _on_save_custom_changed(self) -> None:
@@ -558,6 +1433,7 @@ class MonsterEditorDialog(QDialog):
         ability: str = spinbox.property("ability")
         self._push_undo()
         self._working_copy.saves[ability] = spinbox.value()
+        self._mod_sources[f"save_{ability}"] = "custom"
         self._rebuild_preview()
 
     def _on_skill_toggle_changed(self) -> None:
@@ -640,6 +1516,10 @@ class MonsterEditorDialog(QDialog):
         # Store formula in working copy as lore comment (no hp_formula field on Monster)
         # Update flat HP from spinbox
         self._working_copy.hp = self._hp_flat_spinbox.value()
+        if self._working_copy.hp != self._base_monster.hp:
+            self._mod_sources["hp"] = "manual"
+        else:
+            self._mod_sources.pop("hp", None)
         self._rebuild_preview()
 
     def _on_cr_changed(self, cr_text: str) -> None:
@@ -656,10 +1536,11 @@ class MonsterEditorDialog(QDialog):
     # ------------------------------------------------------------------
 
     def _rebuild_preview(self) -> None:
-        """Recalculate derived stats and refresh the preview panel."""
+        """Recalculate derived stats, refresh the preview panel, apply highlights."""
         self._engine.recalculate(self._working_copy)
         self._preview_panel.show_monster(self._working_copy)
         self.setWindowTitle(f"Editing: {self._working_copy.name}")
+        self._apply_highlights()
 
     def _push_undo(self) -> None:
         """Push a deep copy of the working monster onto the undo stack."""
@@ -765,6 +1646,9 @@ class MonsterEditorDialog(QDialog):
             if cr in _CR_VALUES:
                 self._cr_combo.setCurrentText(cr)
             self._cr_combo.blockSignals(False)
+
+            # Rebuild action rows (restores from working_copy)
+            self._rebuild_action_rows()
 
         finally:
             self._recalculating = False
@@ -888,6 +1772,31 @@ class MonsterEditorDialog(QDialog):
             self._working_copy.skills[skill_name] = mod + 2 * prof
         elif state_label == "Custom":
             self._working_copy.skills[skill_name] = custom_value
+
+    # ------------------------------------------------------------------
+    # Public accessors for Plan 05 persistence
+    # ------------------------------------------------------------------
+
+    def get_equipment_items(self) -> list[EquipmentItem]:
+        """Return all currently equipped items as EquipmentItem list for persistence."""
+        items = []
+        for equip_item, _ in self._equipped_weapons:
+            items.append(equip_item)
+        if self._equipped_armor is not None:
+            items.append(self._equipped_armor[0])
+        if self._equipped_shield is not None:
+            items.append(self._equipped_shield)
+        if self._equipped_focus is not None:
+            items.append(self._equipped_focus)
+        return items
+
+    def get_buff_items(self) -> list[BuffItem]:
+        """Return current buff list for persistence."""
+        return list(self._buff_items)
+
+    def get_focus_bonus(self) -> int:
+        """Return current focus bonus for spellcasting persistence."""
+        return self._focus_bonus
 
     # ------------------------------------------------------------------
     # Stub save handlers (Plan 05 wires real logic)
