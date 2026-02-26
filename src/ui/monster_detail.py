@@ -393,10 +393,11 @@ class MonsterDetailPanel(QWidget):
             row_layout.addWidget(math_label)
             self._actions_layout.addWidget(row_widget)
 
-            # Show raw_text as secondary description if it contains extra info
-            raw = action.raw_text or ""
-            if raw and raw != action.name and len(raw) > len(action.name) + 10:
-                desc_label = QLabel(raw)
+            # Show extra effect text (crit rules, save effects, etc.)
+            # stripped of the standard attack formula already shown above
+            extra = _extract_extra_effect(action.raw_text or "")
+            if extra:
+                desc_label = QLabel(extra)
                 desc_label.setWordWrap(True)
                 desc_label.setStyleSheet(
                     "color: #888; font-size: 8pt; margin-left: 12px;"
@@ -418,6 +419,29 @@ class MonsterDetailPanel(QWidget):
         if self._current_monster is not None:
             tags = [t.strip() for t in text.split(",") if t.strip()]
             self._current_monster.tags = tags
+
+
+def _extract_extra_effect(raw_text: str) -> str:
+    """Extract extra effect text from a parsed action's raw_text.
+
+    Strips the standard attack formula (to-hit, damage) that is already
+    displayed in the dice math line, returning only gameplay-relevant
+    extra effects like crit rules, save requirements, pull effects, etc.
+
+    Returns empty string if no extra effect is found.
+    """
+    import re
+    if not raw_text:
+        return ""
+    # Find the last damage expression: "N (XdY+Z) type damage"
+    damage_pattern = r'\d+\s*\(\d+d\d+(?:\s*[+-]\s*\d+)?\)\s*\w+\s*damage'
+    matches = list(re.finditer(damage_pattern, raw_text))
+    if not matches:
+        return ""
+    remainder = raw_text[matches[-1].end():].strip()
+    # Strip leading punctuation
+    remainder = remainder.lstrip('.,;: ')
+    return remainder
 
 
 def _is_spellcasting_action(action: "Action") -> bool:

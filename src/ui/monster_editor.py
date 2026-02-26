@@ -772,6 +772,7 @@ class MonsterEditorDialog(QDialog):
 
         replace_index = None  # Track position for in-place replacement
         extra_damage_parts = []  # Extra damage riders from the original action
+        replace_raw_text = ""   # Preserve raw_text (extra effect descriptions)
 
         if existing_action is not None:
             reply = QMessageBox.question(
@@ -786,12 +787,13 @@ class MonsterEditorDialog(QDialog):
             if reply == QMessageBox.StandardButton.Cancel:
                 return
             if reply == QMessageBox.StandardButton.Yes:
-                # Replace: remember position and extra damage riders, then remove
+                # Replace: remember position, extra damage riders, and raw_text
                 replace_index = next(
                     (i for i, a in enumerate(self._working_copy.actions) if a is existing_action),
                     None,
                 )
                 extra_damage_parts = list(existing_action.damage_parts[1:])
+                replace_raw_text = existing_action.raw_text or ""
                 self._working_copy.actions = [
                     a for a in self._working_copy.actions if a is not existing_action
                 ]
@@ -800,9 +802,11 @@ class MonsterEditorDialog(QDialog):
 
         # Insert at original position when replacing, otherwise append
         new_action = self._dict_to_action(action_dict)
-        # Carry over extra damage riders (e.g. 3d8 lightning) from replaced action
+        # Carry over extra damage riders and raw_text from replaced action
         if extra_damage_parts:
             new_action.damage_parts.extend(extra_damage_parts)
+        if replace_raw_text:
+            new_action.raw_text = replace_raw_text
         if replace_index is not None:
             self._working_copy.actions.insert(replace_index, new_action)
         else:
