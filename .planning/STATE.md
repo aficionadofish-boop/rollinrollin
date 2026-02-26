@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 14 of 16 (Bug Fixes & Critical Polish)
-Plan: 0 of ? in current phase (phase detailed, needs /gsd:plan-phase 14 to break into plans)
-Status: Planned (not yet started)
-Last activity: 2026-02-26 — Phase 13 complete, Phases 14-16 detailed from manual testing report
+Plan: 1 of 6 in current phase
+Status: In Progress
+Last activity: 2026-02-26 — Phase 14 Plan 01 complete (BUG-01, BUG-02, UX-01)
 
-Progress: [░░░░░░░░░░░░░░░░░░░░] Phase 14 not started (0/? plans)
+Progress: [███░░░░░░░░░░░░░░░░░] Phase 14 in progress (1/6 plans)
 
 ## Performance Metrics
 
@@ -138,6 +138,10 @@ Recent decisions affecting current work:
 - [Phase 13-05]: TemplateCard dispatch condition is lr.template_name AND lr.template_fields — template with name but no fields falls back to ResultCard (card would be empty except header)
 - [Phase 13-05]: Accent color stored as _accent_color on ResultPanel; updated via set_accent_color() called on theme change via app.py _apply_settings
 - [Phase 13-05]: _resolve_field_values uses left-to-right token matching by index — relies on preprocessor and inline roll resolution both processing left-to-right
+- [Phase 14-01]: source_files_changed emitted only when at least one monster actually imported (not skip-all) — avoids spurious persistence writes
+- [Phase 14-01]: Missing persisted monster files skipped silently on restart but kept in list — may be on removable drive and return later
+- [Phase 14-01]: selectedRows() fixes single-result library selection — selected.indexes() returns per-cell delta empty for unchanged rows
+- [Phase 14-01]: _RotatedButton uses QPainter.translate(width,0)+rotate(90) pattern for vertical text in 24px collapsed sidebar strip
 
 ### Roadmap Evolution
 
@@ -157,5 +161,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Phase 14 context gathered
-Resume file: .planning/phases/14-bug-fixes-critical-polish/14-CONTEXT.md
+Stopped at: Completed 14-01-PLAN.md (BUG-01, BUG-02, UX-01)
+Resume file: .planning/phases/14-bug-fixes-critical-polish/14-01-SUMMARY.md

@@ -154,7 +154,7 @@ Phase 8 → Phase 9 (parallel with 10) → Phase 10 → Phase 11 → Phase 12 �
 | 11. Combat Tracker | v2.0 | 4/4 | Complete | 2026-02-26 |
 | 12. Save Roller Upgrades | v2.0 | 3/3 | Complete | 2026-02-26 |
 | 13. Output Polish, Theming, and UI | v2.0 | 5/5 | Complete | 2026-02-26 |
-| 14. Bug Fixes & Critical Polish | v2.1 | 0/6 | In Progress | - |
+| 14. Bug Fixes & Critical Polish | 2/6 | In Progress|  | - |
 | 15. Editor & Parser Overhaul | v2.1 | 0/? | Planned | - |
 | 16. Buff System & Output Improvements | v2.1 | 0/? | Planned | - |
 
@@ -300,7 +300,7 @@ Phase 8 → Phase 9 (parallel with 10) → Phase 10 → Phase 11 → Phase 12 �
   20. Condition "+" button is always at the far-left of each card (UX-04)
   21. Condition chips wrap to new lines instead of causing horizontal scroll (UX-05)
 
-**Plans:** 6 plans
+**Plans:** 2/6 plans executed
 Plans:
 - [ ] 14-01-PLAN.md -- Persistence fix + Library selection fix + Sidebar rotated text (BUG-01, BUG-02, UX-01)
 - [ ] 14-02-PLAN.md -- Editor cascade fixes: CR, skills, ability scores, spellcasting focus (BUG-03, BUG-04, BUG-05, BUG-07)
