@@ -93,7 +93,12 @@ Plans:
   3. User can add "Poisoned" from the condition preset dropdown with a 3-round duration; after clicking "Next Turn" three times, the condition is flagged as expired or auto-removed
   4. User can add player characters in the PC subtab with name, AC, HP, and conditions; PCs appear in the initiative order alongside monsters
   5. User can select one or more monsters in the Combat Tracker and click a button to jump to the Saves tab with exactly those monsters pre-loaded
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+- [ ] 11-01-PLAN.md -- CombatTrackerService domain models + TDD + PersistenceService extension
+- [ ] 11-02-PLAN.md -- Core UI: HpBar, CombatantCard, CombatLogPanel, CombatTrackerTab skeleton
+- [ ] 11-03-PLAN.md -- Initiative ordering, grouped display, turn cycling, toggleable stats
+- [ ] 11-04-PLAN.md -- PC subtab, multi-select, AOE damage, Saves integration, MainWindow wiring
 
 ### Phase 12: Save Roller Upgrades
 **Goal**: The Save Roller works directly from the sidebar encounter with per-creature selection, auto-detects Magic Resistance and Legendary Resistance from parsed monster traits, and clearly shows which creatures have which advantages applied
@@ -136,6 +141,6 @@ Phase 8 → Phase 9 (parallel with 10) → Phase 10 → Phase 11 → Phase 12 �
 | 8. Domain Expansion and Persistence Foundation | v2.0 | 3/3 | Complete | 2026-02-25 |
 | 9. Monster Editor and Equipment Presets | v2.0 | 5/5 | Complete | 2026-02-26 |
 | 10. Persistent Encounter Sidebar | v2.0 | 2/2 | Complete | 2026-02-26 |
-| 11. Combat Tracker | v2.0 | 0/? | Not started | - |
+| 11. Combat Tracker | v2.0 | 0/4 | Planned | - |
 | 12. Save Roller Upgrades | v2.0 | 0/? | Not started | - |
 | 13. Output Polish, Theming, and UI | v2.0 | 0/? | Not started | - |
