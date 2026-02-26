@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 14 of 16 (Bug Fixes & Critical Polish)
-Plan: 5 of 6 in current phase
-Status: In Progress
-Last activity: 2026-02-26 — Phase 14 Plan 05 complete (BUG-11/15/16 — stats toggle triggered signal, LR counter seeding + type-change reset, 0 HP verified)
+Plan: 6 of 6 in current phase
+Status: Complete
+Last activity: 2026-02-27 — Phase 14 Plan 06 complete (BUG-12/13/14, UX-02/03/04/05 — group damage input, double-click collapse, drag removal, Init label, FlowLayout chips)
 
-Progress: [█████████████░░░░░░░] Phase 14 in progress (5/6 plans)
+Progress: [██████████████░░░░░░] Phase 14 complete (6/6 plans)
 
 ## Performance Metrics
 
@@ -32,6 +32,7 @@ Progress: [█████████████░░░░░░░] Phase 1
 | 11 (v2.0) | 4/4 | Complete |
 | 12 (v2.0) | 3/3 | Complete |
 | 13 (v2.0) | 5/5 | Complete |
+| Phase 14 P06 | 5 | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -157,6 +158,10 @@ Recent decisions affecting current work:
 - [Phase 14-05]: LR counter seeding: seed _lr_counters[base_name] = lr_uses on first detection; always use persisted value on subsequent rolls
 - [Phase 14-05]: Encounter type-change detection uses set comprehension {monster.name for monster, _ in members} vs _prev_encounter_names in app.py
 - [Phase 14-05]: BUG-16 (0 HP) verified correct without code changes: service floors at 0, HpBar shows grey at 0, is_defeated is a computed property
+- [Phase 14-06]: GroupCard damage distribution iterates members in display order; absorbed = min(remaining, current_hp+temp_hp) per non-defeated member; healing applies to first member (simple approach per spec)
+- [Phase 14-06]: FlowLayout._MAX_ROWS=2 enforced at layout geometry time; items on row 3+ hidden via w.hide() — no +N badge widget required
+- [Phase 14-06]: Card drag fully removed from CombatantCard — QDrag/QMimeData removed; left-button moves propagate to CombatantListArea rubber-band
+- [Phase 14-06]: collapse_requested Signal on CombatantCard (double-click) connected in GroupCard._build_members_view; single-click via CompactSubRow.clicked still expands
 
 ### Roadmap Evolution
 
@@ -175,6 +180,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-26
-Stopped at: Completed 14-05-PLAN.md (BUG-11/15/16 — stats toggle triggered signal, LR counter seeding + type-change reset, 0 HP verified)
-Resume file: .planning/phases/14-bug-fixes-critical-polish/14-05-SUMMARY.md
+Last session: 2026-02-27
+Stopped at: Completed 14-06-PLAN.md (BUG-12/13/14, UX-02/03/04/05 — group damage input, double-click collapse, drag removal, Init label, FlowLayout chips)
+Resume file: .planning/phases/14-bug-fixes-critical-polish/14-06-SUMMARY.md
