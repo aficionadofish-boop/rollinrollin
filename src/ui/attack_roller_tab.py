@@ -248,8 +248,7 @@ class AttackRollerTab(QWidget):
         """Preload a specific monster into the Attack Roller (single-click from sidebar).
 
         Ensures the monster is in self._creatures (adds it if missing), then
-        rebuilds the action list. This gives the DM a shortcut to roll attacks
-        for the selected creature without switching tabs manually.
+        rebuilds the action list and scrolls to the creature's header.
 
         Args:
             monster: Monster dataclass instance to focus on.
@@ -257,12 +256,17 @@ class AttackRollerTab(QWidget):
         if monster is None:
             return
 
-        # Check if monster is already in the creature list
+        # Add if missing
         names = [m.name for m, _ in self._creatures]
         if monster.name not in names:
-            # Add as single creature so its attacks are visible
             self._creatures = list(self._creatures) + [(monster, 1)]
             self._rebuild_action_list()
+
+        # Scroll to the creature's header in the action list
+        for widget in self._action_rows:
+            if isinstance(widget, QLabel) and monster.name in widget.text():
+                self._action_scroll.ensureWidgetVisible(widget)
+                break
 
     # ------------------------------------------------------------------
     # Action list

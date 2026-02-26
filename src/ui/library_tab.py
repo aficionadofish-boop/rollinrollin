@@ -255,6 +255,18 @@ class MonsterLibraryTab(QWidget):
         self._detail_panel.show_monster(monster)
         self.monster_selected.emit(monster)   # NEW — cross-tab signal
 
+    def select_monster_by_name(self, name: str) -> None:
+        """Programmatically select a monster row in the table by name."""
+        for source_row in range(self._model.rowCount()):
+            m = self._model.monster_at(source_row)
+            if m.name == name:
+                source_index = self._model.index(source_row, 0)
+                proxy_index = self._proxy.mapFromSource(source_index)
+                if proxy_index.isValid():
+                    self._table.selectRow(proxy_index.row())
+                    self._table.scrollTo(proxy_index)
+                return
+
     def _on_edit_monster(self, monster) -> None:
         """Open MonsterEditorDialog for the given monster (modal).
 

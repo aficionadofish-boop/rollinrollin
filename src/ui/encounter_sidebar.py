@@ -21,8 +21,7 @@ from PySide6.QtWidgets import (
     QListWidgetItem,
     QAbstractItemView,
 )
-from PySide6.QtCore import Qt, Signal, QPropertyAnimation, QEasingCurve
-from PySide6.QtGui import QCursor
+from PySide6.QtCore import Qt, Signal
 
 # ---------------------------------------------------------------------------
 # XP lookup table and helpers (D&D 5e SRD, static values)
@@ -126,7 +125,12 @@ class _MonsterRowWidget(QWidget):
     def set_selected(self, selected: bool) -> None:
         """Highlight/unhighlight this row."""
         if selected:
-            self.setStyleSheet("background-color: #d0e8ff;")
+            self.setStyleSheet(
+                "_MonsterRowWidget { background-color: #d0e8ff; }"
+                " _MonsterRowWidget QLabel { background: transparent; }"
+                " _MonsterRowWidget QSpinBox { background: white; }"
+                " _MonsterRowWidget QPushButton { background: #e0e0e0; }"
+            )
         else:
             self.setStyleSheet("")
 
@@ -167,11 +171,6 @@ class EncounterSidebarDock(QDockWidget):
         self.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetMovable)
         # Remove default title bar — we build our own header inside _content_widget
         self.setTitleBarWidget(QWidget())
-
-        # Animation on maximumWidth
-        self._anim = QPropertyAnimation(self, b"maximumWidth")
-        self._anim.setDuration(200)
-        self._anim.setEasingCurve(QEasingCurve.Type.InOutQuad)
 
         # Build the two internal widgets
         self._content_widget = QWidget()
@@ -271,6 +270,10 @@ class EncounterSidebarDock(QDockWidget):
         self._list_widget.setDefaultDropAction(Qt.DropAction.MoveAction)
         self._list_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self._list_widget.setFrameShape(QListWidget.Shape.NoFrame)
+        # Disable native selection highlight so custom row widget styling is visible
+        self._list_widget.setStyleSheet(
+            "QListWidget::item:selected { background: transparent; }"
+        )
         self._list_widget.itemClicked.connect(self._on_single_click)
         self._list_widget.itemDoubleClicked.connect(self._on_double_click)
         self._list_widget.model().rowsMoved.connect(self._on_rows_moved)
@@ -292,57 +295,27 @@ class EncounterSidebarDock(QDockWidget):
         self._handle_widget.setFixedWidth(self._COLLAPSED_WIDTH)
 
     # ------------------------------------------------------------------
-    # Collapse / expand animation
+    # Collapse / expand (instant toggle)
     # ------------------------------------------------------------------
 
     def toggle_collapse(self) -> None:
-        """Animate collapse/expand of the sidebar."""
-        if self._anim.state() == QPropertyAnimation.State.Running:
-            return
-
+        """Instantly toggle collapse/expand of the sidebar."""
         if self._collapsed:
             self._expand()
         else:
             self._collapse()
 
     def _collapse(self) -> None:
-        self.setMinimumWidth(0)
-        self._anim.setStartValue(self.width())
-        self._anim.setEndValue(self._COLLAPSED_WIDTH)
-        try:
-            self._anim.finished.disconnect()
-        except RuntimeError:
-            pass
-        self._anim.finished.connect(self._after_collapse)
         self._collapsed = True
-        self._anim.start()
-
-    def _after_collapse(self) -> None:
-        try:
-            self._anim.finished.disconnect()
-        except RuntimeError:
-            pass
+        self.setMinimumWidth(0)
+        self.setMaximumWidth(self._COLLAPSED_WIDTH)
         self._content_widget.setVisible(False)
         self._handle_widget.setVisible(True)
 
     def _expand(self) -> None:
+        self._collapsed = False
         self._content_widget.setVisible(True)
         self._handle_widget.setVisible(False)
-        self._anim.setStartValue(self._COLLAPSED_WIDTH)
-        self._anim.setEndValue(self._expanded_width)
-        try:
-            self._anim.finished.disconnect()
-        except RuntimeError:
-            pass
-        self._anim.finished.connect(self._after_expand)
-        self._collapsed = False
-        self._anim.start()
-
-    def _after_expand(self) -> None:
-        try:
-            self._anim.finished.disconnect()
-        except RuntimeError:
-            pass
         self.setMinimumWidth(200)
         self.setMaximumWidth(16777215)  # QWIDGETSIZE_MAX — allows resize
 
@@ -525,10 +498,6 @@ class EncounterSidebarDock(QDockWidget):
             self._remove_row(name)
         else:
             row_widget.set_count(current_count - 1)
-
-        # Auto-collapse when list becomes empty
-        if len(self._rows) == 0 and not self._collapsed:
-            self._collapse()
 
         self._update_empty_state()
         self._update_summary()

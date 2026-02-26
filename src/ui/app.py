@@ -93,6 +93,9 @@ class MainWindow(QMainWindow):
             lambda: self._tab_widget.setCurrentWidget(self._attack_roller_tab)
         )
 
+        # Cross-tab signal: sidebar "View Stat Block" → switch to Library and select
+        self._sidebar.view_stat_block_requested.connect(self._on_view_stat_block)
+
         # Sidebar save/load button signals
         self._sidebar.save_btn_clicked.connect(self._on_sidebar_save)
         self._sidebar.load_btn_clicked.connect(self._on_sidebar_load)
@@ -342,19 +345,40 @@ class MainWindow(QMainWindow):
         event.accept()
 
     # ------------------------------------------------------------------
+    # Sidebar cross-tab handlers
+    # ------------------------------------------------------------------
+
+    def _on_view_stat_block(self, monster) -> None:
+        """Switch to Library tab and select the requested monster."""
+        self._tab_widget.setCurrentWidget(self._library_tab)
+        self._library_tab.select_monster_by_name(monster.name)
+
+    # ------------------------------------------------------------------
     # Sidebar Save / Load handlers
     # ------------------------------------------------------------------
 
     def _on_sidebar_save(self) -> None:
-        """Save current sidebar encounter to the saved encounters list."""
+        """Save current sidebar encounter to the saved encounters list.
+
+        Skips saving if an identical encounter (same name and members) already exists.
+        """
         name = self._sidebar.get_encounter_name() or "Untitled Encounter"
         members = self._sidebar.get_members()
         if not members:
             return
 
+        member_data = [{"name": m.name, "count": c} for m, c in members]
+
+        # Check for duplicate: same name and same members
+        existing = self._persistence.load_saved_encounters()
+        for enc in existing:
+            if enc.get("name") == name and enc.get("members") == member_data:
+                self.statusBar().showMessage("Encounter already saved", 3000)
+                return
+
         saved_data = {
             "name": name,
-            "members": [{"name": m.name, "count": c} for m, c in members],
+            "members": member_data,
             "saved_at": datetime.datetime.now().isoformat(timespec="seconds"),
         }
         self._persistence.save_saved_encounter(saved_data)
