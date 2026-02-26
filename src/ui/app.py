@@ -193,6 +193,10 @@ class MainWindow(QMainWindow):
         if hasattr(self, '_macro_tab'):
             self._macro_tab.set_accent_color(accent)
 
+        # Apply sandbox font to MacroEditor
+        if hasattr(self, '_macro_tab'):
+            self._macro_tab.set_sandbox_font(settings.sandbox_font)
+
     # ------------------------------------------------------------------
     # Tab change guard (unsaved settings changes) and sidebar visibility
     # ------------------------------------------------------------------

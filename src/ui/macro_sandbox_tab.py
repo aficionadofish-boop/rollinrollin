@@ -135,6 +135,23 @@ class MacroSandboxTab(QWidget):
         """Forward accent color update to ResultPanel for TemplateCard headers."""
         self._result_panel.set_accent_color(color)
 
+    def set_sandbox_font(self, family: str) -> None:
+        """Set the macro editor font to the specified family.
+
+        Uses a fallback chain (family -> Consolas -> Courier New -> generic Monospace)
+        to ensure the editor always has a readable monospace font.
+        """
+        from PySide6.QtGui import QFont, QFontDatabase
+        available = QFontDatabase.families()
+        for f in [family, "Consolas", "Courier New"]:
+            if f in available:
+                self._editor.setFont(QFont(f, self._editor.font().pointSize()))
+                return
+        # Last resort: generic monospace hint
+        font = QFont()
+        font.setStyleHint(QFont.StyleHint.Monospace)
+        self._editor.setFont(font)
+
     # ------------------------------------------------------------------
     # Slots
     # ------------------------------------------------------------------
