@@ -1170,9 +1170,13 @@ class MonsterEditorDialog(QDialog):
         derived = self._engine.recalculate(self._working_copy)
         prof = derived.proficiency_bonus
 
-        # Build delta map for abilities that actually changed
+        # Build delta map for abilities that actually changed.
+        # CON is excluded — it never drives attack rolls in D&D 5e and
+        # would falsely match STR-based actions when both have the same mod.
         ability_deltas: dict[str, tuple[int, int]] = {}  # ability -> (old_mod, delta)
         for ability in _ABILITY_LABELS:
+            if ability == "CON":
+                continue
             old_mod = (old_scores.get(ability, 10) - 10) // 2
             new_mod = (self._working_copy.ability_scores.get(ability, 10) - 10) // 2
             if old_mod != new_mod:

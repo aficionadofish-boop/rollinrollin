@@ -392,6 +392,16 @@ class MonsterDetailPanel(QWidget):
             math_label.setStyleSheet("color: gray; font-size: 9pt;")
             row_layout.addWidget(math_label)
             self._actions_layout.addWidget(row_widget)
+
+            # Show raw_text as secondary description if it contains extra info
+            raw = action.raw_text or ""
+            if raw and raw != action.name and len(raw) > len(action.name) + 10:
+                desc_label = QLabel(raw)
+                desc_label.setWordWrap(True)
+                desc_label.setStyleSheet(
+                    "color: #888; font-size: 8pt; margin-left: 12px;"
+                )
+                self._actions_layout.addWidget(desc_label)
         else:
             # Unparsed action — raw text only, no button.
             # Spellcasting actions get their text reformatted so each spell
