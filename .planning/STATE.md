@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** DMs can manage the full combat loop — prep monsters, roll attacks and saves, and track combat state — in seconds, with D&D 5e rule fidelity and persistent data.
-**Current focus:** Phase 11 in progress — UI components complete (Plan 02 of ?)
+**Current focus:** Phase 11 in progress — initiative mode, turn cycling, group cards, stat toggles complete (Plan 03 of ?)
 
 ## Current Position
 
 Phase: 11 of 13 (Combat Tracker)
-Plan: 2 of ? in current phase (Plan 02 complete)
+Plan: 3 of ? in current phase (Plan 03 complete)
 Status: In Progress
-Last activity: 2026-02-26 — Phase 11 Plan 02 complete (HpBar, CombatantCard, CombatLogPanel, CombatTrackerTab skeleton)
+Last activity: 2026-02-26 — Phase 11 Plan 03 complete (GroupCard, initiative mode, turn cycling, drag-reorder, stat toggles)
 
-Progress: [██████████████] Phase 11 in progress (2/? plans)
+Progress: [██████████████] Phase 11 in progress (3/? plans)
 
 ## Performance Metrics
 
@@ -95,6 +95,12 @@ Recent decisions affecting current work:
 - [Phase 11-02]: HpBar uses direct QPainter in paintEvent — no Qt stylesheets for bar segments (avoids stylesheet z-order issues with overlapping fill rects)
 - [Phase 11-02]: _ConditionChip subclasses QLabel with mousePressEvent override — installEventFilter avoided; each chip captures its own condition name in closure
 - [Phase 11-02]: CombatTrackerTab._on_start_combat is a no-op without encounter members — actual start_combat(members) called by MainWindow in Plan 04 wiring
+- [Phase 11-03]: GroupCard uses hidden _members_container QWidget (show/hide) rather than rebuilding the whole QFrame on expand/collapse — avoids layout thrashing
+- [Phase 11-03]: CompactSubRow intercepts mousePressEvent on entire frame (not just expand button) — clicking anywhere on the row expands to full CombatantCard
+- [Phase 11-03]: Stat visibility defaults to False for all toggleable stats — DM must opt in via Stats menu
+- [Phase 11-03]: _CardContainer handles drag drops (not CombatantCards) so drop works regardless of card sub-widget hit
+- [Phase 11-03]: _auto_regen defaults to False; advance_turn() gates regen on _auto_regen flag (changed from always-on when regeneration_hp > 0)
+- [Phase 11-03]: GroupCard initiative spinbox emits initiative_changed for first group member only (shared group roll)
 
 ### Pending Todos
 
@@ -108,5 +114,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 11-02-PLAN.md (HpBar, CombatantCard, CombatLogPanel, CombatTrackerTab skeleton)
+Stopped at: Completed 11-03-PLAN.md (GroupCard, initiative mode, turn cycling, drag-reorder, stat toggles)
 Resume file: .planning/ROADMAP.md
