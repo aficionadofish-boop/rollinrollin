@@ -770,6 +770,8 @@ class MonsterEditorDialog(QDialog):
             None,
         )
 
+        replace_index = None  # Track position for in-place replacement
+
         if existing_action is not None:
             reply = QMessageBox.question(
                 self,
@@ -783,16 +785,23 @@ class MonsterEditorDialog(QDialog):
             if reply == QMessageBox.StandardButton.Cancel:
                 return
             if reply == QMessageBox.StandardButton.Yes:
-                # Replace: remove old action
+                # Replace: remember position, then remove old action
+                replace_index = next(
+                    (i for i, a in enumerate(self._working_copy.actions) if a is existing_action),
+                    None,
+                )
                 self._working_copy.actions = [
                     a for a in self._working_copy.actions if a is not existing_action
                 ]
 
         self._push_undo()
 
-        # Add to working_copy.actions
+        # Insert at original position when replacing, otherwise append
         new_action = self._dict_to_action(action_dict)
-        self._working_copy.actions.append(new_action)
+        if replace_index is not None:
+            self._working_copy.actions.insert(replace_index, new_action)
+        else:
+            self._working_copy.actions.append(new_action)
 
         # Track equipped weapon
         equip_item = EquipmentItem(item_type="weapon", item_name=action_name, magic_bonus=magic_bonus)
@@ -1387,25 +1396,26 @@ class MonsterEditorDialog(QDialog):
             else:
                 self._set_label_highlight(label, COLOR_BASE, "")
 
-        # Saving throws highlighting — use MathValidator to detect custom
+        # Per-save highlighting — only color individual saves that differ from base
         derived = self._engine.recalculate(self._working_copy)
         save_validations = {
             sv.ability: sv
             for sv in self._validator.validate_saves(self._working_copy, derived)
         }
-        # saves_label is a single label — color it if any save is modified
-        any_save_modified = bool(self._working_copy.saves) and (
-            self._working_copy.saves != self._base_monster.saves
-        )
-        if any_save_modified:
-            # Check if any save is "custom" (doesn't match prof math)
-            has_custom = any(
-                sv.state.value == "custom"
-                for sv in save_validations.values()
-                if hasattr(sv, "state")
-            )
-            color = COLOR_CUSTOM_FLAG if has_custom else COLOR_MANUAL
-            self._set_label_highlight(self._preview_panel._saves_label, color, "")
+        if self._working_copy.saves:
+            parts = []
+            for attr, val in self._working_copy.saves.items():
+                text = f"{attr} {'+' if val >= 0 else ''}{val}"
+                base_val = self._base_monster.saves.get(attr)
+                if base_val is not None and val == base_val:
+                    parts.append(text)
+                else:
+                    sv = save_validations.get(attr)
+                    is_custom = sv and hasattr(sv, "state") and sv.state.value == "custom"
+                    color = COLOR_CUSTOM_FLAG if is_custom else COLOR_MANUAL
+                    parts.append(f'<span style="color: {color};">{text}</span>')
+            self._preview_panel._saves_label.setText(", ".join(parts))
+            self._preview_panel._saves_label.setToolTip("")
         else:
             self._set_label_highlight(self._preview_panel._saves_label, COLOR_BASE, "")
 
@@ -1739,7 +1749,9 @@ class MonsterEditorDialog(QDialog):
         values from the math engine.
 
         When recompute_values is True (e.g. after ability score changes),
-        non-Custom saves are recalculated to reflect new ability modifiers.
+        the toggle state is read from the UI buttons (which reflect the
+        user's intent) rather than inferred from the stale numerical value,
+        and save values are recomputed to match new ability modifiers.
         """
         derived = self._engine.recalculate(self._working_copy)
 
@@ -1749,29 +1761,34 @@ class MonsterEditorDialog(QDialog):
             if not group:
                 continue
 
-            actual = self._working_copy.saves.get(ability)
-            if actual is None:
-                # No save entry — default to Non-Prof visually
+            if recompute_values:
+                # Read state from the currently-checked UI button.
+                # After an ability score change the old numerical value no
+                # longer matches any expected tier, so inferring from the
+                # value would misclassify Prof/Expertise as "Custom".
                 state_label = "Non-Prof"
+                for btn in group:
+                    if btn.isChecked():
+                        state_label = btn.property("state_label")
+                        break
+                self._apply_save_value(ability, state_label)
             else:
-                non_prof = derived.expected_saves.get(ability, 0)
-                prof = derived.expected_proficient_saves.get(ability, 0)
-                expertise = derived.expected_expertise_saves.get(ability, 0)
-
-                # Map SaveState to toggle label
-                if actual == expertise:
-                    state_label = "Expertise"
-                elif actual == prof:
-                    state_label = "Prof"
-                elif actual == non_prof:
+                actual = self._working_copy.saves.get(ability)
+                if actual is None:
                     state_label = "Non-Prof"
                 else:
-                    state_label = "Custom"
+                    non_prof = derived.expected_saves.get(ability, 0)
+                    prof = derived.expected_proficient_saves.get(ability, 0)
+                    expertise = derived.expected_expertise_saves.get(ability, 0)
 
-            # When ability scores change, recompute non-Custom save values
-            # so they cascade with the new ability modifier
-            if recompute_values and state_label != "Custom":
-                self._apply_save_value(ability, state_label)
+                    if actual == expertise:
+                        state_label = "Expertise"
+                    elif actual == prof:
+                        state_label = "Prof"
+                    elif actual == non_prof:
+                        state_label = "Non-Prof"
+                    else:
+                        state_label = "Custom"
 
             for btn in group:
                 btn.blockSignals(True)
@@ -1781,8 +1798,10 @@ class MonsterEditorDialog(QDialog):
             is_custom = (state_label == "Custom")
             if custom_spin is not None:
                 custom_spin.blockSignals(True)
-                if is_custom and actual is not None:
-                    custom_spin.setValue(actual)
+                if is_custom:
+                    actual = self._working_copy.saves.get(ability)
+                    if actual is not None:
+                        custom_spin.setValue(actual)
                 custom_spin.setEnabled(is_custom)
                 custom_spin.setVisible(is_custom)
                 custom_spin.blockSignals(False)
