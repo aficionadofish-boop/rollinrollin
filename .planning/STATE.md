@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** DMs can manage the full combat loop — prep monsters, roll attacks and saves, and track combat state — in seconds, with D&D 5e rule fidelity and persistent data.
-**Current focus:** Phase 13 complete — Output Polish Theming and UI all 5 plans done (ThemeService foundation, HTML attack output, template fields data model, sandbox font, template card rendering)
+**Current focus:** Phase 14 next — Bug Fixes & Critical Polish (16 bugs + 5 UX fixes from v2.0 manual testing round)
 
 ## Current Position
 
-Phase: 13 of 13 (Output Polish Theming and UI)
-Plan: 5 of 5 in current phase (Plans 01-05 complete — ThemeService foundation, HTML attack output, template fields data model, sandbox font wiring, template card rendering)
-Status: Complete
-Last activity: 2026-02-26 — Phase 13 Plan 05 complete (TemplateCard widget, ResultPanel dispatch, accent color propagation)
+Phase: 14 of 16 (Bug Fixes & Critical Polish)
+Plan: 0 of ? in current phase (phase detailed, needs /gsd:plan-phase 14 to break into plans)
+Status: Planned (not yet started)
+Last activity: 2026-02-26 — Phase 13 complete, Phases 14-16 detailed from manual testing report
 
-Progress: [████████████████████] Phase 13 Plans 01-05 complete (5/5 plans)
+Progress: [░░░░░░░░░░░░░░░░░░░░] Phase 14 not started (0/? plans)
 
 ## Performance Metrics
 
@@ -139,6 +139,12 @@ Recent decisions affecting current work:
 - [Phase 13-05]: Accent color stored as _accent_color on ResultPanel; updated via set_accent_color() called on theme change via app.py _apply_settings
 - [Phase 13-05]: _resolve_field_values uses left-to-right token matching by index — relies on preprocessor and inline roll resolution both processing left-to-right
 
+### Roadmap Evolution
+
+- Phase 14 detailed: Bug Fixes & Critical Polish — 16 bugs (BUG-01 to BUG-16) covering persistence, parser, coloring, combat tracker groups, LR tracking + 5 UX fixes (UX-01 to UX-05) for sidebar, init box, rubber-band, conditions
+- Phase 15 detailed: Editor & Parser Overhaul — 11 items (PARSE-01 to PARSE-11): traits/actions separation, traits tab UI, after-attack-text editing, action field labels, auto-dice detection, rollable trait buttons, recharge support, [[XdY]] notation, speed display, editor compaction, equipment reposition
+- Phase 16 detailed: Buff System & Output Improvements — 10 items: buff per-roll-type toggles (BUFF-01 to BUFF-03), output header + damage type summary (OUT-01/02), encounter naming/editing/sidebar resize (ENC-01 to ENC-03), health bar descriptive text + color bands (COMBAT-UX-01/02)
+
 ### Pending Todos
 
 None.
@@ -151,5 +157,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 13-04-PLAN.md (SettingsTab Theming group — preset dropdown, color pickers, sandbox font selector; MacroSandboxTab.set_sandbox_font(); app.py wiring)
-Resume file: .planning/ROADMAP.md
+Stopped at: Phase 14 context gathered
+Resume file: .planning/phases/14-bug-fixes-critical-polish/14-CONTEXT.md
