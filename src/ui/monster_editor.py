@@ -67,6 +67,7 @@ from src.domain.models import (
 from src.equipment.data import SRD_ARMORS, SRD_WEAPONS
 from src.equipment.service import EquipmentService
 from src.monster_math.engine import MonsterMathEngine
+from src.monster_math.spellcasting import SpellcastingDetector
 from src.monster_math.validator import MathValidator, SaveState
 from src.ui.monster_detail import MonsterDetailPanel
 
@@ -241,6 +242,7 @@ class MonsterEditorDialog(QDialog):
         self._engine = MonsterMathEngine()
         self._validator = MathValidator()
         self._equip_service = EquipmentService()
+        self._spell_detector = SpellcastingDetector()
 
         # Equipment editor state (separate from Monster dataclass)
         # These track what is currently equipped so effects can be computed
@@ -1278,6 +1280,84 @@ class MonsterEditorDialog(QDialog):
         else:
             self._mod_sources.pop("hp", None)
 
+    def _cascade_skills_on_prof_change(self) -> None:
+        """Recompute all skill values when CR (and thus proficiency) changes.
+
+        BUG-03 fix (skill half): reads each skill row's current toggle state
+        from the UI buttons and rewrites _working_copy.skills with values
+        computed from the NEW proficiency bonus.  Custom skills are left
+        unchanged (their value is user-supplied, not prof-derived).
+        """
+        for skill_name, row_data in self._skill_rows.items():
+            btn_group, custom_spin, _ = row_data
+            # Determine current toggle state from UI
+            state_label = "Non-Prof"
+            for btn in btn_group:
+                if btn.isChecked():
+                    state_label = btn.property("state_label")
+                    break
+            if state_label == "Custom":
+                continue  # Leave custom values untouched
+            # Recompute and write back (blockSignals around the spinbox isn't
+            # needed here because _apply_skill_value writes to _working_copy
+            # directly, not via a spinbox signal).
+            custom_val = custom_spin.value()
+            self._apply_skill_value(skill_name, state_label, custom_val)
+            # Re-sync the spinbox display value so form stays consistent
+            self._sync_skill_toggle(skill_name, self._working_copy.skills.get(skill_name, 0))
+
+    def _cascade_skills_on_ability_change(self, old_scores: dict[str, int]) -> None:
+        """Recompute skill values when an ability score changes.
+
+        BUG-05 fix: for each skill in _working_copy.skills, determine its
+        current proficiency tier (Non-Prof / Prof / Expertise / Custom) using
+        the OLD ability modifier, then recompute the value using the NEW
+        modifier.  Custom skills are left unchanged.
+
+        Parameters
+        ----------
+        old_scores : dict[str, int]
+            Ability score snapshot taken BEFORE the new scores were applied.
+        """
+        derived_new = self._engine.recalculate(self._working_copy)
+        prof = derived_new.proficiency_bonus
+
+        for skill_name, current_value in list(self._working_copy.skills.items()):
+            ability = SKILL_TO_ABILITY.get(skill_name, "STR")
+            old_score = old_scores.get(ability, 10)
+            new_score = self._working_copy.ability_scores.get(ability, 10)
+            if old_score == new_score:
+                continue  # This ability didn't change — no update needed
+
+            old_mod = (old_score - 10) // 2
+            new_mod = (new_score - 10) // 2
+
+            # Determine which tier this skill is in using the OLD modifier
+            old_non_prof = old_mod
+            old_prof = old_mod + prof
+            old_expertise = old_mod + 2 * prof
+
+            if current_value == old_expertise:
+                new_value = new_mod + 2 * prof
+            elif current_value == old_prof:
+                new_value = new_mod + prof
+            elif current_value == old_non_prof:
+                new_value = new_mod
+            else:
+                # Custom value — leave it alone
+                continue
+
+            self._working_copy.skills[skill_name] = new_value
+
+            # Sync UI spinbox value without triggering signal re-entry
+            row_data = self._skill_rows.get(skill_name)
+            if row_data is not None:
+                _, custom_spin, _ = row_data
+                custom_spin.blockSignals(True)
+                custom_spin.setValue(new_value)
+                custom_spin.blockSignals(False)
+                self._sync_skill_toggle(skill_name, new_value)
+
     # ------------------------------------------------------------------
     # Action rows rebuild
     # ------------------------------------------------------------------
@@ -1551,6 +1631,25 @@ class MonsterEditorDialog(QDialog):
         else:
             self._set_label_highlight(self._preview_panel._saves_label, COLOR_BASE, "")
 
+        # Per-skill highlighting (BUG-04): color each skill that differs from base
+        # Uses amber (COLOR_MANUAL) for user-added or manually-changed skills.
+        working_skills = self._working_copy.skills
+        base_skills = self._base_monster.skills
+        if working_skills:
+            skill_parts = []
+            for name, val in working_skills.items():
+                text = f"{name} {'+' if val >= 0 else ''}{val}"
+                base_val = base_skills.get(name)
+                if base_val is not None and val == base_val:
+                    # Unchanged from base — no color
+                    skill_parts.append(text)
+                else:
+                    # Added by user (not in base) or value changed — amber
+                    skill_parts.append(f'<span style="color: {COLOR_MANUAL};">{text}</span>')
+            self._preview_panel._skills_label.setText(", ".join(skill_parts))
+        else:
+            self._preview_panel._skills_label.setText("None")
+
     def _set_label_highlight(self, label, color: str, tooltip: str) -> None:
         """Apply color highlighting to a QLabel using rich text for reliability.
 
@@ -1609,6 +1708,8 @@ class MonsterEditorDialog(QDialog):
                 self._mod_sources.pop(f"ability_{ability}", None)
         # Cascade: recompute saves based on new ability modifiers
         self._sync_save_toggles(recompute_values=True)
+        # Cascade: recompute skill bonuses based on new ability modifiers (BUG-05)
+        self._cascade_skills_on_ability_change(old_scores)
         # Cascade: recompute ALL actions (equipment + imported)
         self._cascade_all_actions_on_ability_change(old_scores)
         # Cascade: recalculate HP when CON changes (requires hit dice formula)
@@ -1747,12 +1848,23 @@ class MonsterEditorDialog(QDialog):
         self._rebuild_preview()
 
     def _on_cr_changed(self, cr_text: str) -> None:
-        """Update CR and trigger full recalculation (cascades prof bonus)."""
+        """Update CR and trigger full recalculation (cascades prof bonus).
+
+        BUG-03 fix: after CR changes, proficiency bonus changes, so any
+        Prof/Expertise saves and skills must be recomputed with the new prof.
+        _sync_save_toggles(recompute_values=True) reads the current UI toggle
+        state and rewrites _working_copy.saves with the new proficiency-based
+        values, preventing stale numbers in both the form and the preview.
+        Skills are cascaded via _cascade_skills_on_prof_change().
+        """
         if self._recalculating:
             return
         self._push_undo()
         self._working_copy.cr = cr_text
-        self._sync_save_toggles()
+        # Cascade saves: recompute based on current UI toggle state
+        self._sync_save_toggles(recompute_values=True)
+        # Cascade skills: recompute based on current skill toggle state
+        self._cascade_skills_on_prof_change()
         self._rebuild_preview()
 
     # ------------------------------------------------------------------
@@ -1760,11 +1872,80 @@ class MonsterEditorDialog(QDialog):
     # ------------------------------------------------------------------
 
     def _rebuild_preview(self) -> None:
-        """Recalculate derived stats, refresh the preview panel, apply highlights."""
+        """Recalculate derived stats, refresh the preview panel, apply highlights.
+
+        BUG-07 fix: when a spellcasting focus is set, build a display copy of
+        the working monster that injects the expected focus-adjusted spell
+        attack bonus and save DC into each spellcasting action's display text.
+        The working copy itself is never modified — the annotation is view-only.
+        """
         self._engine.recalculate(self._working_copy)
-        self._preview_panel.show_monster(self._working_copy)
+        display_monster = self._working_copy
+        if self._focus_bonus > 0:
+            display_monster = self._build_focus_annotated_display_copy()
+        self._preview_panel.show_monster(display_monster)
         self.setWindowTitle(f"Editing: {self._working_copy.name}")
         self._apply_highlights()
+
+    def _build_focus_annotated_display_copy(self) -> Monster:
+        """Return a shallow display copy with focus bonus injected into spellcasting text.
+
+        Detects spellcasting actions, computes expected attack/DC with the
+        current focus bonus, and appends a concise annotation line to each
+        spellcasting action's raw_text so the preview panel shows the values.
+
+        The original _working_copy is never touched.
+        """
+        import re as _re
+        display = copy.copy(self._working_copy)
+        # Shallow-copy the actions list so we can replace individual items
+        display.actions = list(self._working_copy.actions)
+
+        spell_infos = self._spell_detector.detect(self._working_copy)
+        if not spell_infos:
+            return display
+
+        derived = self._engine.recalculate(self._working_copy)
+
+        # Build a mapping from trait_name -> SpellcastingInfo with focus applied
+        info_map: dict[str, object] = {}
+        for si in spell_infos:
+            # Create a copy with the focus bonus applied
+            from src.monster_math.spellcasting import SpellcastingInfo as _SI
+            info_with_focus = _SI(
+                trait_name=si.trait_name,
+                casting_ability=si.casting_ability,
+                is_assumed=si.is_assumed,
+                focus_bonus=self._focus_bonus,
+            )
+            info_map[si.trait_name.lower()] = info_with_focus
+
+        for i, action in enumerate(self._working_copy.actions):
+            info = info_map.get(action.name.lower())
+            if info is None:
+                continue  # Not a spellcasting action
+
+            casting_mod = derived.ability_modifiers.get(info.casting_ability, 0)
+            prof = derived.proficiency_bonus
+            focus = self._focus_bonus
+
+            expected_attack = casting_mod + prof + focus
+            expected_dc = 8 + casting_mod + prof + focus
+
+            # Parse current attack/DC from raw_text if present, then override
+            raw = action.raw_text or action.name
+            # Strip any previously-injected focus annotation
+            raw = _re.sub(r'\n\[Focus \+\d+: .*?\]', '', raw)
+
+            annotation = (
+                f"\n[Focus +{focus}: spell attack {'+' if expected_attack >= 0 else ''}"
+                f"{expected_attack}, save DC {expected_dc}]"
+            )
+            annotated_action = copy.copy(action)
+            annotated_action.raw_text = raw + annotation
+            display.actions[i] = annotated_action
+
+        return display
 
     def _push_undo(self) -> None:
         """Push a deep copy of the working monster onto the undo stack."""
