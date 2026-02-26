@@ -91,10 +91,11 @@ class _MonsterRowWidget(QWidget):
         self._count_spin.blockSignals(False)
         self._count_spin.valueChanged.connect(self._on_count_changed)
 
-        self._remove_btn = QPushButton("X")
+        self._remove_btn = QPushButton("\u2715")  # ✕ multiplication sign — renders cleanly
         self._remove_btn.setFixedWidth(28)
         self._remove_btn.setFixedHeight(24)
         self._remove_btn.setToolTip(f"Remove {monster.name}")
+        self._remove_btn.setStyleSheet("font-size: 14px; font-weight: bold;")
         self._remove_btn.clicked.connect(lambda: self.remove_requested.emit(self._monster_name))
 
         layout.addWidget(self._name_label)
@@ -123,13 +124,10 @@ class _MonsterRowWidget(QWidget):
         return self._monster
 
     def set_selected(self, selected: bool) -> None:
-        """Highlight/unhighlight this row."""
+        """Highlight/unhighlight this row with a theme-safe translucent overlay."""
         if selected:
             self.setStyleSheet(
-                "_MonsterRowWidget { background-color: #d0e8ff; }"
-                " _MonsterRowWidget QLabel { background: transparent; }"
-                " _MonsterRowWidget QSpinBox { background: white; }"
-                " _MonsterRowWidget QPushButton { background: #e0e0e0; }"
+                "_MonsterRowWidget { background-color: rgba(255, 255, 255, 30); }"
             )
         else:
             self.setStyleSheet("")
@@ -195,8 +193,7 @@ class EncounterSidebarDock(QDockWidget):
         self.setMinimumWidth(200)
         self.setMaximumWidth(self._expanded_width)
 
-        # Light background
-        self.setStyleSheet("QDockWidget { background-color: #f8f8f8; }")
+        # No forced background — inherit from system/app theme
 
         self._update_empty_state()
 
@@ -270,9 +267,10 @@ class EncounterSidebarDock(QDockWidget):
         self._list_widget.setDefaultDropAction(Qt.DropAction.MoveAction)
         self._list_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self._list_widget.setFrameShape(QListWidget.Shape.NoFrame)
-        # Disable native selection highlight so custom row widget styling is visible
+        # Disable native selection highlight and focus border — we handle row styling ourselves
         self._list_widget.setStyleSheet(
             "QListWidget::item:selected { background: transparent; }"
+            " QListWidget::item:focus { outline: none; border: none; }"
         )
         self._list_widget.itemClicked.connect(self._on_single_click)
         self._list_widget.itemDoubleClicked.connect(self._on_double_click)
