@@ -1,6 +1,6 @@
 """CombatTrackerTab — main Combat Tracker tab widget.
 
-Orchestrates CombatantCards, CombatLogPanel, and CombatTrackerService.
+Orchestrates CombatantCards, GroupCards, CombatLogPanel, and CombatTrackerService.
 All state mutations go through CombatTrackerService; the UI is display-only.
 """
 from __future__ import annotations
@@ -20,9 +20,11 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QFormLayout,
     QDialogButtonBox,
+    QToolButton,
+    QFrame,
 )
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QFont
+from PySide6.QtCore import Qt, Signal, QByteArray
+from PySide6.QtGui import QFont, QDragEnterEvent, QDropEvent, QDragMoveEvent
 
 from src.combat.models import (
     CombatState,
@@ -31,7 +33,7 @@ from src.combat.models import (
     COMMON_BUFFS,
 )
 from src.combat.service import CombatTrackerService
-from src.ui.combatant_card import CombatantCard
+from src.ui.combatant_card import CombatantCard, GroupCard
 from src.ui.combat_log_panel import CombatLogPanel
 
 
@@ -109,6 +111,83 @@ class _EditDurationDialog(QDialog):
 
 
 # ---------------------------------------------------------------------------
+# _CardContainer — drag-and-drop aware container for combatant cards
+# ---------------------------------------------------------------------------
+
+class _CardContainer(QWidget):
+    """QWidget that accepts drop events to reorder combatant cards."""
+
+    reorder_requested = Signal(list)  # list[str] ordered combatant IDs
+
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self._drop_enabled = False
+
+    def set_drop_enabled(self, enabled: bool) -> None:
+        self._drop_enabled = enabled
+        self.setAcceptDrops(enabled)
+
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
+        if self._drop_enabled and event.mimeData().hasFormat("application/x-combatant-id"):
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dragMoveEvent(self, event: QDragMoveEvent) -> None:
+        if self._drop_enabled and event.mimeData().hasFormat("application/x-combatant-id"):
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event: QDropEvent) -> None:
+        if not self._drop_enabled:
+            event.ignore()
+            return
+        mime = event.mimeData()
+        if not mime.hasFormat("application/x-combatant-id"):
+            event.ignore()
+            return
+
+        dragged_id = bytes(mime.data("application/x-combatant-id")).decode("utf-8")
+
+        # Determine drop position: find which card slot the drop occurred in
+        drop_y = event.position().y()
+        layout = self.layout()
+        ordered_ids: list[str] = []
+        dragged_collected = False
+        insert_before_idx: int | None = None
+
+        # Collect all current card IDs and find insertion point
+        for i in range(layout.count()):
+            item = layout.itemAt(i)
+            if item is None:
+                continue
+            widget = item.widget()
+            if widget is None:
+                continue
+            cid = widget.property("combatant_id")
+            if cid is None:
+                continue
+            if cid == dragged_id:
+                dragged_collected = True
+                continue
+            # Check if drop happened above the midpoint of this widget
+            widget_mid_y = widget.y() + widget.height() / 2
+            if insert_before_idx is None and drop_y < widget_mid_y:
+                insert_before_idx = len(ordered_ids)
+            ordered_ids.append(cid)
+
+        # Insert dragged card at computed position
+        if insert_before_idx is None:
+            ordered_ids.append(dragged_id)
+        else:
+            ordered_ids.insert(insert_before_idx, dragged_id)
+
+        event.acceptProposedAction()
+        self.reorder_requested.emit(ordered_ids)
+
+
+# ---------------------------------------------------------------------------
 # CombatTrackerTab
 # ---------------------------------------------------------------------------
 
@@ -122,14 +201,25 @@ class CombatTrackerTab(QWidget):
 
     send_to_saves = Signal(list)   # list of selected combatant data (COMBAT-14, Plan 04)
 
+    # Default visibility for toggleable stats (all hidden by default)
+    _DEFAULT_STAT_VISIBILITY: dict[str, bool] = {
+        "speed":                False,
+        "passive_perception":   False,
+        "legendary_resistance": False,
+        "legendary_actions":    False,
+        "regeneration":         False,
+    }
+
     def __init__(self, roller, library, parent=None) -> None:
         super().__init__(parent)
         self._roller = roller
         self._library = library
         self._service = CombatTrackerService()
         self._cards: dict[str, CombatantCard] = {}
+        self._group_cards: dict[str, GroupCard] = {}
         self._selected_ids: set[str] = set()
         self._combat_active = False
+        self._visible_stats: dict[str, bool] = dict(self._DEFAULT_STAT_VISIBILITY)
 
         self._build_layout()
 
@@ -172,18 +262,45 @@ class CombatTrackerTab(QWidget):
         self._round_label.setFont(round_font)
         toolbar.addWidget(self._round_label)
 
-        # Next/Previous Turn — hidden; shown by Plan 03 when initiative mode wired
+        # Initiative Mode toggle button
+        self._init_mode_btn = QToolButton()
+        self._init_mode_btn.setText("Initiative Mode")
+        self._init_mode_btn.setCheckable(True)
+        self._init_mode_btn.setChecked(True)  # ON by default
+        self._init_mode_btn.setToolTip(
+            "Initiative Mode ON: sorted by initiative; Next/Prev Turn visible.\n"
+            "Initiative Mode OFF: manual order; Pass 1 Round visible."
+        )
+        self._init_mode_btn.toggled.connect(self._on_initiative_mode_toggled)
+        toolbar.addWidget(self._init_mode_btn)
+
+        # Grouping toggle button
+        self._group_btn = QToolButton()
+        self._group_btn.setText("Group Monsters")
+        self._group_btn.setCheckable(True)
+        self._group_btn.setChecked(True)  # ON by default (per locked decision)
+        self._group_btn.setToolTip(
+            "Group Monsters ON: same-type monsters collapsed into group cards.\n"
+            "Group Monsters OFF: individual cards for all combatants."
+        )
+        self._group_btn.toggled.connect(self._on_grouping_toggled)
+        toolbar.addWidget(self._group_btn)
+
+        # Next/Previous Turn — visible when initiative mode ON
         self._next_turn_btn = QPushButton("Next Turn")
-        self._next_turn_btn.setVisible(False)
+        self._next_turn_btn.setVisible(True)  # initiative mode ON by default
+        self._next_turn_btn.clicked.connect(self._on_next_turn)
         toolbar.addWidget(self._next_turn_btn)
 
         self._prev_turn_btn = QPushButton("Prev Turn")
-        self._prev_turn_btn.setVisible(False)
+        self._prev_turn_btn.setVisible(True)
+        self._prev_turn_btn.clicked.connect(self._on_previous_turn)
         toolbar.addWidget(self._prev_turn_btn)
 
-        # Pass 1 Round — hidden; shown by Plan 03
+        # Pass 1 Round — visible when initiative mode OFF
         self._pass_round_btn = QPushButton("Pass 1 Round")
         self._pass_round_btn.setVisible(False)
+        self._pass_round_btn.clicked.connect(self._on_pass_one_round)
         toolbar.addWidget(self._pass_round_btn)
 
         toolbar.addStretch()
@@ -198,10 +315,10 @@ class CombatTrackerTab(QWidget):
         self._send_saves_btn.setEnabled(False)
         toolbar.addWidget(self._send_saves_btn)
 
-        # Gear icon — placeholder for stats toggle (Plan 03)
+        # Stats toggle button (gear/filter icon)
         self._gear_btn = QPushButton("Stats")
-        self._gear_btn.setToolTip("Toggle stat columns (Plan 03)")
-        self._gear_btn.setEnabled(False)
+        self._gear_btn.setToolTip("Toggle stat columns")
+        self._gear_btn.clicked.connect(self._on_stats_menu)
         toolbar.addWidget(self._gear_btn)
 
         main_layout.addLayout(toolbar)
@@ -210,21 +327,22 @@ class CombatTrackerTab(QWidget):
         splitter = QSplitter(Qt.Orientation.Horizontal)
 
         # Left: scrollable card area
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
+        self._scroll_area = QScrollArea()
+        self._scroll_area.setWidgetResizable(True)
 
-        card_container = QWidget()
-        self._card_layout = QVBoxLayout(card_container)
+        self._card_container = _CardContainer()
+        self._card_container.reorder_requested.connect(self._on_reorder_requested)
+        self._card_layout = QVBoxLayout(self._card_container)
         self._card_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self._card_layout.setSpacing(6)
         self._card_layout.setContentsMargins(4, 4, 4, 4)
 
-        scroll_area.setWidget(card_container)
+        self._scroll_area.setWidget(self._card_container)
 
         # Right: combat log
         self._log_panel = CombatLogPanel()
 
-        splitter.addWidget(scroll_area)
+        splitter.addWidget(self._scroll_area)
         splitter.addWidget(self._log_panel)
         splitter.setStretchFactor(0, 7)
         splitter.setStretchFactor(1, 3)
@@ -264,6 +382,12 @@ class CombatTrackerTab(QWidget):
         if log_entries:
             self._log_panel.load_entries(log_entries)
         self._update_round_label()
+        # Restore initiative mode button state
+        init_mode = self._service.state.initiative_mode
+        self._init_mode_btn.blockSignals(True)
+        self._init_mode_btn.setChecked(init_mode)
+        self._init_mode_btn.blockSignals(False)
+        self._update_turn_buttons_visibility(init_mode)
 
     def get_combat_state(self) -> dict:
         """Return serializable state dict for persistence."""
@@ -276,36 +400,149 @@ class CombatTrackerTab(QWidget):
     # ------------------------------------------------------------------
 
     def _rebuild_cards(self) -> None:
-        """Clear layout, destroy old cards, create new CombatantCards."""
+        """Clear layout, destroy old cards, create new CombatantCards or GroupCards."""
         # Remove all widgets from card layout
         while self._card_layout.count():
             item = self._card_layout.takeAt(0)
             if item.widget():
                 item.widget().deleteLater()
         self._cards = {}
+        self._group_cards = {}
 
+        state = self._service.state
+        if state.grouping_enabled:
+            self._rebuild_cards_grouped()
+        else:
+            self._rebuild_cards_ungrouped()
+
+        # Apply current stat visibility state to all new cards
+        for stat_key, visible in self._visible_stats.items():
+            self._apply_stat_visible_to_all(stat_key, visible)
+
+        # Apply drag-to-reorder based on initiative mode
+        drag_on = not state.initiative_mode
+        self._card_container.set_drop_enabled(drag_on)
+        for card in self._cards.values():
+            card.setAcceptDrops(False)  # container handles drop, not cards
+
+        self._update_round_label()
+        self._update_active_turn_highlight()
+
+    def _rebuild_cards_ungrouped(self) -> None:
+        """Create individual CombatantCards for all combatants (no grouping)."""
         for state in self._service.state.combatants:
             card = CombatantCard(state)
-            card.damage_entered.connect(self._on_damage)
-            card.condition_add_requested.connect(self._on_condition_add_requested)
-            card.initiative_changed.connect(self._on_initiative_changed)
-            card.condition_clicked.connect(self._on_condition_clicked)
+            self._wire_card_signals(card)
             self._card_layout.addWidget(card)
             self._cards[state.id] = card
 
-        self._update_round_label()
+    def _rebuild_cards_grouped(self) -> None:
+        """Group combatants by group_id; create GroupCard for multi-member groups."""
+        # Collect groups in display order (preserving first-occurrence order)
+        groups: dict[str, list] = {}
+        group_order: list[str] = []
+        singles: list = []  # combatants with unique group_id or no group
+
+        for state in self._service.state.combatants:
+            gid = state.group_id
+            if not gid:
+                singles.append(state)
+                continue
+            if gid not in groups:
+                groups[gid] = []
+                group_order.append(gid)
+            groups[gid].append(state)
+
+        # Build cards in initiative order (combatants already sorted by service)
+        for gid in group_order:
+            members = groups[gid]
+            if len(members) > 1:
+                # Create GroupCard for this group
+                group_card = GroupCard(gid, members)
+                self._wire_group_card_signals(group_card)
+                self._card_layout.addWidget(group_card)
+                self._group_cards[gid] = group_card
+                # Also register members so _update_active_turn_highlight can find them
+                for m in members:
+                    # Map individual IDs to their group card for highlight
+                    pass  # GroupCard handles member highlights internally
+            else:
+                # Single member — use individual card
+                card = CombatantCard(members[0])
+                self._wire_card_signals(card)
+                self._card_layout.addWidget(card)
+                self._cards[members[0].id] = card
+
+        # Add standalone singles (PCs with no group_id or unique group_ids)
+        for state in singles:
+            card = CombatantCard(state)
+            self._wire_card_signals(card)
+            self._card_layout.addWidget(card)
+            self._cards[state.id] = card
+
+    def _wire_card_signals(self, card: CombatantCard) -> None:
+        card.damage_entered.connect(self._on_damage)
+        card.condition_add_requested.connect(self._on_condition_add_requested)
+        card.initiative_changed.connect(self._on_initiative_changed)
+        card.condition_clicked.connect(self._on_condition_clicked)
+
+    def _wire_group_card_signals(self, group_card: GroupCard) -> None:
+        group_card.damage_entered.connect(self._on_damage)
+        group_card.condition_add_requested.connect(self._on_condition_add_requested)
+        group_card.initiative_changed.connect(self._on_initiative_changed)
+        group_card.condition_clicked.connect(self._on_condition_clicked)
 
     def _refresh_cards(self) -> None:
         """Update all existing card displays without rebuilding. Updates round counter."""
         for state in self._service.state.combatants:
             if state.id in self._cards:
                 self._cards[state.id].refresh(state)
+        for gid, group_card in self._group_cards.items():
+            members = [
+                c for c in self._service.state.combatants
+                if c.group_id == gid
+            ]
+            if members:
+                group_card.refresh(members)
         self._update_round_label()
 
     def _update_round_label(self) -> None:
         round_num = self._service.state.round_number
         self._round_label.setText(f"Round {round_num}")
         self._log_panel.set_round(round_num)
+
+    def _update_active_turn_highlight(self) -> None:
+        """Clear all active highlights, then set active on the current turn card."""
+        combatants = self._service.state.combatants
+        if not combatants:
+            return
+
+        idx = self._service.state.current_turn_index
+        if not (0 <= idx < len(combatants)):
+            return
+
+        active_combatant = combatants[idx]
+        active_id = active_combatant.id
+        active_group = active_combatant.group_id
+
+        # Clear all individual cards
+        for cid, card in self._cards.items():
+            card.set_active_turn(cid == active_id)
+
+        # Clear all group cards
+        for gid, group_card in self._group_cards.items():
+            is_active_group = (gid == active_group and active_group != "")
+            group_card.set_active_turn(is_active_group)
+            if is_active_group:
+                group_card.set_member_active(active_id)
+            else:
+                group_card.set_member_active("")
+
+    def _update_turn_buttons_visibility(self, initiative_mode: bool) -> None:
+        """Show/hide Next/Prev Turn and Pass 1 Round based on initiative_mode."""
+        self._next_turn_btn.setVisible(initiative_mode)
+        self._prev_turn_btn.setVisible(initiative_mode)
+        self._pass_round_btn.setVisible(not initiative_mode)
 
     # ------------------------------------------------------------------
     # Toolbar slots
@@ -333,11 +570,9 @@ class CombatTrackerTab(QWidget):
 
     def _on_roll_initiative(self) -> None:
         self._service.roll_all_initiative(self._roller)
+        # After rolling, rebuild cards to reflect new sort order
         self._rebuild_cards()
-        log_entries = [
-            e for e in self._service.state.log_entries
-            if "initiative" in e.lower() or "Initiative" in e
-        ]
+        log_entries = self._service.state.log_entries
         if log_entries:
             self._log_panel.add_entry(log_entries[-1])
 
@@ -352,6 +587,145 @@ class CombatTrackerTab(QWidget):
             self._service.reset_combat()
             self._rebuild_cards()
             self._log_panel.add_entry("Combat reset.")
+
+    def _on_initiative_mode_toggled(self, checked: bool) -> None:
+        """Switch between initiative mode (sorted, Next/Prev Turn) and manual mode (Pass 1 Round)."""
+        self._service.state.initiative_mode = checked
+        self._update_turn_buttons_visibility(checked)
+
+        if checked:
+            # Entering initiative mode: sort combatants by initiative
+            self._service._sort_by_initiative()
+            self._log_panel.add_entry("Initiative mode ON — sorted by initiative.")
+        else:
+            self._log_panel.add_entry("Initiative mode OFF — manual order / Pass 1 Round.")
+
+        # Rebuild cards to reflect new order and drag-to-reorder state
+        self._rebuild_cards()
+
+    def _on_grouping_toggled(self, checked: bool) -> None:
+        """Toggle auto-grouping of same-type monsters."""
+        self._service.state.grouping_enabled = checked
+        self._rebuild_cards()
+
+    def _on_next_turn(self) -> None:
+        """Advance to the next combatant's turn."""
+        if not self._combat_active:
+            return
+        log_entries = self._service.advance_turn()
+        for entry in log_entries:
+            self._log_panel.add_entry(entry)
+        self._update_round_label()
+        self._refresh_cards()
+        self._update_active_turn_highlight()
+        # Auto-scroll to active combatant
+        self._scroll_to_active()
+
+    def _on_previous_turn(self) -> None:
+        """Undo the last turn advance."""
+        if not self._combat_active:
+            return
+        success = self._service.undo_advance()
+        if success:
+            self._log_panel.add_entry("Turn undone.")
+            self._update_round_label()
+            self._refresh_cards()
+            self._update_active_turn_highlight()
+            self._scroll_to_active()
+        else:
+            self._log_panel.add_entry("Nothing to undo.")
+
+    def _on_pass_one_round(self) -> None:
+        """Decrement all conditions by 1 round in non-initiative mode."""
+        if not self._combat_active:
+            return
+        log_entries = self._service.pass_one_round()
+        for entry in log_entries:
+            self._log_panel.add_entry(entry)
+        self._update_round_label()
+        self._refresh_cards()
+
+    def _scroll_to_active(self) -> None:
+        """Scroll the card area to show the active turn card."""
+        combatants = self._service.state.combatants
+        if not combatants:
+            return
+        idx = self._service.state.current_turn_index
+        if not (0 <= idx < len(combatants)):
+            return
+        active_id = combatants[idx].id
+        active_group = combatants[idx].group_id
+
+        # Find the widget to scroll to
+        target_widget = None
+        if active_id in self._cards:
+            target_widget = self._cards[active_id]
+        elif active_group and active_group in self._group_cards:
+            target_widget = self._group_cards[active_group]
+
+        if target_widget is not None:
+            self._scroll_area.ensureWidgetVisible(target_widget)
+
+    # ------------------------------------------------------------------
+    # Stat toggle menu
+    # ------------------------------------------------------------------
+
+    def _on_stats_menu(self) -> None:
+        """Show a menu with checkable actions to toggle stat visibility on cards."""
+        menu = QMenu(self)
+
+        stat_definitions = [
+            ("speed",                "Walking Speed"),
+            ("passive_perception",   "Passive Perception"),
+            ("legendary_resistance", "Legendary Resistance"),
+            ("legendary_actions",    "Legendary Actions"),
+            ("regeneration",         "Regeneration"),
+        ]
+
+        for stat_key, label in stat_definitions:
+            action = menu.addAction(label)
+            action.setCheckable(True)
+            action.setChecked(self._visible_stats.get(stat_key, False))
+            action.setData(stat_key)
+
+        menu.addSeparator()
+
+        regen_auto_action = menu.addAction("Regen Auto-Apply")
+        regen_auto_action.setCheckable(True)
+        regen_auto_action.setChecked(self._service._auto_regen)
+        regen_auto_action.setData("_regen_auto")
+
+        selected = menu.exec(self._gear_btn.mapToGlobal(
+            self._gear_btn.rect().bottomLeft()
+        ))
+        if selected is None:
+            return
+
+        stat_key = selected.data()
+        if stat_key == "_regen_auto":
+            self._service.set_auto_regen(selected.isChecked())
+        elif stat_key in self._visible_stats:
+            visible = selected.isChecked()
+            self._visible_stats[stat_key] = visible
+            self._apply_stat_visible_to_all(stat_key, visible)
+
+    def _apply_stat_visible_to_all(self, stat_key: str, visible: bool) -> None:
+        """Propagate stat visibility to all current card widgets."""
+        for card in self._cards.values():
+            card.set_stat_visible(stat_key, visible)
+        for group_card in self._group_cards.values():
+            group_card.set_stat_visible(stat_key, visible)
+
+    # ------------------------------------------------------------------
+    # Drag-to-reorder
+    # ------------------------------------------------------------------
+
+    def _on_reorder_requested(self, ordered_ids: list[str]) -> None:
+        """Called when the card container detects a drop reorder."""
+        if self._service.state.initiative_mode:
+            return  # ignore in initiative mode
+        self._service.reorder_combatants(ordered_ids)
+        self._rebuild_cards()
 
     # ------------------------------------------------------------------
     # Card action slots

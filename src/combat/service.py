@@ -35,6 +35,7 @@ class CombatTrackerService:
     def __init__(self) -> None:
         self._state = CombatState()
         self._prev_snapshot: Optional[dict] = None  # one-deep undo payload
+        self._auto_regen: bool = False
 
     # ------------------------------------------------------------------
     # Read-only access
@@ -401,8 +402,8 @@ class CombatTrackerService:
         ending = self._state.combatants[ending_idx]
         log.extend(self._decrement_conditions_for(ending))
 
-        # 3. Auto-regen (if enabled — regeneration_hp > 0)
-        if ending.regeneration_hp > 0:
+        # 3. Auto-regen (if enabled — _auto_regen flag and regeneration_hp > 0)
+        if self._auto_regen and ending.regeneration_hp > 0:
             entry = self.apply_damage(ending.id, ending.regeneration_hp)
             log.append(f"[Regen] {entry}")
 
@@ -472,6 +473,44 @@ class CombatTrackerService:
         self._state.current_turn_index = 0
         self._state.log_entries = []
         self._prev_snapshot = None
+
+    # ------------------------------------------------------------------
+    # Reorder and auto-regen
+    # ------------------------------------------------------------------
+
+    def reorder_combatants(self, ordered_ids: list[str]) -> None:
+        """Reorder combatants to match the given ID order.
+
+        Only works when initiative_mode is False. Preserves current_turn_index
+        by tracking the active combatant's ID and finding its new position.
+        """
+        if self._state.initiative_mode:
+            return  # no-op in initiative mode
+
+        id_to_combatant = {c.id: c for c in self._state.combatants}
+        # Build new list; skip unknown IDs; append any IDs not in ordered_ids at end
+        ordered = [id_to_combatant[cid] for cid in ordered_ids if cid in id_to_combatant]
+        remaining = [c for c in self._state.combatants if c.id not in set(ordered_ids)]
+        ordered.extend(remaining)
+
+        # Remember active combatant
+        if 0 <= self._state.current_turn_index < len(self._state.combatants):
+            active_id = self._state.combatants[self._state.current_turn_index].id
+        else:
+            active_id = None
+
+        self._state.combatants = ordered
+
+        # Restore turn pointer
+        if active_id is not None:
+            for i, c in enumerate(self._state.combatants):
+                if c.id == active_id:
+                    self._state.current_turn_index = i
+                    break
+
+    def set_auto_regen(self, enabled: bool) -> None:
+        """Enable or disable automatic regeneration healing on turn advance."""
+        self._auto_regen = enabled
 
     # ------------------------------------------------------------------
     # Persistence
