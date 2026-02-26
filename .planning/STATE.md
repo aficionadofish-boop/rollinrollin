@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** DMs can manage the full combat loop — prep monsters, roll attacks and saves, and track combat state — in seconds, with D&D 5e rule fidelity and persistent data.
-**Current focus:** Phase 11 complete — Combat Tracker fully wired with PC subtab, multi-select, AOE damage, persistence (Plan 04 of 4)
+**Current focus:** Phase 12 in progress — Save Roller Upgrades Plan 02 complete (per-creature sidebar checkboxes, get_checked_members API)
 
 ## Current Position
 
-Phase: 11 of 13 (Combat Tracker)
-Plan: 4 of 4 in current phase (Plan 04 complete — phase done)
+Phase: 12 of 13 (Save Roller Upgrades)
+Plan: 2 of ? in current phase (Plan 02 complete — sidebar checkboxes done)
 Status: In Progress
-Last activity: 2026-02-26 — Phase 11 Plan 04 complete (PC subtab, multi-select, AOE damage, MainWindow wiring, persistence)
+Last activity: 2026-02-26 — Phase 12 Plan 02 complete (per-creature QCheckBox on sidebar, Select All/None/Invert buttons, get_checked_members())
 
-Progress: [████████████████] Phase 11 complete (4/4 plans)
+Progress: [████████████████] Phase 12 Plan 02 complete (2/? plans)
 
 ## Performance Metrics
 
@@ -107,6 +107,9 @@ Recent decisions affecting current work:
 - [Phase 11-04]: Send to Saves resolves to SaveParticipant with CON save bonus by default; PCs without monster_name get save_bonus=0
 - [Phase 11-04]: Combat state saved only when combatants list is non-empty (prevents overwriting good persisted state with empty dict)
 - [Phase 11-04]: Sidebar setVisible(False) when Combat Tracker tab is active; setVisible(True) on any other tab switch
+- [Phase 12-02]: Sidebar checkbox state NOT persisted to disk — all rows start checked on set_encounter() and app launch (avoids confusion when DM returns days later)
+- [Phase 12-02]: One checkbox per monster type row (grouped creatures toggle as a group) — individual-creature toggling deferred
+- [Phase 12-02]: get_checked_members() returns filtered (Monster, count) list; get_members() unchanged (still returns all)
 
 ### Pending Todos
 
@@ -120,5 +123,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 11-04-PLAN.md (PC subtab, multi-select, AOE damage, MainWindow wiring, persistence)
+Stopped at: Completed 12-02-PLAN.md (per-creature checkboxes on encounter sidebar, Select All/None/Invert, get_checked_members())
 Resume file: .planning/ROADMAP.md

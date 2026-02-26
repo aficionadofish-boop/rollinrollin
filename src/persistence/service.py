@@ -10,6 +10,7 @@ _FILENAMES = {
     "macros": "macros.json",
     "combat_state": "combat_state.json",
     "player_characters": "player_characters.json",
+    "save_rules": "save_rules.json",
 }
 
 # Categories that use a dict as their empty default; all others use a list.
@@ -169,6 +170,17 @@ class PersistenceService:
 
     def save_player_characters(self, data: list) -> None:
         self._save("player_characters", data)
+
+    # ------------------------------------------------------------------
+    # Save detection rules
+    # ------------------------------------------------------------------
+
+    def load_save_rules(self) -> list:
+        """Return list of custom detection rule dicts."""
+        return self._load("save_rules")
+
+    def save_save_rules(self, data: list) -> None:
+        self._save("save_rules", data)
 
     # ------------------------------------------------------------------
     # Utility
