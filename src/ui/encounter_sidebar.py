@@ -7,6 +7,7 @@ Wired into MainWindow in Plan 02.
 from __future__ import annotations
 
 from PySide6.QtWidgets import (
+    QCheckBox,
     QDockWidget,
     QWidget,
     QVBoxLayout,
@@ -79,6 +80,9 @@ class _MonsterRowWidget(QWidget):
         layout.setContentsMargins(4, 2, 4, 2)
         layout.setSpacing(4)
 
+        self._check = QCheckBox()
+        self._check.setChecked(True)   # checked by default
+
         self._name_label = QLabel(monster.name)
         self._name_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self._name_label.setToolTip(f"CR {getattr(monster, 'cr', '?')}")
@@ -96,6 +100,7 @@ class _MonsterRowWidget(QWidget):
         self._remove_btn.setToolTip(f"Remove {monster.name}")
         self._remove_btn.clicked.connect(lambda: self.remove_requested.emit(self._monster_name))
 
+        layout.addWidget(self._check)
         layout.addWidget(self._name_label)
         layout.addWidget(self._count_spin)
         layout.addWidget(self._remove_btn)
@@ -129,6 +134,14 @@ class _MonsterRowWidget(QWidget):
             )
         else:
             self.setStyleSheet("")
+
+    def is_checked(self) -> bool:
+        """Return True if this row's checkbox is checked."""
+        return self._check.isChecked()
+
+    def set_checked(self, checked: bool) -> None:
+        """Set this row's checkbox to the given state."""
+        self._check.setChecked(checked)
 
 
 # ---------------------------------------------------------------------------
@@ -243,6 +256,25 @@ class EncounterSidebarDock(QDockWidget):
         btn_row.addWidget(self._save_btn)
         btn_row.addWidget(self._load_btn)
         header_layout.addLayout(btn_row)
+
+        # Row 4: Selection shortcuts (All | None | Invert)
+        select_row = QHBoxLayout()
+        self._select_all_btn = QPushButton("All")
+        self._select_all_btn.setFixedHeight(22)
+        self._select_all_btn.setToolTip("Select all creatures")
+        self._select_all_btn.clicked.connect(self.select_all)
+        self._select_none_btn = QPushButton("None")
+        self._select_none_btn.setFixedHeight(22)
+        self._select_none_btn.setToolTip("Deselect all creatures")
+        self._select_none_btn.clicked.connect(self.select_none)
+        self._invert_btn = QPushButton("Invert")
+        self._invert_btn.setFixedHeight(22)
+        self._invert_btn.setToolTip("Invert creature selection")
+        self._invert_btn.clicked.connect(self.invert_selection)
+        select_row.addWidget(self._select_all_btn)
+        select_row.addWidget(self._select_none_btn)
+        select_row.addWidget(self._invert_btn)
+        header_layout.addLayout(select_row)
 
         layout.addWidget(header_container)
 
@@ -557,6 +589,46 @@ class EncounterSidebarDock(QDockWidget):
             if not self._collapsed:
                 self.setMaximumWidth(width)
 
+    def select_all(self) -> None:
+        """Check all creature rows."""
+        for _, rw, _ in self._rows:
+            rw.set_checked(True)
+
+    def select_none(self) -> None:
+        """Uncheck all creature rows."""
+        for _, rw, _ in self._rows:
+            rw.set_checked(False)
+
+    def invert_selection(self) -> None:
+        """Toggle checked state for all creature rows."""
+        for _, rw, _ in self._rows:
+            rw.set_checked(not rw.is_checked())
+
+    def get_checked_members(self) -> list[tuple]:
+        """Return [(Monster, count)] for checked rows only, in display order.
+
+        Used by SavesTab to determine which creatures participate in save rolls.
+        """
+        result = []
+        for i in range(self._list_widget.count()):
+            item = self._list_widget.item(i)
+            if item is None:
+                continue
+            monster = item.data(Qt.ItemDataRole.UserRole)
+            if monster is None:
+                continue
+            entry = self._find_row_by_monster(monster)
+            if entry is not None:
+                _, row_widget, _ = entry
+                if row_widget.is_checked():
+                    result.append((monster, row_widget.get_count()))
+        return result
+
+    def set_all_checked(self, checked: bool = True) -> None:
+        """Set all rows to the given checked state. Called by set_encounter() to reset."""
+        for _, rw, _ in self._rows:
+            rw.set_checked(checked)
+
     # ------------------------------------------------------------------
     # CR sorting
     # ------------------------------------------------------------------
@@ -565,6 +637,9 @@ class EncounterSidebarDock(QDockWidget):
         """Sort rows by CR descending (highest CR first)."""
         if len(self._rows) < 2:
             return
+
+        # Capture checkbox state before rebuilding rows
+        checked_state = {m.name: rw.is_checked() for m, rw, _ in self._rows}
 
         # Collect all (monster, count) in CR-descending order
         current_members = [(m, rw.get_count()) for m, rw, _ in self._rows]
@@ -587,6 +662,11 @@ class EncounterSidebarDock(QDockWidget):
             self._list_widget.addItem(item)
             self._list_widget.setItemWidget(item, row_widget)
             self._rows.append((monster, row_widget, item))
+
+        # Restore checkbox state after rebuilding rows
+        for m, rw, _ in self._rows:
+            if m.name in checked_state:
+                rw.set_checked(checked_state[m.name])
 
         # Restore selection highlight if any
         if self._selected_monster_name:
