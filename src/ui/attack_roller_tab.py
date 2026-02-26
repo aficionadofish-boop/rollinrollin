@@ -31,6 +31,29 @@ from src.ui.toggle_bar import ToggleBar
 from src.ui.bonus_dice_list import BonusDiceList
 from src.ui.roll_output import RollOutputPanel
 
+# ---------------------------------------------------------------------------
+# Damage type color palette
+# ---------------------------------------------------------------------------
+
+DAMAGE_COLORS: dict[str, str] = {
+    # Physical — neutral/understated (user decision: "feel understated, let magical pop")
+    "slashing":    "#A0A8B0",   # slate gray
+    "piercing":    "#8A9BA8",   # steel gray
+    "bludgeoning": "#909090",   # neutral gray
+    # Magical — distinct intuitive colors
+    "fire":        "#FF6B35",   # orange-red
+    "cold":        "#7EC8E3",   # ice blue
+    "lightning":   "#FFD700",   # gold-yellow
+    "acid":        "#7FFF00",   # chartreuse green
+    "poison":      "#6B8E23",   # olive green
+    "necrotic":    "#9B59B6",   # purple
+    "radiant":     "#FFF44F",   # bright yellow
+    "force":       "#E040FB",   # magenta
+    "psychic":     "#FF69B4",   # hot pink
+    "thunder":     "#4169E1",   # royal blue
+}
+_DEFAULT_DAMAGE_COLOR = "#CCCCCC"  # fallback for unknown types
+
 
 class AttackRollerTab(QWidget):
     """Full Attack Roller tab.
@@ -410,10 +433,10 @@ class AttackRollerTab(QWidget):
         self._output_panel.clear()
         mode = result.request.mode
         for attack in result.attack_rolls:
-            line = self._format_attack_line(attack, result.request)
-            self._output_panel.append(line)
+            line = self._format_attack_line_html(attack, result.request)
+            self._output_panel.append_html(line)
         if mode == "compare":
-            self._output_panel.append(self._format_summary(result.summary))
+            self._output_panel.append_html(self._format_summary_html(result.summary))
 
     def _format_attack_line(self, attack, request) -> str:
         """Format one attack result as a compact single-line string."""
@@ -515,6 +538,154 @@ class AttackRollerTab(QWidget):
     def _format_summary(self, summary) -> str:
         """Format COMPARE mode summary line."""
         crit_str = f" ({summary.crits} crit)" if summary.crits else ""
+        return (
+            f"\u2500\u2500\u2500 Summary: {summary.hits} hits / "
+            f"{summary.misses} misses{crit_str} | "
+            f"Total damage: {summary.total_damage} \u2500\u2500\u2500"
+        )
+
+    # ------------------------------------------------------------------
+    # HTML formatting helpers
+    # ------------------------------------------------------------------
+
+    def _html_escape(self, text: str) -> str:
+        """Escape HTML special characters in roll output text."""
+        return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+    def _color_damage_segment(self, total: int, dtype: str, note: str = "") -> str:
+        """Wrap a damage segment in a colored <span>. Colors the entire segment per user decision."""
+        color = DAMAGE_COLORS.get(dtype.lower(), _DEFAULT_DAMAGE_COLOR)
+        text = f"{total} {dtype}"
+        if note:
+            text += f" ({note})"
+        return f'<span style="color:{color};">{text}</span>'
+
+    def _wrap_crit_line(self, html_content: str) -> str:
+        """Wrap content in a crit highlight background (gold tint). Per user decision: color + full row background."""
+        return (
+            f'<div style="background-color:rgba(212,175,55,0.25); padding:1px 4px; border-radius:2px;">'
+            f'{html_content}</div>'
+        )
+
+    def _wrap_miss_line(self, html_content: str) -> str:
+        """Wrap content in a miss highlight background (red tint). Per user decision: row highlight treatment."""
+        return (
+            f'<div style="background-color:rgba(180,0,0,0.18); padding:1px 4px; border-radius:2px;">'
+            f'{html_content}</div>'
+        )
+
+    # ------------------------------------------------------------------
+    # HTML format methods (parallel to plain-text methods)
+    # ------------------------------------------------------------------
+
+    def _damage_str_html(self, attack, request) -> str:
+        """Format damage parts as HTML with per-type color spans."""
+        if not attack.damage_parts:
+            return ""
+        parts = []
+        extra_list = attack.crit_extra_parts
+        for i, dp in enumerate(attack.damage_parts):
+            if attack.is_crit and i < len(extra_list):
+                extra = extra_list[i]
+                combined = dp.total + extra.total
+                if request.brutal_crits:
+                    note = f"{dp.total}+{extra.total} [all max]"
+                elif request.crunchy_crits:
+                    note = f"{dp.total}[max]+{extra.total} crit"
+                else:
+                    note = f"{dp.total}+{extra.total} crit"
+                parts.append(self._color_damage_segment(combined, dp.damage_type, note))
+            else:
+                parts.append(self._color_damage_segment(dp.total, dp.damage_type))
+        return " + ".join(parts)
+
+    def _format_raw_line_html(self, attack, request) -> str:
+        """Format RAW mode attack line as HTML with colored damage and crit highlight."""
+        n = attack.attack_number
+
+        d20_str = self._html_escape(self._d20_str(attack))
+        if attack.is_crit:
+            d20_str += " [CRIT]"
+
+        # Bonus components (plain text, HTML-escaped)
+        parts = [d20_str]
+        if attack.to_hit_bonus != 0:
+            sign = "+" if attack.to_hit_bonus >= 0 else ""
+            parts.append(self._html_escape(f"({sign}{attack.to_hit_bonus} hit)"))
+        if attack.flat_modifier != 0:
+            sign = "+" if attack.flat_modifier >= 0 else ""
+            parts.append(self._html_escape(f"({sign}{attack.flat_modifier} flat)"))
+        for (formula, signed_total, label) in attack.bonus_dice_results:
+            lbl = label if label else formula
+            sign = "+" if signed_total >= 0 else ""
+            parts.append(self._html_escape(f"({sign}{signed_total} {lbl})"))
+
+        roll_str = " ".join(parts)
+
+        dmg_str = self._damage_str_html(attack, request)
+        if dmg_str:
+            line = f"#{n}: {roll_str} \u2192 {attack.attack_total}&nbsp;&nbsp;|&nbsp;&nbsp;{dmg_str}"
+        else:
+            line = f"#{n}: {roll_str} \u2192 {attack.attack_total}"
+
+        if attack.is_crit:
+            return self._wrap_crit_line(line)
+        return line
+
+    def _format_compare_line_html(self, attack, request) -> str:
+        """Format COMPARE mode attack line as HTML with colored damage and crit/miss highlights."""
+        n = attack.attack_number
+        ac = request.target_ac
+
+        # Critical miss — red tint background
+        if attack.is_nat1 and request.nat1_always_miss and attack.is_hit is False:
+            return self._wrap_miss_line(f"#{n}: CRITICAL MISS")
+
+        # Secondary d20 prefix for advantage/disadvantage
+        d20_prefix = ""
+        if len(attack.d20_faces) == 2:
+            kept_face = next(f for f in attack.d20_faces if f.kept)
+            other_face = next(f for f in attack.d20_faces if not f.kept)
+            adv_label = "adv" if kept_face.value >= other_face.value else "disadv"
+            d20_prefix = self._html_escape(
+                f"[d20={kept_face.value}/{other_face.value} {adv_label}] "
+            )
+
+        if attack.is_hit:
+            hit_label = "HIT"
+            if attack.is_crit:
+                hit_label += " [CRIT]"
+            dmg_str = self._damage_str_html(attack, request)
+            if dmg_str:
+                line = (
+                    f"#{n}: {d20_prefix}{attack.attack_total} vs AC{ac} "
+                    f"\u2192 {hit_label}&nbsp;&nbsp;|&nbsp;&nbsp;{dmg_str}"
+                )
+            else:
+                line = f"#{n}: {d20_prefix}{attack.attack_total} vs AC{ac} \u2192 {hit_label}"
+            if attack.is_crit:
+                return self._wrap_crit_line(line)
+            return line
+        else:
+            if request.show_margin and attack.margin is not None:
+                margin_abs = abs(attack.margin)
+                line = f"#{n}: {d20_prefix}{attack.attack_total} vs AC{ac} \u2192 Miss by {margin_abs}"
+            else:
+                line = f"#{n}: {d20_prefix}{attack.attack_total} vs AC{ac} \u2192 Miss"
+            return self._wrap_miss_line(line)
+
+    def _format_attack_line_html(self, attack, request) -> str:
+        """Dispatch to the appropriate HTML format method based on mode."""
+        if request.mode == "raw":
+            return self._format_raw_line_html(attack, request)
+        else:
+            return self._format_compare_line_html(attack, request)
+
+    def _format_summary_html(self, summary) -> str:
+        """Format COMPARE mode summary line as HTML-escaped text."""
+        crit_str = self._html_escape(
+            f" ({summary.crits} crit)" if summary.crits else ""
+        )
         return (
             f"\u2500\u2500\u2500 Summary: {summary.hits} hits / "
             f"{summary.misses} misses{crit_str} | "
