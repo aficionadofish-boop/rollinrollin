@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 14 of 16 (Bug Fixes & Critical Polish)
-Plan: 1 of 6 in current phase
+Plan: 3 of 6 in current phase
 Status: In Progress
-Last activity: 2026-02-26 — Phase 14 Plan 01 complete (BUG-01, BUG-02, UX-01)
+Last activity: 2026-02-26 — Phase 14 Plan 03 complete (BUG-06 — parser section boundary detection, legendary_actions/lair_actions model fields)
 
-Progress: [███░░░░░░░░░░░░░░░░░] Phase 14 in progress (1/6 plans)
+Progress: [█████████░░░░░░░░░░░] Phase 14 in progress (3/6 plans)
 
 ## Performance Metrics
 
@@ -142,6 +142,14 @@ Recent decisions affecting current work:
 - [Phase 14-01]: Missing persisted monster files skipped silently on restart but kept in list — may be on removable drive and return later
 - [Phase 14-01]: selectedRows() fixes single-result library selection — selected.indexes() returns per-cell delta empty for unchanged rows
 - [Phase 14-01]: _RotatedButton uses QPainter.translate(width,0)+rotate(90) pattern for vertical text in 24px collapsed sidebar strip
+- [Phase 14-02]: BUG-03 CR cascade uses _sync_save_toggles(recompute_values=True) + _cascade_skills_on_prof_change() to push new prof bonus into both saves and skills
+- [Phase 14-02]: BUG-05 skill cascade determines current tier via old_mod comparison, recomputes with new_mod, leaves Custom skills unchanged
+- [Phase 14-02]: BUG-04 skill coloring injected into preview _skills_label from _apply_highlights() — same pattern as save highlighting, no monster_detail.py changes needed
+- [Phase 14-02]: BUG-07 focus display uses view-only display copy — _build_focus_annotated_display_copy() appends annotation to spellcasting action raw_text without mutating _working_copy
+- [Phase 14-03]: Monster.legendary_actions and Monster.lair_actions added as separate list fields — Phase 15 traits separation builds on top
+- [Phase 14-03]: SECTION_BOUNDARY_RE covers both #-style and bold-text (***Section***) section headers — handles all real-world statblock formats
+- [Phase 14-03]: extract_named_section() fallback: when no section header found, returns "" so callers fall back to full-text parsing (backward compat)
+- [Phase 14-03]: Lair Actions added to SECTION_BOUNDARY_RE (was absent from original ACTION_SECTION_RE) — this was the direct trigger for the Lich bug
 
 ### Roadmap Evolution
 
@@ -161,5 +169,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 14-01-PLAN.md (BUG-01, BUG-02, UX-01)
-Resume file: .planning/phases/14-bug-fixes-critical-polish/14-01-SUMMARY.md
+Stopped at: Completed 14-03-PLAN.md (BUG-06 — parser section boundary detection, legendary_actions/lair_actions model fields)
+Resume file: .planning/phases/14-bug-fixes-critical-polish/14-03-SUMMARY.md
