@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** DMs can manage the full combat loop — prep monsters, roll attacks and saves, and track combat state — in seconds, with D&D 5e rule fidelity and persistent data.
-**Current focus:** Phase 11 in progress — combat service layer complete (Plan 01 of ?)
+**Current focus:** Phase 11 in progress — UI components complete (Plan 02 of ?)
 
 ## Current Position
 
 Phase: 11 of 13 (Combat Tracker)
-Plan: 1 of ? in current phase (Plan 01 complete)
+Plan: 2 of ? in current phase (Plan 02 complete)
 Status: In Progress
-Last activity: 2026-02-26 — Phase 11 Plan 01 complete (combat domain models + CombatTrackerService + PersistenceService extension)
+Last activity: 2026-02-26 — Phase 11 Plan 02 complete (HpBar, CombatantCard, CombatLogPanel, CombatTrackerTab skeleton)
 
-Progress: [██████████████] Phase 11 started (1/? plans)
+Progress: [██████████████] Phase 11 in progress (2/? plans)
 
 ## Performance Metrics
 
@@ -29,7 +29,7 @@ Progress: [██████████████] Phase 11 started (1/? pla
 | 8 (v2.0) | 3/3 | Complete |
 | 9 (v2.0) | 5/5 | Complete |
 | 10 (v2.0) | 2/2 | Complete |
-| 11 (v2.0) | 1/? | In Progress |
+| 11 (v2.0) | 2/? | In Progress |
 | 12-13 (v2.0) | 0/? | Not started |
 
 ## Accumulated Context
@@ -92,6 +92,9 @@ Recent decisions affecting current work:
 - [Phase 11-01]: ConditionEntry.color field preserved in serialization (set by UI layer, not service)
 - [Phase 11-01]: Auto-regen via advance_turn() only when regeneration_hp > 0; pass_one_round() does not auto-regen
 - [Phase 11-01]: Feature detection scans Monster.actions[*].raw_text with regex for Legendary Resistance count, Legendary Actions count, Regeneration HP
+- [Phase 11-02]: HpBar uses direct QPainter in paintEvent — no Qt stylesheets for bar segments (avoids stylesheet z-order issues with overlapping fill rects)
+- [Phase 11-02]: _ConditionChip subclasses QLabel with mousePressEvent override — installEventFilter avoided; each chip captures its own condition name in closure
+- [Phase 11-02]: CombatTrackerTab._on_start_combat is a no-op without encounter members — actual start_combat(members) called by MainWindow in Plan 04 wiring
 
 ### Pending Todos
 
@@ -105,5 +108,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 11-01-PLAN.md (combat domain models, CombatTrackerService, PersistenceService extension)
+Stopped at: Completed 11-02-PLAN.md (HpBar, CombatantCard, CombatLogPanel, CombatTrackerTab skeleton)
 Resume file: .planning/ROADMAP.md

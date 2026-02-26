@@ -57,14 +57,14 @@ Requirements for milestone v2.0 (Combat Manager). Each maps to roadmap phases.
 
 ### Combat Tracker
 
-- [ ] **COMBAT-01**: New Combat Tracker tab showing all combatants from the active encounter
-- [ ] **COMBAT-02**: Each combatant has a visual health bar with editable current/max HP
+- [x] **COMBAT-01**: New Combat Tracker tab showing all combatants from the active encounter
+- [x] **COMBAT-02**: Each combatant has a visual health bar with editable current/max HP
 - [x] **COMBAT-03**: Each combatant has a temp HP field (absorbed before regular HP)
-- [ ] **COMBAT-04**: Each combatant can have multiple conditions/buffs with name and round duration
-- [ ] **COMBAT-05**: Preset dropdown with standard 5e conditions (Blinded, Charmed, Deafened, Frightened, Grappled, Incapacitated, Invisible, Paralyzed, Petrified, Poisoned, Prone, Restrained, Stunned, Unconscious)
-- [ ] **COMBAT-06**: Preset dropdown with common D&D buffs/effects (Bless, Shield, Hypnotic Pattern, Fear, Web, Entangle, Maze, etc.)
-- [ ] **COMBAT-07**: User can add custom conditions with name and duration
-- [ ] **COMBAT-08**: Conditions have unique colors per type
+- [x] **COMBAT-04**: Each combatant can have multiple conditions/buffs with name and round duration
+- [x] **COMBAT-05**: Preset dropdown with standard 5e conditions (Blinded, Charmed, Deafened, Frightened, Grappled, Incapacitated, Invisible, Paralyzed, Petrified, Poisoned, Prone, Restrained, Stunned, Unconscious)
+- [x] **COMBAT-06**: Preset dropdown with common D&D buffs/effects (Bless, Shield, Hypnotic Pattern, Fear, Web, Entangle, Maze, etc.)
+- [x] **COMBAT-07**: User can add custom conditions with name and duration
+- [x] **COMBAT-08**: Conditions have unique colors per type
 - [x] **COMBAT-09**: One-button initiative roll for all encounter monsters using existing dice engine
 - [ ] **COMBAT-10**: Grouped initiative option: same monster types share initiative, displayed as "Nx [Monster]" with expandable dropdown for individual HP/condition tracking
 - [ ] **COMBAT-11**: Player character subtab with name, AC, HP, condition trackers; PCs can be added to initiative
@@ -179,14 +179,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SIDEBAR-03 | Phase 10 | Complete |
 | SIDEBAR-04 | Phase 10 | Pending |
 | SIDEBAR-05 | Phase 10 | Complete |
-| COMBAT-01 | Phase 11 | Pending |
-| COMBAT-02 | Phase 11 | Pending |
+| COMBAT-01 | Phase 11 | Complete |
+| COMBAT-02 | Phase 11 | Complete |
 | COMBAT-03 | Phase 11 | Complete |
-| COMBAT-04 | Phase 11 | Pending |
-| COMBAT-05 | Phase 11 | Pending |
-| COMBAT-06 | Phase 11 | Pending |
-| COMBAT-07 | Phase 11 | Pending |
-| COMBAT-08 | Phase 11 | Pending |
+| COMBAT-04 | Phase 11 | Complete |
+| COMBAT-05 | Phase 11 | Complete |
+| COMBAT-06 | Phase 11 | Complete |
+| COMBAT-07 | Phase 11 | Complete |
+| COMBAT-08 | Phase 11 | Complete |
 | COMBAT-09 | Phase 11 | Complete |
 | COMBAT-10 | Phase 11 | Pending |
 | COMBAT-11 | Phase 11 | Pending |
