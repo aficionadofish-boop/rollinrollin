@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 14 of 16 (Bug Fixes & Critical Polish)
-Plan: 4 of 6 in current phase
+Plan: 5 of 6 in current phase
 Status: In Progress
-Last activity: 2026-02-26 — Phase 14 Plan 04 complete (BUG-08/09/10 — attack output HTML rendering: div-to-span wrappers, regular miss red tint removed, no extra blank lines)
+Last activity: 2026-02-26 — Phase 14 Plan 05 complete (BUG-11/15/16 — stats toggle triggered signal, LR counter seeding + type-change reset, 0 HP verified)
 
-Progress: [████████████░░░░░░░░] Phase 14 in progress (4/6 plans)
+Progress: [█████████████░░░░░░░] Phase 14 in progress (5/6 plans)
 
 ## Performance Metrics
 
@@ -152,6 +152,11 @@ Recent decisions affecting current work:
 - [Phase 14-03]: Lair Actions added to SECTION_BOUNDARY_RE (was absent from original ACTION_SECTION_RE) — this was the direct trigger for the Lich bug
 - [Phase 14-04]: BUG-08 regular miss gets no background tint — only nat-1 misses call _wrap_miss_line(); removed _wrap_miss_line() from regular miss else-branch in _format_compare_line_html
 - [Phase 14-04]: BUG-09+BUG-10 attack output wrappers changed from block div to inline span — div caused full-width gold fill and implicit paragraph margins (extra blank lines) in QTextEdit HTML renderer
+- [Phase 14-05]: BUG-11 QMenu.exec() returns None for checkable action toggles in PySide6 — fix uses action.triggered.connect(lambda checked, key=k: _toggle_stat(k, checked)) per action
+- [Phase 14-05]: BUG-15 dual root cause: (1) reset on every encounter_changed not just type-set change; (2) _lr_counters never seeded so _on_lr_used could never decrement from max
+- [Phase 14-05]: LR counter seeding: seed _lr_counters[base_name] = lr_uses on first detection; always use persisted value on subsequent rolls
+- [Phase 14-05]: Encounter type-change detection uses set comprehension {monster.name for monster, _ in members} vs _prev_encounter_names in app.py
+- [Phase 14-05]: BUG-16 (0 HP) verified correct without code changes: service floors at 0, HpBar shows grey at 0, is_defeated is a computed property
 
 ### Roadmap Evolution
 
@@ -171,5 +176,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 14-04-PLAN.md (BUG-08/09/10 — attack output HTML rendering: div-to-span wrappers, regular miss plain text, no extra blank lines)
-Resume file: .planning/phases/14-bug-fixes-critical-polish/14-04-SUMMARY.md
+Stopped at: Completed 14-05-PLAN.md (BUG-11/15/16 — stats toggle triggered signal, LR counter seeding + type-change reset, 0 HP verified)
+Resume file: .planning/phases/14-bug-fixes-critical-polish/14-05-SUMMARY.md
