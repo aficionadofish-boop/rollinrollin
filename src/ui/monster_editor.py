@@ -771,6 +771,7 @@ class MonsterEditorDialog(QDialog):
         )
 
         replace_index = None  # Track position for in-place replacement
+        extra_damage_parts = []  # Extra damage riders from the original action
 
         if existing_action is not None:
             reply = QMessageBox.question(
@@ -785,11 +786,12 @@ class MonsterEditorDialog(QDialog):
             if reply == QMessageBox.StandardButton.Cancel:
                 return
             if reply == QMessageBox.StandardButton.Yes:
-                # Replace: remember position, then remove old action
+                # Replace: remember position and extra damage riders, then remove
                 replace_index = next(
                     (i for i, a in enumerate(self._working_copy.actions) if a is existing_action),
                     None,
                 )
+                extra_damage_parts = list(existing_action.damage_parts[1:])
                 self._working_copy.actions = [
                     a for a in self._working_copy.actions if a is not existing_action
                 ]
@@ -798,6 +800,9 @@ class MonsterEditorDialog(QDialog):
 
         # Insert at original position when replacing, otherwise append
         new_action = self._dict_to_action(action_dict)
+        # Carry over extra damage riders (e.g. 3d8 lightning) from replaced action
+        if extra_damage_parts:
+            new_action.damage_parts.extend(extra_damage_parts)
         if replace_index is not None:
             self._working_copy.actions.insert(replace_index, new_action)
         else:
@@ -1209,6 +1214,54 @@ class MonsterEditorDialog(QDialog):
         # Rebuild editor action rows with updated values
         self._rebuild_action_rows()
 
+    def _cascade_hp_on_con_change(self, old_scores: dict[str, int]) -> None:
+        """Recalculate HP when CON score changes.
+
+        Requires the HP formula field to contain a valid NdX+Y expression
+        so the hit dice count is known.  Delta = dice_count * (new_mod - old_mod).
+        """
+        import re as _re
+
+        old_con = old_scores.get("CON", 10)
+        new_con = self._working_copy.ability_scores.get("CON", 10)
+        if old_con == new_con:
+            return
+
+        formula_text = self._hp_formula_edit.text().strip()
+        if not formula_text:
+            return
+
+        match = _re.match(r'(\d+)d(\d+)', formula_text)
+        if not match:
+            return
+
+        dice_count = int(match.group(1))
+        die_size = int(match.group(2))
+        old_con_mod = (old_con - 10) // 2
+        new_con_mod = (new_con - 10) // 2
+        hp_delta = dice_count * (new_con_mod - old_con_mod)
+
+        self._working_copy.hp = max(1, self._working_copy.hp + hp_delta)
+
+        # Update flat HP spinbox
+        self._hp_flat_spinbox.blockSignals(True)
+        self._hp_flat_spinbox.setValue(self._working_copy.hp)
+        self._hp_flat_spinbox.blockSignals(False)
+
+        # Update formula text with new CON bonus
+        new_bonus = dice_count * new_con_mod
+        if new_bonus > 0:
+            self._hp_formula_edit.setText(f"{dice_count}d{die_size}+{new_bonus}")
+        elif new_bonus < 0:
+            self._hp_formula_edit.setText(f"{dice_count}d{die_size}{new_bonus}")
+        else:
+            self._hp_formula_edit.setText(f"{dice_count}d{die_size}")
+
+        if self._working_copy.hp != self._base_monster.hp:
+            self._mod_sources["hp"] = "manual"
+        else:
+            self._mod_sources.pop("hp", None)
+
     # ------------------------------------------------------------------
     # Action rows rebuild
     # ------------------------------------------------------------------
@@ -1542,6 +1595,8 @@ class MonsterEditorDialog(QDialog):
         self._sync_save_toggles(recompute_values=True)
         # Cascade: recompute ALL actions (equipment + imported)
         self._cascade_all_actions_on_ability_change(old_scores)
+        # Cascade: recalculate HP when CON changes (requires hit dice formula)
+        self._cascade_hp_on_con_change(old_scores)
         self._rebuild_preview()
 
     def _on_save_toggle_changed(self) -> None:
