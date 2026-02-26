@@ -78,7 +78,10 @@ Plans:
   3. User can collapse the sidebar by clicking the toggle on its edge, reclaiming horizontal space, and expand it again; the encounter contents are unchanged
   4. After closing and reopening the app, the sidebar shows the same encounter that was active at close
   5. User can save the current encounter from the sidebar and load a different saved encounter; the sidebar updates to show the loaded encounter
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 10-01-PLAN.md -- EncounterSidebarDock widget + persistence schema + AppSettings
+- [ ] 10-02-PLAN.md -- MainWindow wiring + LoadEncounterDialog + SavesTab refactor + verification
 
 ### Phase 11: Combat Tracker
 **Goal**: DMs can manage the full combat loop — initiative, HP damage and healing, conditions with duration, and turn order cycling — for all encounter combatants in a single dedicated tab, with state that persists across sessions
