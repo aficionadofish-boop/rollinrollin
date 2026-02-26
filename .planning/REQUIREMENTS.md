@@ -67,10 +67,10 @@ Requirements for milestone v2.0 (Combat Manager). Each maps to roadmap phases.
 - [x] **COMBAT-08**: Conditions have unique colors per type
 - [x] **COMBAT-09**: One-button initiative roll for all encounter monsters using existing dice engine
 - [x] **COMBAT-10**: Grouped initiative option: same monster types share initiative, displayed as "Nx [Monster]" with expandable dropdown for individual HP/condition tracking
-- [ ] **COMBAT-11**: Player character subtab with name, AC, HP, condition trackers; PCs can be added to initiative
+- [x] **COMBAT-11**: Player character subtab with name, AC, HP, condition trackers; PCs can be added to initiative
 - [x] **COMBAT-12**: Initiative mode toggle: enabled sorts by initiative (descending) with "Next Turn" cycling; disabled shows "Pass 1 Round" button
 - [x] **COMBAT-13**: When turn advances or "Pass 1 Round" is clicked, all condition round counters decrement by 1; conditions at 0 are flagged/removed
-- [ ] **COMBAT-14**: User can select specific monsters in tracker and click a button to jump to Saves tab with those loaded
+- [x] **COMBAT-14**: User can select specific monsters in tracker and click a button to jump to Saves tab with those loaded
 - [x] **COMBAT-15**: User can enter a signed number (+12, -23) in a damage/healing field per combatant; app auto-applies (temp HP absorbed first, remainder from current HP)
 
 ### Save Roller Upgrades
@@ -189,10 +189,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | COMBAT-08 | Phase 11 | Complete |
 | COMBAT-09 | Phase 11 | Complete |
 | COMBAT-10 | Phase 11 | Complete |
-| COMBAT-11 | Phase 11 | Pending |
+| COMBAT-11 | Phase 11 | Complete |
 | COMBAT-12 | Phase 11 | Complete |
 | COMBAT-13 | Phase 11 | Complete |
-| COMBAT-14 | Phase 11 | Pending |
+| COMBAT-14 | Phase 11 | Complete |
 | COMBAT-15 | Phase 11 | Complete |
 | SAVE-08 | Phase 12 | Pending |
 | SAVE-09 | Phase 12 | Pending |

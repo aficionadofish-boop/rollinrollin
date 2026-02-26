@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** DMs can manage the full combat loop — prep monsters, roll attacks and saves, and track combat state — in seconds, with D&D 5e rule fidelity and persistent data.
-**Current focus:** Phase 11 in progress — initiative mode, turn cycling, group cards, stat toggles complete (Plan 03 of ?)
+**Current focus:** Phase 11 complete — Combat Tracker fully wired with PC subtab, multi-select, AOE damage, persistence (Plan 04 of 4)
 
 ## Current Position
 
 Phase: 11 of 13 (Combat Tracker)
-Plan: 3 of ? in current phase (Plan 03 complete)
+Plan: 4 of 4 in current phase (Plan 04 complete — phase done)
 Status: In Progress
-Last activity: 2026-02-26 — Phase 11 Plan 03 complete (GroupCard, initiative mode, turn cycling, drag-reorder, stat toggles)
+Last activity: 2026-02-26 — Phase 11 Plan 04 complete (PC subtab, multi-select, AOE damage, MainWindow wiring, persistence)
 
-Progress: [██████████████] Phase 11 in progress (3/? plans)
+Progress: [████████████████] Phase 11 complete (4/4 plans)
 
 ## Performance Metrics
 
@@ -29,7 +29,7 @@ Progress: [██████████████] Phase 11 in progress (3/?
 | 8 (v2.0) | 3/3 | Complete |
 | 9 (v2.0) | 5/5 | Complete |
 | 10 (v2.0) | 2/2 | Complete |
-| 11 (v2.0) | 2/? | In Progress |
+| 11 (v2.0) | 4/4 | Complete |
 | 12-13 (v2.0) | 0/? | Not started |
 
 ## Accumulated Context
@@ -101,6 +101,12 @@ Recent decisions affecting current work:
 - [Phase 11-03]: _CardContainer handles drag drops (not CombatantCards) so drop works regardless of card sub-widget hit
 - [Phase 11-03]: _auto_regen defaults to False; advance_turn() gates regen on _auto_regen flag (changed from always-on when regeneration_hp > 0)
 - [Phase 11-03]: GroupCard initiative spinbox emits initiative_changed for first group member only (shared group roll)
+- [Phase 11-04]: card_clicked Signal on CombatantCard carries (combatant_id, Qt.KeyboardModifiers); CombatTrackerTab handles all selection logic centrally
+- [Phase 11-04]: CombatantListArea subclasses QScrollArea to own QRubberBand state; emits box_selected(set[str]) after mouse release
+- [Phase 11-04]: start_combat_requested Signal pattern — tab signals MainWindow which reads sidebar and calls start_combat(members) back; tab holds no sidebar reference
+- [Phase 11-04]: Send to Saves resolves to SaveParticipant with CON save bonus by default; PCs without monster_name get save_bonus=0
+- [Phase 11-04]: Combat state saved only when combatants list is non-empty (prevents overwriting good persisted state with empty dict)
+- [Phase 11-04]: Sidebar setVisible(False) when Combat Tracker tab is active; setVisible(True) on any other tab switch
 
 ### Pending Todos
 
@@ -114,5 +120,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 11-03-PLAN.md (GroupCard, initiative mode, turn cycling, drag-reorder, stat toggles)
+Stopped at: Completed 11-04-PLAN.md (PC subtab, multi-select, AOE damage, MainWindow wiring, persistence)
 Resume file: .planning/ROADMAP.md
