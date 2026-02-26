@@ -389,6 +389,9 @@ class ResultPanel(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
 
+        # Accent color for TemplateCard headers — updated by set_accent_color()
+        self._accent_color: str = "#4DA6FF"  # default dark theme accent
+
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
@@ -438,6 +441,13 @@ class ResultPanel(QWidget):
         """Show or hide the seeded indicator on future roll results."""
         self._seeded_mode = enabled
 
+    def set_accent_color(self, color: str) -> None:
+        """Update the accent color used for TemplateCard headers.
+
+        Called by MacroSandboxTab when the active theme changes.
+        """
+        self._accent_color = color
+
     def add_roll_result(self, roll_result: MacroRollResult) -> None:
         """Append a new roll set with timestamp divider."""
         self._roll_set_count += 1
@@ -454,10 +464,15 @@ class ResultPanel(QWidget):
         self._layout.insertWidget(insert_at, divider)
         insert_at += 1
 
-        # Result cards
+        # Result cards — dispatch to TemplateCard for template macros with fields
         cards: list[QWidget] = []
         for line_result in roll_result.line_results:
-            card = ResultCard(line_result)
+            if line_result.template_name and line_result.template_fields:
+                card = TemplateCard(
+                    line_result, accent_color=self._accent_color, parent=self._container
+                )
+            else:
+                card = ResultCard(line_result)
             self._layout.insertWidget(insert_at, card)
             insert_at += 1
             cards.append(card)

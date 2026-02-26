@@ -131,6 +131,10 @@ class MacroSandboxTab(QWidget):
             self._macros_path = workspace_manager.get_subfolder("macros")
             self._sidebar.set_workspace_path(self._macros_path)
 
+    def set_accent_color(self, color: str) -> None:
+        """Forward accent color update to ResultPanel for TemplateCard headers."""
+        self._result_panel.set_accent_color(color)
+
     # ------------------------------------------------------------------
     # Slots
     # ------------------------------------------------------------------

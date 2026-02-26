@@ -188,6 +188,11 @@ class MainWindow(QMainWindow):
         self._attack_roller_tab.set_seeded_mode(seeded)
         self._macro_tab._result_panel.set_seeded_mode(seeded)
 
+        # Update template card accent color in macro sandbox
+        accent = self._theme_service.get_accent_color(settings)
+        if hasattr(self, '_macro_tab'):
+            self._macro_tab.set_accent_color(accent)
+
     # ------------------------------------------------------------------
     # Tab change guard (unsaved settings changes) and sidebar visibility
     # ------------------------------------------------------------------
