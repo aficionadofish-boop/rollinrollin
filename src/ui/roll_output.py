@@ -21,7 +21,8 @@ class RollOutputPanel(QWidget):
 
     Public API
     ----------
-    append(text)       -- Append one line to the log.
+    append(text)       -- Append one line of plain text to the log.
+    append_html(html)  -- Append one HTML-formatted line to the log.
     clear()            -- Clear all log content.
     to_plain_text()    -- Return current log text as a plain string.
     """
@@ -33,6 +34,7 @@ class RollOutputPanel(QWidget):
 
         self._text_edit = QTextEdit()
         self._text_edit.setReadOnly(True)
+        self._text_edit.setAcceptRichText(True)
         self._text_edit.setPlaceholderText("Roll results will appear here...")
         self._text_edit.setMinimumHeight(150)
         layout.addWidget(self._text_edit)
@@ -54,6 +56,15 @@ class RollOutputPanel(QWidget):
     def append(self, text: str) -> None:
         """Append a line of text to the log and scroll to it."""
         self._text_edit.append(text)
+        self._text_edit.ensureCursorVisible()
+
+    def append_html(self, html: str) -> None:
+        """Append an HTML-formatted line to the log and scroll to it."""
+        from PySide6.QtGui import QTextCursor
+        cursor = self._text_edit.textCursor()
+        cursor.movePosition(QTextCursor.MoveOperation.End)
+        self._text_edit.setTextCursor(cursor)
+        self._text_edit.insertHtml(html + "<br/>")
         self._text_edit.ensureCursorVisible()
 
     def clear(self) -> None:
