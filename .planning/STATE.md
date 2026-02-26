@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 10 of 13 (Persistent Encounter Sidebar)
-Plan: 1 of ? in current phase (Plan 01 complete)
-Status: In progress
-Last activity: 2026-02-26 — Phase 10 Plan 01 complete: EncounterSidebarDock core widget built
+Plan: 2 of ? in current phase (Plan 02 complete — awaiting human verification)
+Status: In progress (checkpoint:human-verify)
+Last activity: 2026-02-26 — Phase 10 Plan 02 complete: sidebar integrated into MainWindow, human verification pending
 
-Progress: [█████████████░] 87% (Phase 10 Plan 01 complete)
+Progress: [█████████████░] 90% (Phase 10 Plan 02 complete, verification pending)
 
 ## Performance Metrics
 
@@ -30,7 +30,7 @@ Progress: [█████████████░] 87% (Phase 10 Plan 01 com
 | 1-7 (v1.0) | 16/16 | Complete |
 | 8 (v2.0) | 3/3 | Complete |
 | 9 (v2.0) | 5/5 | Complete |
-| 10 (v2.0) | 1/? | In progress |
+| 10 (v2.0) | 2/? | In progress (human verify) |
 | 11-13 (v2.0) | 0/? | Not started |
 
 ## Accumulated Context
@@ -79,6 +79,11 @@ Recent decisions affecting current work:
 - [Phase 10-01]: sidebar_width: int = 300 added to AppSettings for cross-session width persistence
 - [Phase 10-01]: EncounterSidebarDock collapse uses width constraints (not QDockWidget.hide()) so thin 20px strip remains visible
 - [Phase 10-01]: sidebar always starts expanded — collapse state not persisted (DM expects to see encounter on launch)
+- [Phase 10-02]: SavesTab keeps file name encounters_tab.py to avoid breaking any future imports — only class name changed
+- [Phase 10-02]: LoadEncounterDialog tracks row_to_original mapping so deletions do not shift the index used for load
+- [Phase 10-02]: set_active_creature adds monster to creature list if not already present (sidebar single-click preload)
+- [Phase 10-02]: _load_persisted_data called AFTER sidebar is constructed so set_encounter() works during startup
+- [Phase 10-02]: _persisted_encounters removed — sidebar is now the authoritative in-memory encounter state
 
 ### Pending Todos
 
@@ -92,5 +97,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 10-01-PLAN.md — EncounterSidebarDock core widget and persistence schema
-Resume file: .planning/phases/10-persistent-encounter-sidebar/10-01-SUMMARY.md
+Stopped at: Checkpoint:human-verify at end of 10-02-PLAN.md — sidebar integration complete, awaiting DM verification
+Resume file: .planning/phases/10-persistent-encounter-sidebar/10-02-SUMMARY.md
