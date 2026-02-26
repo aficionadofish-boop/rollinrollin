@@ -1,10 +1,11 @@
 """MainWindow — root application window with tab bar."""
 from __future__ import annotations
 
+import datetime
 import random
 from pathlib import Path
 
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QMainWindow, QTabWidget, QMessageBox
 
 from src.domain.models import MonsterModification
@@ -15,7 +16,9 @@ from src.settings.service import SettingsService
 from src.settings.models import AppSettings
 from src.ui.library_tab import MonsterLibraryTab
 from src.ui.attack_roller_tab import AttackRollerTab
-from src.ui.encounters_tab import EncountersTab
+from src.ui.encounters_tab import SavesTab
+from src.ui.encounter_sidebar import EncounterSidebarDock
+from src.ui.load_encounter_dialog import LoadEncounterDialog
 from src.ui.macro_sandbox_tab import MacroSandboxTab
 from src.ui.settings_tab import SettingsTab
 from src.workspace.setup import WorkspaceManager, resolve_workspace_root
@@ -41,13 +44,12 @@ class MainWindow(QMainWindow):
 
         # Persistence service: load session data on startup
         self._persistence = PersistenceService(self._workspace_manager.root)
-        self._load_persisted_data()
 
         # Tabs
         self._tab_widget = QTabWidget()
         self._library_tab = MonsterLibraryTab(library=self._library, persistence=self._persistence)
         self._attack_roller_tab = AttackRollerTab(roller=self._roller)
-        self._encounters_tab = EncountersTab(
+        self._saves_tab = SavesTab(
             library=self._library,
             roller=self._roller,
         )
@@ -59,20 +61,41 @@ class MainWindow(QMainWindow):
 
         self._tab_widget.addTab(self._library_tab, "Library")
         self._tab_widget.addTab(self._attack_roller_tab, "Attack Roller")
-        self._tab_widget.addTab(self._encounters_tab, "Encounters && Saves")
+        self._tab_widget.addTab(self._saves_tab, "Saves")
         self._tab_widget.addTab(self._macro_tab, "Macro Sandbox")
         self._tab_widget.addTab(self._settings_tab, "Settings")
         self.setCentralWidget(self._tab_widget)
 
-        # Cross-tab signal: Library drop zone → Encounters tab member list
+        # Create sidebar dock and add to the right
+        self._sidebar = EncounterSidebarDock(library=self._library, parent=self)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self._sidebar)
+
+        # Load persisted data AFTER sidebar is constructed
+        self._load_persisted_data()
+
+        # Cross-tab signal: Library drop zone → sidebar
         self._library_tab.monster_added_to_encounter.connect(
-            self._encounters_tab.add_monster_to_encounter
+            self._sidebar.add_monster
         )
 
-        # Cross-tab signal: Encounter member list changes → Attack Roller
-        self._encounters_tab.encounter_members_changed.connect(
+        # Cross-tab signal: sidebar encounter changes → Attack Roller creature list
+        self._sidebar.encounter_changed.connect(
             self._attack_roller_tab.set_creatures
         )
+
+        # Cross-tab signal: sidebar single-click → preload Attack Roller
+        self._sidebar.monster_selected.connect(
+            self._attack_roller_tab.set_active_creature
+        )
+
+        # Cross-tab signal: sidebar double-click → switch to Attack Roller tab
+        self._sidebar.switch_to_attack_roller.connect(
+            lambda: self._tab_widget.setCurrentWidget(self._attack_roller_tab)
+        )
+
+        # Sidebar save/load button signals
+        self._sidebar.save_btn_clicked.connect(self._on_sidebar_save)
+        self._sidebar.load_btn_clicked.connect(self._on_sidebar_load)
 
         # Settings tab signals
         self._settings_tab.settings_saved.connect(self._on_settings_saved)
@@ -125,7 +148,7 @@ class MainWindow(QMainWindow):
 
         # Apply defaults to tabs
         self._attack_roller_tab.apply_defaults(settings)
-        self._encounters_tab.apply_defaults(settings)
+        self._saves_tab.apply_defaults(settings)
 
         # Update seeded badge on output panels
         seeded = settings.seeded_rng_enabled and settings.seed_value is not None
@@ -164,9 +187,33 @@ class MainWindow(QMainWindow):
     def _load_persisted_data(self) -> None:
         """Load all persistence categories from disk into instance variables."""
         self._persisted_monsters = self._persistence.load_loaded_monsters()
-        self._persisted_encounters = self._persistence.load_encounters()
         self._persisted_modifications = self._persistence.load_modified_monsters()
         self._persisted_macros = self._persistence.load_macros()
+
+        # Restore active encounter into sidebar
+        active_enc = self._persistence.load_active_encounter()
+        if active_enc and active_enc.get("members"):
+            resolved_members = []
+            unresolved_count = 0
+            for entry in active_enc["members"]:
+                name = entry.get("name", "")
+                count = entry.get("count", 1)
+                if self._library.has_name(name):
+                    resolved_members.append((self._library.get_by_name(name), count))
+                else:
+                    unresolved_count += 1
+
+            enc_name = active_enc.get("name", "Active Encounter")
+            self._sidebar.set_encounter(enc_name, resolved_members)
+
+            if unresolved_count > 0:
+                self.statusBar().showMessage(
+                    f"Encounter restored — {unresolved_count} monster(s) not found in library",
+                    5000,
+                )
+
+        # Restore sidebar width from settings
+        self._sidebar.set_expanded_width(self._current_settings.sidebar_width)
 
     def _apply_persisted_modifications(self) -> None:
         """Apply persisted MonsterModifications to the library on startup.
@@ -255,9 +302,17 @@ class MainWindow(QMainWindow):
     def _save_persisted_data(self) -> None:
         """Save all persistence categories to disk."""
         self._persistence.save_loaded_monsters(self._persisted_monsters)
-        self._persistence.save_encounters(self._persisted_encounters)
         self._persistence.save_modified_monsters(self._persisted_modifications)
         self._persistence.save_macros(self._persisted_macros)
+
+        # Save sidebar active encounter state
+        members = self._sidebar.get_members()
+        if members:
+            active_data = {
+                "name": self._sidebar.get_encounter_name(),
+                "members": [{"name": m.name, "count": c} for m, c in members],
+            }
+            self._persistence.save_active_encounter(active_data)
 
     def _autosave(self) -> None:
         """Timer callback: save all persistence data and briefly show status."""
@@ -279,8 +334,62 @@ class MainWindow(QMainWindow):
             else:
                 self._settings_tab.discard()
 
+        # Save sidebar width to settings
+        self._current_settings.sidebar_width = self._sidebar.width()
+        self._settings_service.save(self._current_settings)
+
         self._save_persisted_data()
         event.accept()
+
+    # ------------------------------------------------------------------
+    # Sidebar Save / Load handlers
+    # ------------------------------------------------------------------
+
+    def _on_sidebar_save(self) -> None:
+        """Save current sidebar encounter to the saved encounters list."""
+        name = self._sidebar.get_encounter_name() or "Untitled Encounter"
+        members = self._sidebar.get_members()
+        if not members:
+            return
+
+        saved_data = {
+            "name": name,
+            "members": [{"name": m.name, "count": c} for m, c in members],
+            "saved_at": datetime.datetime.now().isoformat(timespec="seconds"),
+        }
+        self._persistence.save_saved_encounter(saved_data)
+        self.statusBar().showMessage("Encounter saved", 3000)
+
+    def _on_sidebar_load(self) -> None:
+        """Load a saved encounter via modal dialog, auto-saving current first."""
+        # Auto-save current encounter before loading
+        members = self._sidebar.get_members()
+        if members:
+            self._on_sidebar_save()
+
+        saved = self._persistence.load_saved_encounters()
+        if not saved:
+            self.statusBar().showMessage("No saved encounters", 3000)
+            return
+
+        dialog = LoadEncounterDialog(saved, parent=self)
+        accepted = dialog.exec() == LoadEncounterDialog.DialogCode.Accepted
+
+        # Process deletions in reverse order to avoid index shifting
+        deleted = sorted(dialog.deleted_indices(), reverse=True)
+        for idx in deleted:
+            self._persistence.delete_saved_encounter(idx)
+
+        if accepted and dialog.selected_index() is not None:
+            enc = saved[dialog.selected_index()]
+            resolved_members = []
+            for entry in enc.get("members", []):
+                name = entry.get("name", "")
+                count = entry.get("count", 1)
+                if self._library.has_name(name):
+                    resolved_members.append((self._library.get_by_name(name), count))
+
+            self._sidebar.set_encounter(enc.get("name", ""), resolved_members)
 
     # ------------------------------------------------------------------
     # Flush wiring
@@ -293,7 +402,8 @@ class MainWindow(QMainWindow):
         if category == "loaded_monsters":
             self._persisted_monsters = []
         elif category == "encounters":
-            self._persisted_encounters = []
+            # Clear the sidebar encounter state
+            self._sidebar.set_encounter("", [])
         elif category == "modified_monsters":
             self._persisted_modifications = {}
         elif category == "macros":
@@ -304,9 +414,9 @@ class MainWindow(QMainWindow):
         """Flush all persistence categories and reset all in-memory caches."""
         self._persistence.flush_all()
         self._persisted_monsters = []
-        self._persisted_encounters = []
         self._persisted_modifications = {}
         self._persisted_macros = []
+        self._sidebar.set_encounter("", [])
         self._refresh_flush_counts()
 
     def _refresh_flush_counts(self) -> None:
