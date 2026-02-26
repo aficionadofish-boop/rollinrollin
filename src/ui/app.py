@@ -58,6 +58,7 @@ class MainWindow(QMainWindow):
         self._saves_tab = SavesTab(
             library=self._library,
             roller=self._roller,
+            persistence_service=self._persistence,
         )
         self._macro_tab = MacroSandboxTab(
             roller=self._roller,
@@ -90,6 +91,9 @@ class MainWindow(QMainWindow):
         self._sidebar.encounter_changed.connect(
             self._attack_roller_tab.set_creatures
         )
+
+        # Sidebar: auto-reload SavesTab participants when encounter changes
+        self._sidebar.encounter_changed.connect(self._on_sidebar_encounter_changed)
 
         # Cross-tab signal: sidebar single-click → preload Attack Roller
         self._sidebar.monster_selected.connect(
@@ -205,6 +209,12 @@ class MainWindow(QMainWindow):
             self._sidebar.setVisible(False)
         else:
             self._sidebar.setVisible(True)
+
+        # Auto-load checked sidebar members when switching to Saves tab
+        if current_widget is self._saves_tab:
+            checked = self._sidebar.get_checked_members()
+            if checked:
+                self._saves_tab.load_participants_from_sidebar(checked)
 
     # ------------------------------------------------------------------
     # Persistence lifecycle
@@ -390,6 +400,13 @@ class MainWindow(QMainWindow):
     # Combat Tracker handlers
     # ------------------------------------------------------------------
 
+    def _on_sidebar_encounter_changed(self, members: list) -> None:
+        """When sidebar encounter changes, reload SavesTab participants from checked members."""
+        checked = self._sidebar.get_checked_members()
+        self._saves_tab.load_participants_from_sidebar(checked)
+        # Reset LR counters when encounter membership changes
+        self._saves_tab.reset_lr_counters()
+
     def _on_start_combat(self) -> None:
         """Read sidebar encounter members and start combat in the Combat Tracker tab."""
         members = self._sidebar.get_members()
@@ -406,7 +423,14 @@ class MainWindow(QMainWindow):
 
     def _on_send_to_saves(self, participants: list) -> None:
         """Receive selected combatants from Combat Tracker and load into Saves tab."""
-        self._saves_tab.load_participants(participants)
+        settings = self._settings_service.load()
+        if settings.ct_send_overrides_sidebar:
+            # CT selection overrides sidebar — load CT participants directly
+            self._saves_tab.load_participants(participants)
+        else:
+            # Sidebar checkboxes are authoritative — ignore CT list, load from sidebar
+            checked = self._sidebar.get_checked_members()
+            self._saves_tab.load_participants_from_sidebar(checked)
         self._tab_widget.setCurrentWidget(self._saves_tab)
 
     # ------------------------------------------------------------------

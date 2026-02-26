@@ -183,6 +183,16 @@ class SettingsTab(QWidget):
         self._nat20_check.toggled.connect(self._mark_dirty)
         layout.addWidget(self._nat20_check)
 
+        # Combat Tracker "Send to Saves" behavior
+        self._ct_override_cb = QCheckBox("Combat Tracker 'Send to Saves' overrides sidebar selection")
+        self._ct_override_cb.setChecked(True)
+        self._ct_override_cb.setToolTip(
+            "When checked, CT selection replaces sidebar checkboxes. "
+            "When unchecked, sidebar is authoritative."
+        )
+        self._ct_override_cb.stateChanged.connect(self._mark_dirty)
+        layout.addWidget(self._ct_override_cb)
+
         return group
 
     def _build_ac_dc_group(self) -> QGroupBox:
@@ -341,6 +351,9 @@ class SettingsTab(QWidget):
             # Output mode
             mode_label = "RAW" if settings.default_mode == "raw" else "COMPARE"
             self._mode_bar.set_value(mode_label)
+
+            # Combat Tracker "Send to Saves" override
+            self._ct_override_cb.setChecked(settings.ct_send_overrides_sidebar)
         finally:
             self.blockSignals(False)
 
@@ -370,6 +383,7 @@ class SettingsTab(QWidget):
             default_mode=mode_value,
             default_target_ac=self._target_ac_spin.value(),
             default_save_dc=self._save_dc_spin.value(),
+            ct_send_overrides_sidebar=self._ct_override_cb.isChecked(),
         )
 
     def save(self) -> None:
