@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** DMs can manage the full combat loop — prep monsters, roll attacks and saves, and track combat state — in seconds, with D&D 5e rule fidelity and persistent data.
-**Current focus:** Phase 9 — Monster Editor and Equipment Presets
+**Current focus:** Phase 10 — Persistent Encounter Sidebar
 
 ## Current Position
 
-Phase: 9 of 13 (Monster Editor and Equipment Presets)
-Plan: 5 of 5 in current phase (Task 1 complete, awaiting human-verify checkpoint)
-Status: Awaiting human verification (checkpoint:human-verify)
-Last activity: 2026-02-26 — Plan 09-05 Task 1 complete: save workflows, library badge, cross-tab buff wiring implemented
+Phase: 10 of 13 (Persistent Encounter Sidebar)
+Plan: 0 of ? in current phase (not yet planned)
+Status: Ready to plan
+Last activity: 2026-02-26 — Phase 9 complete: Monster Editor and Equipment Presets verified and closed
 
-Progress: [████████████░] 78% (Phase 8 complete, Phase 9 plan 05 task 1 of 2 done)
+Progress: [█████████████░] 85% (Phase 9 complete, Phase 10 next)
 
 ## Performance Metrics
 
@@ -28,8 +28,9 @@ Progress: [████████████░] 78% (Phase 8 complete, Phase
 | Phase | Plans | Status |
 |-------|-------|--------|
 | 1-7 (v1.0) | 16/16 | Complete |
-| 8-13 (v2.0) | 0/? | Not started |
-| Phase 08 P03 | 2 | 2 tasks | 2 files |
+| 8 (v2.0) | 3/3 | Complete |
+| 9 (v2.0) | 5/5 | Complete |
+| 10-13 (v2.0) | 0/? | Not started |
 
 ## Accumulated Context
 
@@ -85,5 +86,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: 09-05-PLAN.md Task 1 complete — awaiting human verification (Task 2 checkpoint:human-verify)
-Resume file: .planning/phases/09-monster-editor-and-equipment-presets/09-05-SUMMARY.md
+Stopped at: Phase 9 complete — ready to plan Phase 10
+Resume file: .planning/phases/09-monster-editor-and-equipment-presets/09-VERIFICATION.md
