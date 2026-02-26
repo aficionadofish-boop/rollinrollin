@@ -561,17 +561,19 @@ class AttackRollerTab(QWidget):
         return f'<span style="color:{color};">{text}</span>'
 
     def _wrap_crit_line(self, html_content: str) -> str:
-        """Wrap content in a crit highlight background (gold tint). Per user decision: color + full row background."""
+        """Wrap content in a crit highlight background (gold tint, inline span — text-width only)."""
         return (
-            f'<div style="background-color:rgba(212,175,55,0.25); padding:1px 4px; border-radius:2px;">'
-            f'{html_content}</div>'
+            f'<span style="background-color:rgba(212,175,55,0.25); '
+            f'padding:1px 4px; border-radius:2px;">'
+            f'{html_content}</span>'
         )
 
     def _wrap_miss_line(self, html_content: str) -> str:
-        """Wrap content in a miss highlight background (red tint). Per user decision: row highlight treatment."""
+        """Wrap content in a nat-1 miss highlight background (red tint, inline span — text-width only)."""
         return (
-            f'<div style="background-color:rgba(180,0,0,0.18); padding:1px 4px; border-radius:2px;">'
-            f'{html_content}</div>'
+            f'<span style="background-color:rgba(180,0,0,0.18); '
+            f'padding:1px 4px; border-radius:2px;">'
+            f'{html_content}</span>'
         )
 
     # ------------------------------------------------------------------
@@ -667,12 +669,12 @@ class AttackRollerTab(QWidget):
                 return self._wrap_crit_line(line)
             return line
         else:
+            # Regular miss — no background tint (only nat-1 misses get red tint, handled above)
             if request.show_margin and attack.margin is not None:
                 margin_abs = abs(attack.margin)
-                line = f"#{n}: {d20_prefix}{attack.attack_total} vs AC{ac} \u2192 Miss by {margin_abs}"
+                return f"#{n}: {d20_prefix}{attack.attack_total} vs AC{ac} \u2192 Miss by {margin_abs}"
             else:
-                line = f"#{n}: {d20_prefix}{attack.attack_total} vs AC{ac} \u2192 Miss"
-            return self._wrap_miss_line(line)
+                return f"#{n}: {d20_prefix}{attack.attack_total} vs AC{ac} \u2192 Miss"
 
     def _format_attack_line_html(self, attack, request) -> str:
         """Dispatch to the appropriate HTML format method based on mode."""
