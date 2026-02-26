@@ -49,6 +49,9 @@ class MainWindow(QMainWindow):
         # Persistence service: load session data on startup
         self._persistence = PersistenceService(self._workspace_manager.root)
 
+        # Track previous encounter monster name set for LR counter reset logic (BUG-15)
+        self._prev_encounter_names: set[str] = set()
+
         # Tabs
         self._tab_widget = QTabWidget()
         self._library_tab = MonsterLibraryTab(library=self._library, persistence=self._persistence)
@@ -471,11 +474,18 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
 
     def _on_sidebar_encounter_changed(self, members: list) -> None:
-        """When sidebar encounter changes, reload SavesTab participants from checked members."""
+        """When sidebar encounter changes, reload SavesTab participants from checked members.
+
+        LR counters are only reset when the set of monster TYPES changes — not on count
+        adjustments — so counters persist across multiple save rolls in the same fight.
+        """
         checked = self._sidebar.get_checked_members()
         self._saves_tab.load_participants_from_sidebar(checked)
-        # Reset LR counters when encounter membership changes
-        self._saves_tab.reset_lr_counters()
+        # Reset LR counters only when the set of monster types actually changes (BUG-15)
+        current_names = {monster.name for monster, _count in members}
+        if current_names != self._prev_encounter_names:
+            self._saves_tab.reset_lr_counters()
+            self._prev_encounter_names = current_names
 
     def _on_start_combat(self) -> None:
         """Read sidebar encounter members and start combat in the Combat Tracker tab."""

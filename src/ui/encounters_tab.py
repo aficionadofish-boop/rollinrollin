@@ -500,8 +500,12 @@ class SavesTab(QWidget):
                 monster, rules, is_magical
             )
 
-            # Apply LR counter from session state (persists across rolls)
-            if lr_max > 0 and base_name in self._lr_counters:
+            # Initialize or apply LR counter from session state (persists across rolls)
+            if lr_max > 0:
+                if base_name not in self._lr_counters:
+                    # First time seeing this monster — seed the counter at max
+                    self._lr_counters[base_name] = lr_uses
+                # Always use the persisted counter value
                 lr_uses = self._lr_counters[base_name]
 
             p.advantage = adv_override if adv_override else p.advantage
