@@ -153,4 +153,4 @@ Phase 8 → Phase 9 (parallel with 10) → Phase 10 → Phase 11 → Phase 12 �
 | 10. Persistent Encounter Sidebar | v2.0 | 2/2 | Complete | 2026-02-26 |
 | 11. Combat Tracker | 4/4 | Complete    | 2026-02-26 | - |
 | 12. Save Roller Upgrades | v2.0 | Complete    | 2026-02-26 | 2026-02-26 |
-| 13. Output Polish, Theming, and UI | v2.0 | 0/? | Not started | - |
+| 13. Output Polish, Theming, and UI | 2/5 | In Progress|  | - |
