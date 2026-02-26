@@ -128,12 +128,14 @@ class CombatantCard(QFrame):
         condition_add_requested(combatant_id): User clicked the "+" chip button.
         condition_clicked(combatant_id, condition_name): User clicked an existing chip.
         initiative_changed(combatant_id, new_value): Initiative spinbox changed.
+        card_clicked(combatant_id, modifiers): Mouse press on card (for multi-select).
     """
 
     damage_entered = Signal(str, int)
     condition_add_requested = Signal(str)
     condition_clicked = Signal(str, str)
     initiative_changed = Signal(str, int)
+    card_clicked = Signal(str, object)  # combatant_id, Qt.KeyboardModifiers
 
     def __init__(self, state: CombatantState, parent=None) -> None:
         super().__init__(parent)
@@ -346,6 +348,7 @@ class CombatantCard(QFrame):
     def mousePressEvent(self, event) -> None:
         if event.button() == Qt.MouseButton.LeftButton:
             self._drag_start_pos = event.pos()
+            self.card_clicked.emit(self._combatant_id, event.modifiers())
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event) -> None:

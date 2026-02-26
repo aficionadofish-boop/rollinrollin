@@ -22,13 +22,17 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
     QToolButton,
     QFrame,
+    QTabWidget,
+    QRubberBand,
+    QSizePolicy,
 )
-from PySide6.QtCore import Qt, Signal, QByteArray
+from PySide6.QtCore import Qt, Signal, QByteArray, QTimer, QRect, QPoint, QSize
 from PySide6.QtGui import QFont, QDragEnterEvent, QDropEvent, QDragMoveEvent
 
 from src.combat.models import (
     CombatState,
     ConditionEntry,
+    PlayerCharacter,
     STANDARD_CONDITIONS,
     COMMON_BUFFS,
 )
@@ -108,6 +112,270 @@ class _EditDurationDialog(QDialog):
     def get_duration(self):
         val = self._duration_spin.value()
         return None if val == 0 else val
+
+
+# ---------------------------------------------------------------------------
+# _AOEDamageDialog
+# ---------------------------------------------------------------------------
+
+class _AOEDamageDialog(QDialog):
+    """Small dialog for entering AOE damage amount."""
+
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("AOE Damage")
+        self.setModal(True)
+
+        layout = QFormLayout(self)
+
+        self._damage_spin = QSpinBox()
+        self._damage_spin.setRange(1, 9999)
+        self._damage_spin.setValue(10)
+        self._damage_spin.setToolTip("Damage amount (positive integer; will be applied as damage)")
+        layout.addRow("Damage:", self._damage_spin)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addRow(buttons)
+
+    def get_damage(self) -> int:
+        return self._damage_spin.value()
+
+
+# ---------------------------------------------------------------------------
+# PCSubtab
+# ---------------------------------------------------------------------------
+
+class _PCRow(QWidget):
+    """A single row in the PCSubtab for one player character."""
+
+    changed = Signal()
+
+    def __init__(self, name: str = "", ac: int = 10, max_hp: int = 1, parent=None) -> None:
+        super().__init__(parent)
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 2, 0, 2)
+        layout.setSpacing(4)
+
+        self._name_edit = QLineEdit(name)
+        self._name_edit.setPlaceholderText("PC Name")
+        self._name_edit.setMinimumWidth(100)
+        self._name_edit.textChanged.connect(self.changed)
+        layout.addWidget(self._name_edit, 2)
+
+        layout.addWidget(QLabel("AC:"))
+        self._ac_spin = QSpinBox()
+        self._ac_spin.setRange(1, 30)
+        self._ac_spin.setValue(ac)
+        self._ac_spin.setFixedWidth(55)
+        self._ac_spin.valueChanged.connect(self.changed)
+        layout.addWidget(self._ac_spin)
+
+        layout.addWidget(QLabel("HP:"))
+        self._max_hp_spin = QSpinBox()
+        self._max_hp_spin.setRange(1, 999)
+        self._max_hp_spin.setValue(max_hp)
+        self._max_hp_spin.setFixedWidth(65)
+        self._max_hp_spin.setToolTip("Max HP")
+        self._max_hp_spin.valueChanged.connect(self.changed)
+        layout.addWidget(self._max_hp_spin)
+
+        self._del_btn = QPushButton("Del")
+        self._del_btn.setFixedWidth(36)
+        self._del_btn.setStyleSheet(
+            "QPushButton { color: #f44336; font-weight: bold; } "
+            "QPushButton:hover { background-color: #3a1a1a; }"
+        )
+        layout.addWidget(self._del_btn)
+
+    def get_pc(self) -> PlayerCharacter:
+        return PlayerCharacter(
+            name=self._name_edit.text().strip() or "PC",
+            ac=self._ac_spin.value(),
+            max_hp=self._max_hp_spin.value(),
+            current_hp=self._max_hp_spin.value(),
+        )
+
+    def set_pc(self, pc: PlayerCharacter) -> None:
+        self._name_edit.blockSignals(True)
+        self._ac_spin.blockSignals(True)
+        self._max_hp_spin.blockSignals(True)
+        self._name_edit.setText(pc.name)
+        self._ac_spin.setValue(pc.ac)
+        self._max_hp_spin.setValue(pc.max_hp)
+        self._name_edit.blockSignals(False)
+        self._ac_spin.blockSignals(False)
+        self._max_hp_spin.blockSignals(False)
+
+    @property
+    def del_btn(self) -> QPushButton:
+        return self._del_btn
+
+
+class PCSubtab(QWidget):
+    """Tab for managing persistent player characters."""
+
+    pc_changed = Signal()
+
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self._rows: list[_PCRow] = []
+        self._debounce_timer = QTimer()
+        self._debounce_timer.setSingleShot(True)
+        self._debounce_timer.setInterval(500)
+        self._debounce_timer.timeout.connect(self.pc_changed)
+
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(4, 4, 4, 4)
+        main_layout.setSpacing(4)
+
+        # Header
+        header = QLabel("Player Characters")
+        header_font = QFont()
+        header_font.setBold(True)
+        header.setFont(header_font)
+        main_layout.addWidget(header)
+
+        # Scroll area
+        self._scroll = QScrollArea()
+        self._scroll.setWidgetResizable(True)
+        self._scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self._rows_container = QWidget()
+        self._rows_layout = QVBoxLayout(self._rows_container)
+        self._rows_layout.setContentsMargins(0, 0, 0, 0)
+        self._rows_layout.setSpacing(2)
+        self._rows_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self._scroll.setWidget(self._rows_container)
+        main_layout.addWidget(self._scroll, 1)
+
+        # Add PC button
+        self._add_btn = QPushButton("Add PC")
+        self._add_btn.clicked.connect(self._on_add_pc)
+        main_layout.addWidget(self._add_btn)
+
+    def _on_add_pc(self) -> None:
+        n = len(self._rows) + 1
+        self._add_row(PlayerCharacter(name=f"PC {n}", ac=10, max_hp=1, current_hp=1))
+
+    def _add_row(self, pc: PlayerCharacter) -> None:
+        row = _PCRow(pc.name, pc.ac, pc.max_hp)
+        row.set_pc(pc)
+        row.changed.connect(self._debounce_timer.start)
+        row.del_btn.clicked.connect(lambda checked=False, r=row: self._remove_row(r))
+        self._rows.append(row)
+        self._rows_layout.addWidget(row)
+
+    def _remove_row(self, row: _PCRow) -> None:
+        if row in self._rows:
+            self._rows.remove(row)
+        row.setParent(None)
+        row.deleteLater()
+        self._debounce_timer.start()
+
+    def get_pcs(self) -> list[PlayerCharacter]:
+        return [r.get_pc() for r in self._rows]
+
+    def set_pcs(self, pcs: list[PlayerCharacter]) -> None:
+        # Clear existing
+        for row in list(self._rows):
+            row.setParent(None)
+            row.deleteLater()
+        self._rows.clear()
+        for pc in pcs:
+            self._add_row(pc)
+
+    def clear_pcs(self) -> None:
+        self.set_pcs([])
+
+
+# ---------------------------------------------------------------------------
+# CombatantListArea — QScrollArea subclass with rubber-band box selection
+# ---------------------------------------------------------------------------
+
+class CombatantListArea(QScrollArea):
+    """QScrollArea subclass that supports rubber-band box drag selection.
+
+    Emits box_selected(set[str]) when a drag selection completes,
+    providing the set of combatant_ids whose card geometries intersect
+    the rubber-band rectangle.
+    """
+
+    box_selected = Signal(object)  # set[str] of combatant_ids
+
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self._rubber_band: QRubberBand | None = None
+        self._drag_origin: QPoint | None = None
+        self._dragging = False
+
+    def mousePressEvent(self, event) -> None:
+        modifiers = event.modifiers()
+        no_modifier = not (
+            modifiers & Qt.KeyboardModifier.ControlModifier
+            or modifiers & Qt.KeyboardModifier.ShiftModifier
+        )
+        if event.button() == Qt.MouseButton.LeftButton and no_modifier:
+            self._drag_origin = event.pos()
+            self._dragging = False
+            if self._rubber_band is None:
+                self._rubber_band = QRubberBand(QRubberBand.Shape.Rectangle, self.viewport())
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event) -> None:
+        if (
+            event.buttons() & Qt.MouseButton.LeftButton
+            and self._drag_origin is not None
+            and self._rubber_band is not None
+        ):
+            self._dragging = True
+            rect = QRect(self._drag_origin, event.pos()).normalized()
+            self._rubber_band.setGeometry(rect)
+            self._rubber_band.show()
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event) -> None:
+        if (
+            event.button() == Qt.MouseButton.LeftButton
+            and self._drag_origin is not None
+            and self._rubber_band is not None
+            and self._dragging
+        ):
+            self._rubber_band.hide()
+            # Compute intersection with card widgets
+            selection_rect = QRect(self._drag_origin, event.pos()).normalized()
+            selected_ids: set[str] = set()
+            inner = self.widget()
+            if inner is not None:
+                layout = inner.layout()
+                if layout is not None:
+                    for i in range(layout.count()):
+                        item = layout.itemAt(i)
+                        if item is None:
+                            continue
+                        widget = item.widget()
+                        if widget is None:
+                            continue
+                        cid = widget.property("combatant_id")
+                        if cid is None:
+                            continue
+                        # Map widget rect to viewport coords
+                        widget_rect_global = QRect(
+                            widget.mapTo(self.viewport(), QPoint(0, 0)),
+                            widget.size(),
+                        )
+                        if selection_rect.intersects(widget_rect_global):
+                            selected_ids.add(cid)
+            if selected_ids:
+                self.box_selected.emit(selected_ids)
+
+        self._drag_origin = None
+        self._dragging = False
+        if self._rubber_band is not None:
+            self._rubber_band.hide()
+        super().mouseReleaseEvent(event)
 
 
 # ---------------------------------------------------------------------------
@@ -199,7 +467,8 @@ class CombatTrackerTab(QWidget):
         library: MonsterLibrary instance (shared from MainWindow)
     """
 
-    send_to_saves = Signal(list)   # list of selected combatant data (COMBAT-14, Plan 04)
+    send_to_saves = Signal(list)        # list of SaveParticipant objects (COMBAT-14)
+    start_combat_requested = Signal()   # MainWindow reads sidebar and calls start_combat()
 
     # Default visibility for toggleable stats (all hidden by default)
     _DEFAULT_STAT_VISIBILITY: dict[str, bool] = {
@@ -218,6 +487,7 @@ class CombatTrackerTab(QWidget):
         self._cards: dict[str, CombatantCard] = {}
         self._group_cards: dict[str, GroupCard] = {}
         self._selected_ids: set[str] = set()
+        self._last_selected_id: str | None = None
         self._combat_active = False
         self._visible_stats: dict[str, bool] = dict(self._DEFAULT_STAT_VISIBILITY)
 
@@ -305,14 +575,18 @@ class CombatTrackerTab(QWidget):
 
         toolbar.addStretch()
 
-        # AOE Damage — disabled until Plan 04 multi-select
+        # AOE Damage — enabled when selection is non-empty
         self._aoe_btn = QPushButton("AOE Damage")
         self._aoe_btn.setEnabled(False)
+        self._aoe_btn.setToolTip("Apply the same damage to all selected combatants")
+        self._aoe_btn.clicked.connect(self._on_aoe_damage)
         toolbar.addWidget(self._aoe_btn)
 
-        # Send to Saves — disabled until Plan 04 wiring
+        # Send to Saves — enabled when selection is non-empty
         self._send_saves_btn = QPushButton("Send to Saves")
         self._send_saves_btn.setEnabled(False)
+        self._send_saves_btn.setToolTip("Jump to Saves tab with selected combatants loaded")
+        self._send_saves_btn.clicked.connect(self._on_send_to_saves)
         toolbar.addWidget(self._send_saves_btn)
 
         # Stats toggle button (gear/filter icon)
@@ -323,12 +597,21 @@ class CombatTrackerTab(QWidget):
 
         main_layout.addLayout(toolbar)
 
-        # ---- Body splitter ----
+        # ---- Inner tab widget: Combat | PCs ----
+        self._inner_tabs = QTabWidget()
+
+        # -- Combat tab (scrollable card area + combat log) --
+        combat_widget = QWidget()
+        combat_layout = QVBoxLayout(combat_widget)
+        combat_layout.setContentsMargins(0, 0, 0, 0)
+        combat_layout.setSpacing(0)
+
         splitter = QSplitter(Qt.Orientation.Horizontal)
 
-        # Left: scrollable card area
-        self._scroll_area = QScrollArea()
+        # Left: CombatantListArea (rubber-band scroll area)
+        self._scroll_area = CombatantListArea()
         self._scroll_area.setWidgetResizable(True)
+        self._scroll_area.box_selected.connect(self._on_box_selected)
 
         self._card_container = _CardContainer()
         self._card_container.reorder_requested.connect(self._on_reorder_requested)
@@ -347,7 +630,16 @@ class CombatTrackerTab(QWidget):
         splitter.setStretchFactor(0, 7)
         splitter.setStretchFactor(1, 3)
 
-        main_layout.addWidget(splitter, 1)
+        combat_layout.addWidget(splitter)
+
+        # -- PC subtab --
+        self._pc_subtab = PCSubtab()
+        self._pc_subtab.pc_changed.connect(self._on_pc_changed)
+
+        self._inner_tabs.addTab(combat_widget, "Combat")
+        self._inner_tabs.addTab(self._pc_subtab, "PCs")
+
+        main_layout.addWidget(self._inner_tabs, 1)
 
     # ------------------------------------------------------------------
     # Public API (called by MainWindow)
@@ -357,8 +649,13 @@ class CombatTrackerTab(QWidget):
         """Load an encounter and initialize combat state.
 
         Called by MainWindow when the encounter sidebar provides a member list.
+        PCs from the PC subtab are added automatically after loading monsters.
         """
         self._service.load_encounter(members, self._roller)
+        # Auto-add all saved PCs
+        pcs = self._pc_subtab.get_pcs()
+        if pcs:
+            self._service.add_pcs(pcs)
         self._rebuild_cards()
         self._combat_active = True
         self._roll_init_btn.setEnabled(True)
@@ -367,6 +664,8 @@ class CombatTrackerTab(QWidget):
         n = len(self._service.state.combatants)
         self._log_panel.set_round(self._service.state.round_number)
         self._log_panel.add_entry(f"Combat started with {n} combatant(s).")
+        # Switch to Combat tab
+        self._inner_tabs.setCurrentIndex(0)
 
     def load_combat_state(self, state_dict: dict) -> None:
         """Restore from persisted state dict."""
@@ -395,12 +694,46 @@ class CombatTrackerTab(QWidget):
         state_dict["log_entries"] = self._log_panel.get_entries()
         return state_dict
 
+    def get_pcs(self) -> list[PlayerCharacter]:
+        """Return current PC list from the PC subtab."""
+        return self._pc_subtab.get_pcs()
+
+    def set_pcs(self, pcs: list[PlayerCharacter]) -> None:
+        """Load PCs into the PC subtab (called on startup from persistence)."""
+        self._pc_subtab.set_pcs(pcs)
+
+    def reset_combat_ui(self) -> None:
+        """Clear all combat cards and reset the service (flush integration)."""
+        self._service = CombatTrackerService()
+        self._cards = {}
+        self._group_cards = {}
+        self._selected_ids = set()
+        self._last_selected_id = None
+        self._combat_active = False
+        while self._card_layout.count():
+            item = self._card_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+        self._roll_init_btn.setEnabled(False)
+        self._reset_btn.setEnabled(False)
+        self._start_btn.setText("Start Combat")
+        self._round_label.setText("Round 1")
+        self._update_selection_buttons()
+
+    def clear_pcs(self) -> None:
+        """Clear the PC subtab (flush integration)."""
+        self._pc_subtab.clear_pcs()
+
     # ------------------------------------------------------------------
     # Private: card management
     # ------------------------------------------------------------------
 
     def _rebuild_cards(self) -> None:
         """Clear layout, destroy old cards, create new CombatantCards or GroupCards."""
+        # Clear selection when rebuilding
+        self._selected_ids = set()
+        self._last_selected_id = None
+
         # Remove all widgets from card layout
         while self._card_layout.count():
             item = self._card_layout.takeAt(0)
@@ -427,6 +760,7 @@ class CombatTrackerTab(QWidget):
 
         self._update_round_label()
         self._update_active_turn_highlight()
+        self._update_selection_buttons()
 
     def _rebuild_cards_ungrouped(self) -> None:
         """Create individual CombatantCards for all combatants (no grouping)."""
@@ -485,6 +819,7 @@ class CombatTrackerTab(QWidget):
         card.condition_add_requested.connect(self._on_condition_add_requested)
         card.initiative_changed.connect(self._on_initiative_changed)
         card.condition_clicked.connect(self._on_condition_clicked)
+        card.card_clicked.connect(self._on_card_clicked)
 
     def _wire_group_card_signals(self, group_card: GroupCard) -> None:
         group_card.damage_entered.connect(self._on_damage)
@@ -544,6 +879,19 @@ class CombatTrackerTab(QWidget):
         self._prev_turn_btn.setVisible(initiative_mode)
         self._pass_round_btn.setVisible(not initiative_mode)
 
+    def _update_selection_buttons(self) -> None:
+        """Enable/disable AOE Damage and Send to Saves based on selection."""
+        has_selection = len(self._selected_ids) > 0
+        self._aoe_btn.setEnabled(has_selection)
+        self._send_saves_btn.setEnabled(has_selection)
+
+    def _apply_selection_visuals(self) -> None:
+        """Update selected state on all CombatantCard widgets."""
+        for cid, card in self._cards.items():
+            card.set_selected(cid in self._selected_ids)
+        # GroupCards don't participate in selection individually — only individual
+        # cards exposed in ungrouped mode are selectable via Ctrl/Shift/box.
+
     # ------------------------------------------------------------------
     # Toolbar slots
     # ------------------------------------------------------------------
@@ -551,22 +899,10 @@ class CombatTrackerTab(QWidget):
     def _on_start_combat(self) -> None:
         """Triggered by 'Start Combat' / 'Reload Encounter' button.
 
-        The actual encounter members come from MainWindow via start_combat().
-        This button requests the MainWindow to provide members; the tab
-        itself is wired so that MainWindow calls start_combat(members) directly.
-        Without encounter data this is a no-op with an informative message.
+        Emits start_combat_requested so MainWindow reads the sidebar and calls
+        start_combat(members) with the actual encounter data.
         """
-        if not self._combat_active:
-            # No encounter members yet — inform the user
-            QMessageBox.information(
-                self,
-                "No Encounter",
-                "Build an encounter in the sidebar first, then click 'Start Combat'.",
-            )
-        # If already active, the button text is "Reload Encounter".
-        # Reloading is done via MainWindow calling start_combat() again;
-        # this button is just a trigger routed through MainWindow.
-        # (This is wired in app.py during Phase 11 Plan 04.)
+        self.start_combat_requested.emit()
 
     def _on_roll_initiative(self) -> None:
         self._service.roll_all_initiative(self._roller)
@@ -667,6 +1003,92 @@ class CombatTrackerTab(QWidget):
             self._scroll_area.ensureWidgetVisible(target_widget)
 
     # ------------------------------------------------------------------
+    # Multi-select slots
+    # ------------------------------------------------------------------
+
+    def _on_card_clicked(self, combatant_id: str, modifiers) -> None:
+        """Handle Ctrl-click and Shift-click selection on CombatantCards."""
+        if modifiers & Qt.KeyboardModifier.ControlModifier:
+            # Ctrl-click: toggle selection
+            if combatant_id in self._selected_ids:
+                self._selected_ids.discard(combatant_id)
+            else:
+                self._selected_ids.add(combatant_id)
+                self._last_selected_id = combatant_id
+        elif modifiers & Qt.KeyboardModifier.ShiftModifier:
+            # Shift-click: select range from last selected to this card
+            combatant_ids = list(self._cards.keys())
+            if self._last_selected_id and self._last_selected_id in combatant_ids:
+                a = combatant_ids.index(self._last_selected_id)
+                b = combatant_ids.index(combatant_id) if combatant_id in combatant_ids else -1
+                if b >= 0:
+                    lo, hi = min(a, b), max(a, b)
+                    for cid in combatant_ids[lo:hi + 1]:
+                        self._selected_ids.add(cid)
+            else:
+                self._selected_ids.add(combatant_id)
+            self._last_selected_id = combatant_id
+        else:
+            # Plain click without modifier — clear and select only this card
+            self._selected_ids = {combatant_id}
+            self._last_selected_id = combatant_id
+
+        self._apply_selection_visuals()
+        self._update_selection_buttons()
+
+    def _on_box_selected(self, ids: set) -> None:
+        """Handle rubber-band box selection result."""
+        self._selected_ids = ids
+        self._last_selected_id = next(iter(ids)) if ids else None
+        self._apply_selection_visuals()
+        self._update_selection_buttons()
+
+    # ------------------------------------------------------------------
+    # AOE Damage
+    # ------------------------------------------------------------------
+
+    def _on_aoe_damage(self) -> None:
+        """Apply same damage to all selected combatants."""
+        if not self._selected_ids:
+            return
+        dialog = _AOEDamageDialog(self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        damage = dialog.get_damage()
+        log_entries = self._service.apply_aoe_damage(list(self._selected_ids), damage)
+        for entry in log_entries:
+            self._log_panel.add_entry(entry)
+        self._refresh_cards()
+
+    # ------------------------------------------------------------------
+    # Send to Saves
+    # ------------------------------------------------------------------
+
+    def _on_send_to_saves(self) -> None:
+        """Resolve selected combatants to SaveParticipant objects and emit send_to_saves."""
+        if not self._selected_ids:
+            return
+
+        from src.encounter.models import SaveParticipant
+        from src.encounter.service import _resolve_save_bonus
+
+        participants: list[SaveParticipant] = []
+        for cid in self._selected_ids:
+            state = self._service.get_combatant(cid)
+            if state is None:
+                continue
+            if state.monster_name and self._library.has_name(state.monster_name):
+                monster = self._library.get_by_name(state.monster_name)
+                save_bonus = _resolve_save_bonus(monster, "CON")  # default ability for initial load
+                participants.append(SaveParticipant(name=state.name, save_bonus=save_bonus))
+            else:
+                # PC or unresolvable monster — use save bonus 0
+                participants.append(SaveParticipant(name=state.name, save_bonus=0))
+
+        if participants:
+            self.send_to_saves.emit(participants)
+
+    # ------------------------------------------------------------------
     # Stat toggle menu
     # ------------------------------------------------------------------
 
@@ -732,8 +1154,14 @@ class CombatTrackerTab(QWidget):
     # ------------------------------------------------------------------
 
     def _on_damage(self, combatant_id: str, value: int) -> None:
-        log_entry = self._service.apply_damage(combatant_id, value)
-        self._log_panel.add_entry(log_entry)
+        """Apply damage. If multiple combatants are selected, apply to all selected."""
+        if len(self._selected_ids) > 1 and combatant_id in self._selected_ids:
+            for cid in list(self._selected_ids):
+                log_entry = self._service.apply_damage(cid, value)
+                self._log_panel.add_entry(log_entry)
+        else:
+            log_entry = self._service.apply_damage(combatant_id, value)
+            self._log_panel.add_entry(log_entry)
         self._refresh_cards()
 
     def _on_condition_add_requested(self, combatant_id: str) -> None:
@@ -776,8 +1204,17 @@ class CombatTrackerTab(QWidget):
             from src.ui.combatant_card import CONDITION_COLORS, _DEFAULT_CONDITION_COLOR
             color = CONDITION_COLORS.get(name, _DEFAULT_CONDITION_COLOR)
             entry = ConditionEntry(name=name, duration=duration, color=color)
-            log_entry = self._service.add_condition(combatant_id, entry)
-            self._log_panel.add_entry(log_entry)
+            # Apply to all selected if multi-select
+            target_ids = (
+                list(self._selected_ids)
+                if len(self._selected_ids) > 1 and combatant_id in self._selected_ids
+                else [combatant_id]
+            )
+            for cid in target_ids:
+                log_entry = self._service.add_condition(cid, ConditionEntry(
+                    name=name, duration=duration, color=color
+                ))
+                self._log_panel.add_entry(log_entry)
             self._refresh_cards()
 
         elif kind == "custom":
@@ -786,9 +1223,16 @@ class CombatTrackerTab(QWidget):
                 name = dialog.get_condition_name()
                 if name:
                     duration = dialog.get_duration()
-                    entry = ConditionEntry(name=name, duration=duration)
-                    log_entry = self._service.add_condition(combatant_id, entry)
-                    self._log_panel.add_entry(log_entry)
+                    # Apply to all selected if multi-select
+                    target_ids = (
+                        list(self._selected_ids)
+                        if len(self._selected_ids) > 1 and combatant_id in self._selected_ids
+                        else [combatant_id]
+                    )
+                    for cid in target_ids:
+                        entry = ConditionEntry(name=name, duration=duration)
+                        log_entry = self._service.add_condition(cid, entry)
+                        self._log_panel.add_entry(log_entry)
                     self._refresh_cards()
 
     def _on_condition_clicked(self, combatant_id: str, condition_name: str) -> None:
@@ -837,3 +1281,12 @@ class CombatTrackerTab(QWidget):
         # If initiative mode, rebuild to reflect new sort order
         if self._service.state.initiative_mode:
             self._rebuild_cards()
+
+    # ------------------------------------------------------------------
+    # PC subtab slot
+    # ------------------------------------------------------------------
+
+    def _on_pc_changed(self) -> None:
+        """PC subtab emitted a change; no immediate action needed here.
+        MainWindow auto-save timer will catch this, or direct wiring can be added."""
+        pass
