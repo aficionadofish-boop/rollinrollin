@@ -35,6 +35,7 @@ class MacroLineResult:
     warnings: list[MacroWarning]
     error: Optional[str]               # ParseError message; None on success
     template_name: Optional[str] = None  # Name from {{name=...}} if present
+    template_fields: list[tuple[str, str]] = field(default_factory=list)  # (key, raw_value) pairs from {{key=value}} template fields
 
     @property
     def has_result(self) -> bool:

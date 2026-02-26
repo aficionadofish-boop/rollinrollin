@@ -74,6 +74,7 @@ class CleanedMacro:
     warnings: list[ParseWarning] # Warnings for stripped unsupported tokens
     is_empty: bool               # True if the original line was blank or whitespace-only
     template_name: str | None = None  # Name from {{name=...}} template field, if present
+    template_fields: list[tuple[str, str]] = field(default_factory=list)  # (key, raw_value) pairs from {{key=value}} template fields
 
 
 # ---------------------------------------------------------------------------
@@ -129,7 +130,7 @@ class MacroPreprocessor:
         line = _TEMPLATE_RE.sub("", line)
 
         # --- Extract {{key=value}} template fields ---
-        line, template_name = self._extract_template_fields(line)
+        line, template_name, template_fields = self._extract_template_fields(line)
 
         # --- Warn and strip #macro-name tokens ---
         for m in _MACRO_REF_RE.finditer(line):
@@ -155,6 +156,7 @@ class MacroPreprocessor:
             warnings=warnings,
             is_empty=False,
             template_name=template_name,
+            template_fields=template_fields,
         )
 
     def resolve_inline_rolls(
@@ -225,22 +227,25 @@ class MacroPreprocessor:
     # Private helpers
     # ---------------------------------------------------------------------------
 
-    def _extract_template_fields(self, text: str) -> tuple[str, str | None]:
+    def _extract_template_fields(self, text: str) -> tuple[str, str | None, list[tuple[str, str]]]:
         """Extract ``{{key=value}}`` Roll20 template fields from the expression.
 
-        Returns ``(cleaned_expression, template_name)``.
+        Returns ``(cleaned_expression, template_name, template_fields)``.
 
         - ``{{name=...}}`` is extracted as the template name and stripped entirely.
         - Other ``{{key=value}}`` fields have ``key=`` stripped; the value is kept
           so that inline rolls and queries within remain available for resolution.
+          The (key, raw_value) pair is also collected in template_fields.
         - ``{{bare_value}}`` (no ``=``) is kept as-is (e.g. ``{{?{query}}}``).
+          Bare values are NOT added to template_fields.
         - Correctly handles ``}}}`` where the first ``}`` closes an inner
           ``?{...}`` and the next ``}}`` closes the template field.
         """
         if "{{" not in text:
-            return text, None
+            return text, None, []
 
         template_name: str | None = None
+        fields: list[tuple[str, str]] = []
         result_parts: list[str] = []
         last_end = 0
         i = 0
@@ -282,10 +287,12 @@ class MacroPreprocessor:
                 key, _, value = content.partition("=")
                 if key.strip().lower() == "name":
                     template_name = value.strip()
-                    # Name field is informational — don't add to expression
+                    # Name field is informational — don't add to expression or fields
                 else:
                     # Keep the value (may contain [[inline rolls]], ?{queries})
                     result_parts.append(" " + value.strip() + " ")
+                    # Capture (key, raw_value) pair for template card rendering
+                    fields.append((key.strip(), value.strip()))
             else:
                 # Bare value (e.g. ?{query} inside template field)
                 result_parts.append(" " + content.strip() + " ")
@@ -297,7 +304,7 @@ class MacroPreprocessor:
         result_parts.append(text[last_end:])
 
         cleaned = " ".join(part.strip() for part in result_parts if part.strip())
-        return cleaned, template_name
+        return cleaned, template_name, fields
 
     def _parse_query(self, inner: str, raw: str) -> QuerySpec:
         """
