@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** DMs can manage the full combat loop — prep monsters, roll attacks and saves, and track combat state — in seconds, with D&D 5e rule fidelity and persistent data.
-**Current focus:** Phase 12 in progress — Save Roller Upgrades Plan 02 complete (per-creature sidebar checkboxes, get_checked_members API)
+**Current focus:** Phase 12 in progress — Save Roller Upgrades Plan 03 complete (SavesTab UI wiring with feature detection, LR interaction, sidebar integration, CT override setting)
 
 ## Current Position
 
 Phase: 12 of 13 (Save Roller Upgrades)
-Plan: 2 of ? in current phase (Plan 02 complete — sidebar checkboxes done)
+Plan: 3 of 3 in current phase (Plan 03 complete — all SAVE requirements implemented)
 Status: In Progress
-Last activity: 2026-02-26 — Phase 12 Plan 02 complete (per-creature QCheckBox on sidebar, Select All/None/Invert buttons, get_checked_members())
+Last activity: 2026-02-26 — Phase 12 Plan 03 complete (SavesTab feature detection toggles, detection rules panel, per-row result widgets with LR tracking, sidebar wiring, CT override setting in Settings)
 
-Progress: [████████████████] Phase 12 Plan 02 complete (2/? plans)
+Progress: [████████████████] Phase 12 Plan 03 complete (3/3 plans)
 
 ## Performance Metrics
 
@@ -30,7 +30,8 @@ Progress: [████████████████] Phase 12 Plan 02 co
 | 9 (v2.0) | 5/5 | Complete |
 | 10 (v2.0) | 2/2 | Complete |
 | 11 (v2.0) | 4/4 | Complete |
-| 12-13 (v2.0) | 0/? | Not started |
+| 12 (v2.0) | 3/3 | Complete |
+| 13 (v2.0) | 0/? | Not started |
 
 ## Accumulated Context
 
@@ -115,6 +116,10 @@ Recent decisions affecting current work:
 - [Phase 12-02]: Sidebar checkbox state NOT persisted to disk — all rows start checked on set_encounter() and app launch (avoids confusion when DM returns days later)
 - [Phase 12-02]: One checkbox per monster type row (grouped creatures toggle as a group) — individual-creature toggling deferred
 - [Phase 12-02]: get_checked_members() returns filtered (Monster, count) list; get_members() unchanged (still returns all)
+- [Phase 12-03]: Detection Rules panel collapsed by default (QGroupBox setCheckable) — minimizes visual noise for standard sessions
+- [Phase 12-03]: LR counters reset only on encounter change, not on each roll — critical for multi-roll LR tracking within a fight
+- [Phase 12-03]: monster_name monkey-patched onto SaveParticipantResult at roll time — avoids domain model churn for UI-layer concern
+- [Phase 12-03]: Tab switch to Saves auto-loads only if sidebar has checked members — avoids noisy empty-participant message
 
 ### Pending Todos
 
@@ -128,5 +133,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 12-01-PLAN.md (domain models, FeatureDetectionService, save_rules persistence, ct_send_overrides_sidebar)
+Stopped at: Completed 12-03-PLAN.md (SavesTab UI wiring, feature detection, LR interaction, sidebar integration, CT override setting — Phase 12 complete)
 Resume file: .planning/ROADMAP.md
