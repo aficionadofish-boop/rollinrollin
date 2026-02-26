@@ -28,3 +28,10 @@ class AppSettings:
 
     # Combat Tracker "Send to Saves" behavior
     ct_send_overrides_sidebar: bool = True
+
+    # Theme
+    theme_name: str = "dark"        # active preset: "dark", "default", "high_contrast"
+    text_color: str = ""            # custom text color hex (empty = use preset)
+    bg_color: str = ""              # custom background color hex (empty = use preset)
+    accent_color: str = ""          # custom accent color hex (empty = use preset)
+    sandbox_font: str = "Consolas"  # macro sandbox font family name
