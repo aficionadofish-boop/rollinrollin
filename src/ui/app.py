@@ -23,6 +23,7 @@ from src.ui.encounter_sidebar import EncounterSidebarDock
 from src.ui.load_encounter_dialog import LoadEncounterDialog
 from src.ui.macro_sandbox_tab import MacroSandboxTab
 from src.ui.settings_tab import SettingsTab
+from src.ui.theme_service import ThemeService
 from src.workspace.setup import WorkspaceManager, resolve_workspace_root
 
 
@@ -35,6 +36,7 @@ class MainWindow(QMainWindow):
         self.resize(1100, 750)
 
         # Shared state — one instance each for the entire session
+        self._theme_service = ThemeService()
         self._library = MonsterLibrary()
         self._roller = Roller(random.Random())  # unseeded; seeding handled via settings
         self._workspace_manager = WorkspaceManager(resolve_workspace_root())
@@ -159,8 +161,18 @@ class MainWindow(QMainWindow):
         self._current_settings = settings
         self._apply_settings(settings)
 
+    def get_theme_service(self) -> ThemeService:
+        """Return the shared ThemeService instance.
+
+        Allows child widgets to access the active accent color via the main window.
+        """
+        return self._theme_service
+
     def _apply_settings(self, settings: AppSettings) -> None:
         """Apply loaded/saved settings to all tabs and the shared roller."""
+        # Apply theme first so all subsequent widget creation uses correct colors
+        self._theme_service.apply(settings)
+
         # Re-seed or un-seed the shared RNG (never recreate the Roller instance)
         if settings.seeded_rng_enabled and settings.seed_value is not None:
             self._roller._rng.seed(settings.seed_value)
