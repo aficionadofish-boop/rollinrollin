@@ -89,6 +89,9 @@ class MainWindow(QMainWindow):
             self._sidebar.add_monster
         )
 
+        # Persist imported monster file paths when they change
+        self._library_tab.source_files_changed.connect(self._on_source_files_changed)
+
         # Cross-tab signal: sidebar encounter changes → Attack Roller creature list
         self._sidebar.encounter_changed.connect(
             self._attack_roller_tab.set_creatures
@@ -241,11 +244,57 @@ class MainWindow(QMainWindow):
     # Persistence lifecycle
     # ------------------------------------------------------------------
 
+    def _on_source_files_changed(self, paths: list) -> None:
+        """Save updated import file paths to persistence when library imports change."""
+        self._persisted_monsters = paths
+        self._persistence.save_loaded_monsters(paths)
+
+    def _reload_persisted_monster_files(self) -> None:
+        """Re-parse persisted monster source file paths into the library on startup.
+
+        Skips paths that no longer exist on disk (e.g. files on removable drives)
+        without removing them from the persisted list — they may return later.
+        Populates _library_tab._imported_paths so subsequent imports accumulate
+        correctly.
+        """
+        from pathlib import Path as _Path
+        from src.parser.statblock_parser import parse_file as _parse_file
+
+        paths = self._persisted_monsters
+        if not paths:
+            return
+
+        for path_str in paths:
+            path = _Path(path_str)
+            if not path.exists():
+                # File missing (removable drive, renamed, etc.) — skip silently
+                continue
+            try:
+                result = _parse_file(path)
+            except Exception:
+                continue
+
+            for monster in result.monsters:
+                if not self._library.has_name(monster.name):
+                    self._library.add(monster)
+                # If monster already exists (e.g. loaded via modifications), skip
+                # rather than creating a duplicate.
+
+        # Populate _imported_paths so future imports don't lose these paths
+        self._library_tab._imported_paths = set(paths)
+
+        # Refresh the library tab model to show restored monsters
+        self._library_tab._refresh_model()
+        self._library_tab._refresh_type_combo()
+
     def _load_persisted_data(self) -> None:
         """Load all persistence categories from disk into instance variables."""
         self._persisted_monsters = self._persistence.load_loaded_monsters()
         self._persisted_modifications = self._persistence.load_modified_monsters()
         self._persisted_macros = self._persistence.load_macros()
+
+        # Re-parse persisted monster source files into the library
+        self._reload_persisted_monster_files()
 
         # Restore active encounter into sidebar
         active_enc = self._persistence.load_active_encounter()

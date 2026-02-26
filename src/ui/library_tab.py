@@ -100,11 +100,13 @@ class MonsterLibraryTab(QWidget):
 
     monster_selected = Signal(object)         # emitted when user selects a row
     monster_added_to_encounter = Signal(object)  # emitted when monster dropped onto drop zone
+    source_files_changed = Signal(list)       # emitted when imported file paths change
 
     def __init__(self, library: MonsterLibrary, persistence=None, parent=None) -> None:
         super().__init__(parent)
         self._library = library
         self._persistence = persistence
+        self._imported_paths: set = set()
         self._setup_ui()
         self._connect_signals()
 
@@ -245,11 +247,11 @@ class MonsterLibraryTab(QWidget):
             self._proxy.set_complete_only(True)
 
     def _on_selection_changed(self, selected, deselected) -> None:
-        indexes = selected.indexes()
-        if not indexes:
+        rows = self._table.selectionModel().selectedRows()
+        if not rows:
             self._detail_panel.clear()
             return
-        proxy_index = indexes[0]
+        proxy_index = rows[0]
         source_index = self._proxy.mapToSource(proxy_index)
         monster = self._model.monster_at(source_index.row())
         self._detail_panel.show_monster(monster)
@@ -347,6 +349,7 @@ class MonsterLibraryTab(QWidget):
             apply_to_all = [None]
 
         result = parse_file(path)
+        imported_any = False
         for monster in result.monsters:
             if self._library.has_name(monster.name):
                 # Use the batch-wide decision if already set, otherwise ask.
@@ -364,10 +367,17 @@ class MonsterLibraryTab(QWidget):
                     continue
                 elif base_action == "replace":
                     self._library.replace(monster)
+                    imported_any = True
                 else:  # 'keep' / 'keep_all'
                     self._library.add(monster)
+                    imported_any = True
             else:
                 self._library.add(monster)
+                imported_any = True
+
+        if imported_any:
+            self._imported_paths.add(str(path))
+            self.source_files_changed.emit(list(self._imported_paths))
 
         import_result = ImportResult.from_parse_result(str(path.name), result)
         self._log_panel.log_result(
