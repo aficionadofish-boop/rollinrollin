@@ -1146,6 +1146,69 @@ class MonsterEditorDialog(QDialog):
         # Refresh action editor rows to show updated values
         self._rebuild_action_rows()
 
+    def _cascade_all_actions_on_ability_change(
+        self, old_scores: dict[str, int]
+    ) -> None:
+        """Cascade ability score changes to ALL actions.
+
+        Equipment-generated: recomputed via EquipmentService (exact).
+        Non-equipment (imported): to-hit inferred from old ability mod + prof,
+        recomputed with new ability mod delta.  Damage bonus in dice_expr is
+        also updated when it matches the inferred ability modifier.
+        """
+        import re as _re
+
+        # Equipment-generated actions: full recompute
+        self._recompute_equipped_weapon_actions()
+
+        # Non-equipment actions: delta-based inference
+        derived = self._engine.recalculate(self._working_copy)
+        prof = derived.proficiency_bonus
+
+        # Build delta map for abilities that actually changed
+        ability_deltas: dict[str, tuple[int, int]] = {}  # ability -> (old_mod, delta)
+        for ability in _ABILITY_LABELS:
+            old_mod = (old_scores.get(ability, 10) - 10) // 2
+            new_mod = (self._working_copy.ability_scores.get(ability, 10) - 10) // 2
+            if old_mod != new_mod:
+                ability_deltas[ability] = (old_mod, new_mod - old_mod)
+
+        if not ability_deltas:
+            return
+
+        for action in self._working_copy.actions:
+            if action.is_equipment_generated or action.to_hit_bonus is None:
+                continue
+
+            # Try to infer which ability this action uses:
+            # to_hit = ability_mod + prof + [0..3 magic bonus]
+            for ability, (old_mod, delta) in ability_deltas.items():
+                remainder = action.to_hit_bonus - prof - old_mod
+                if 0 <= remainder <= 3:
+                    action.to_hit_bonus += delta
+
+                    # Also try to update damage bonus embedded in dice_expr
+                    if action.damage_parts:
+                        dp = action.damage_parts[0]
+                        match = _re.match(r'^(.+d\d+)([+-]\d+)$', dp.dice_expr)
+                        if match:
+                            dice_part = match.group(1)
+                            old_dmg_bonus = int(match.group(2))
+                            dmg_remainder = old_dmg_bonus - old_mod
+                            if 0 <= dmg_remainder <= 3:
+                                new_dmg_bonus = old_dmg_bonus + delta
+                                if new_dmg_bonus == 0:
+                                    dp.dice_expr = dice_part
+                                elif new_dmg_bonus > 0:
+                                    dp.dice_expr = f"{dice_part}+{new_dmg_bonus}"
+                                else:
+                                    dp.dice_expr = f"{dice_part}{new_dmg_bonus}"
+                                dp.raw_text = f"{dp.dice_expr} {dp.damage_type}"
+                    break  # Only apply one ability's delta per action
+
+        # Rebuild editor action rows with updated values
+        self._rebuild_action_rows()
+
     # ------------------------------------------------------------------
     # Action rows rebuild
     # ------------------------------------------------------------------
@@ -1459,11 +1522,14 @@ class MonsterEditorDialog(QDialog):
 
         Also cascades ability score changes to:
         - Saving throws (recomputed for Prof/Expertise state)
-        - Equipment-generated action to-hit and damage
+        - ALL actions: equipment-generated (exact recompute) and imported
+          (delta-based inference from old ability mod + proficiency)
         """
         if self._recalculating:
             return
         self._push_undo()
+        # Snapshot old scores BEFORE overwriting (for action cascade inference)
+        old_scores = dict(self._working_copy.ability_scores)
         for ability, spinbox in self._ability_spinboxes.items():
             old_score = self._base_monster.ability_scores.get(ability, 10)
             new_score = spinbox.value()
@@ -1474,8 +1540,8 @@ class MonsterEditorDialog(QDialog):
                 self._mod_sources.pop(f"ability_{ability}", None)
         # Cascade: recompute saves based on new ability modifiers
         self._sync_save_toggles(recompute_values=True)
-        # Cascade: recompute equipment-generated actions with new ability mods
-        self._recompute_equipped_weapon_actions()
+        # Cascade: recompute ALL actions (equipment + imported)
+        self._cascade_all_actions_on_ability_change(old_scores)
         self._rebuild_preview()
 
     def _on_save_toggle_changed(self) -> None:

@@ -378,9 +378,15 @@ class MonsterDetailPanel(QWidget):
             # Dice math: "+5 to hit  |  1d6+3 piercing + 1d4 poison"
             sign = "+" if action.to_hit_bonus >= 0 else ""
             hit_str = f"{sign}{action.to_hit_bonus} to hit"
-            dmg_parts = [
-                f"{dp.dice_expr} {dp.damage_type}" for dp in action.damage_parts
-            ]
+            dmg_parts = []
+            for i, dp in enumerate(action.damage_parts):
+                text = dp.dice_expr
+                # Append damage_bonus to first part (equipment-generated
+                # actions store bonus separately from dice_expr)
+                bonus = getattr(action, "damage_bonus", 0) or 0
+                if i == 0 and bonus != 0:
+                    text = f"{text}+{bonus}" if bonus > 0 else f"{text}{bonus}"
+                dmg_parts.append(f"{text} {dp.damage_type}")
             math_str = f"{hit_str}  |  {' + '.join(dmg_parts)}" if dmg_parts else hit_str
             math_label = QLabel(math_str)
             math_label.setStyleSheet("color: gray; font-size: 9pt;")
