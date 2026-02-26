@@ -253,6 +253,122 @@ class ResultCard(QFrame):
 
 
 # ---------------------------------------------------------------------------
+# TemplateCard
+# ---------------------------------------------------------------------------
+
+class TemplateCard(QFrame):
+    """Roll20 template-style card with colored header and labeled key/value rows.
+
+    Per user decision: approximate Roll20 look, styled to match the app's visual
+    language. Header uses the active theme's accent color (theme-aware).
+    """
+
+    def __init__(self, line_result: MacroLineResult, accent_color: str = "#4DA6FF", parent=None):
+        super().__init__(parent)
+        self.setFrameShape(QFrame.Shape.StyledPanel)
+        root = QVBoxLayout(self)
+        root.setContentsMargins(0, 0, 0, 4)
+        root.setSpacing(0)
+
+        # --- Header: colored background, white text, template name ---
+        header_text = line_result.template_name or "Template"
+        header = QLabel(header_text)
+        header.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        header.setStyleSheet(
+            f"background-color: {accent_color}; color: #FFFFFF; "
+            f"font-weight: bold; padding: 6px; font-size: 11pt;"
+        )
+        root.addWidget(header)
+
+        # --- Key/value rows from template_fields ---
+        # Resolve inline roll tokens in field values
+        resolved_fields = self._resolve_field_values(
+            line_result.template_fields, line_result.inline_results
+        )
+
+        for key, value in resolved_fields:
+            row_widget = QWidget()
+            row_layout = QHBoxLayout(row_widget)
+            row_layout.setContentsMargins(8, 3, 8, 3)
+
+            key_label = QLabel(f"{key}:")
+            key_label.setStyleSheet("font-weight: bold; min-width: 80px;")
+            val_label = QLabel(str(value))
+
+            row_layout.addWidget(key_label)
+            row_layout.addWidget(val_label, 1)
+            root.addWidget(row_widget)
+
+        # --- Inline roll results that are NOT part of template fields ---
+        # (e.g., standalone [[...]] rolls in the expression outside template fields)
+        # Only show these if there are inline results not consumed by field resolution
+        remaining_inline = self._get_remaining_inline_results(
+            line_result.template_fields, line_result.inline_results
+        )
+        if remaining_inline:
+            for original_expr, dice_result in remaining_inline:
+                row_widget = QWidget()
+                row_layout = QHBoxLayout(row_widget)
+                row_layout.setContentsMargins(8, 2, 8, 2)
+
+                expr_label = QLabel(original_expr)
+                expr_label.setStyleSheet("color: #888888; min-width: 80px;")
+                result_label = QLabel(str(dice_result.total))
+                result_label.setStyleSheet("font-weight: bold;")
+
+                row_layout.addWidget(expr_label)
+                row_layout.addWidget(result_label, 1)
+                root.addWidget(row_widget)
+
+        # --- Warnings (if any) ---
+        for w in line_result.warnings:
+            warn_label = QLabel(f"\u26a0 {w.reason}")
+            warn_label.setStyleSheet("color: #FFA500; padding: 2px 8px; font-size: 9pt;")
+            root.addWidget(warn_label)
+
+    @staticmethod
+    def _resolve_field_values(
+        template_fields: list,
+        inline_results: list,
+    ) -> list:
+        """Replace [[...]] tokens in field values with resolved totals.
+
+        Matches by order: the first [[...]] in field values corresponds to
+        the first inline_result, etc. This relies on the preprocessor
+        iterating fields left-to-right and resolve_inline_rolls processing
+        [[...]] left-to-right.
+        """
+        import re
+        inline_idx = 0
+        resolved: list = []
+
+        for key, raw_value in template_fields:
+            value = raw_value
+            # Find all [[...]] tokens in this field value
+            pattern = re.compile(r'\[\[[^\[\]]+\]\]')
+            while pattern.search(value) and inline_idx < len(inline_results):
+                m = pattern.search(value)
+                _, dice_result = inline_results[inline_idx]
+                value = value[:m.start()] + str(dice_result.total) + value[m.end():]
+                inline_idx += 1
+            resolved.append((key, value))
+
+        return resolved
+
+    @staticmethod
+    def _get_remaining_inline_results(
+        template_fields: list,
+        inline_results: list,
+    ) -> list:
+        """Return inline results not consumed by template field resolution."""
+        import re
+        consumed = 0
+        for _, raw_value in template_fields:
+            consumed += len(re.findall(r'\[\[[^\[\]]+\]\]', raw_value))
+        return inline_results[consumed:]
+
+
+# ---------------------------------------------------------------------------
 # ResultPanel
 # ---------------------------------------------------------------------------
 
