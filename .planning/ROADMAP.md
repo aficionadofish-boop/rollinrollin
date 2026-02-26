@@ -154,7 +154,7 @@ Phase 8 → Phase 9 (parallel with 10) → Phase 10 → Phase 11 → Phase 12 �
 | 11. Combat Tracker | v2.0 | 4/4 | Complete | 2026-02-26 |
 | 12. Save Roller Upgrades | v2.0 | 3/3 | Complete | 2026-02-26 |
 | 13. Output Polish, Theming, and UI | v2.0 | 5/5 | Complete | 2026-02-26 |
-| 14. Bug Fixes & Critical Polish | 4/6 | In Progress|  | - |
+| 14. Bug Fixes & Critical Polish | v2.0 | 3/6 | In Progress | - |
 | 15. Editor & Parser Overhaul | v2.1 | 0/? | Planned | - |
 | 16. Buff System & Output Improvements | v2.1 | 0/? | Planned | - |
 
