@@ -59,6 +59,8 @@ class Monster:
     hp: int
     cr: str                                        # CR as string: "1/2", "1", "17"
     actions: list[Action] = field(default_factory=list)
+    legendary_actions: list[Action] = field(default_factory=list)  # actions from "Legendary Actions" section
+    lair_actions: list[Action] = field(default_factory=list)        # actions from "Lair Actions" section
     saves: dict[str, int] = field(default_factory=dict)  # e.g. {"STR": 3, "DEX": 5}
     creature_type: str = ""                        # e.g. "Monstrosity", "Undead"
     ability_scores: dict[str, int] = field(default_factory=dict)  # {"STR": 10, ...}
