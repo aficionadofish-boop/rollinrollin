@@ -126,7 +126,13 @@ Plans:
   3. User can open Settings, select the "High Contrast" theme, and immediately see the entire app recolor without restarting; switching back to the default theme also takes effect immediately
   4. User can change the macro sandbox font independently from the rest of the app; the sandbox uses the selected font while all other tabs use the app default
   5. All active toggles across all tabs (e.g. "DEX" selected on Saves, "Advantage" on Attack) are visually highlighted so the DM can see at a glance what rules are currently active
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+- [ ] 13-01-PLAN.md -- ThemeService + AppSettings fields + main.py migration + toggle highlighting
+- [ ] 13-02-PLAN.md -- Attack output HTML with damage type colors and crit/miss highlights
+- [ ] 13-03-PLAN.md -- Preprocessor template_fields extension for Roll20 card rendering
+- [ ] 13-04-PLAN.md -- SettingsTab theming controls (preset dropdown, custom colors, sandbox font)
+- [ ] 13-05-PLAN.md -- TemplateCard widget + ResultPanel dispatch for Roll20 template macros
 
 ## Progress
 
