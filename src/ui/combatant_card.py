@@ -295,11 +295,12 @@ class CombatantCard(QFrame):
 
     def _rebuild_condition_chips(self, state: CombatantState) -> None:
         """Clear and recreate all condition chips from state."""
-        # Remove all widgets from chip layout
+        # Remove all widgets from chip layout except the persistent + button
         while self._chip_layout.count():
             item = self._chip_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+            w = item.widget()
+            if w and w is not self._plus_btn:
+                w.deleteLater()
 
         for cond in state.conditions:
             chip = _ConditionChip(cond.name, cond.duration, cond.expired)
@@ -454,7 +455,7 @@ class CombatantCard(QFrame):
         if self._active_turn:
             self.setStyleSheet(
                 "CombatantCard { border: 2px solid #FF9800; border-radius: 4px; "
-                "box-shadow: 0 0 8px #FF9800; }"
+                "background-color: rgba(255, 152, 0, 0.08); }"
             )
         elif self._selected:
             self.setStyleSheet(

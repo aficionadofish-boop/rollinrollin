@@ -1108,28 +1108,28 @@ class CombatTrackerTab(QWidget):
             action = menu.addAction(label)
             action.setCheckable(True)
             action.setChecked(self._visible_stats.get(stat_key, False))
-            action.setData(stat_key)
+            # Connect triggered(bool) so toggling works regardless of exec() return value
+            action.triggered.connect(
+                lambda checked, key=stat_key: self._toggle_stat(key, checked)
+            )
 
         menu.addSeparator()
 
         regen_auto_action = menu.addAction("Regen Auto-Apply")
         regen_auto_action.setCheckable(True)
         regen_auto_action.setChecked(self._service._auto_regen)
-        regen_auto_action.setData("_regen_auto")
+        regen_auto_action.triggered.connect(
+            lambda checked: self._service.set_auto_regen(checked)
+        )
 
-        selected = menu.exec(self._gear_btn.mapToGlobal(
+        menu.exec(self._gear_btn.mapToGlobal(
             self._gear_btn.rect().bottomLeft()
         ))
-        if selected is None:
-            return
 
-        stat_key = selected.data()
-        if stat_key == "_regen_auto":
-            self._service.set_auto_regen(selected.isChecked())
-        elif stat_key in self._visible_stats:
-            visible = selected.isChecked()
-            self._visible_stats[stat_key] = visible
-            self._apply_stat_visible_to_all(stat_key, visible)
+    def _toggle_stat(self, stat_key: str, visible: bool) -> None:
+        """Update visibility state for one stat and propagate to all cards."""
+        self._visible_stats[stat_key] = visible
+        self._apply_stat_visible_to_all(stat_key, visible)
 
     def _apply_stat_visible_to_all(self, stat_key: str, visible: bool) -> None:
         """Propagate stat visibility to all current card widgets."""
