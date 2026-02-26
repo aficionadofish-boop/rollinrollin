@@ -8,10 +8,12 @@ _FILENAMES = {
     "encounters": "encounters.json",
     "modified_monsters": "modified_monsters.json",
     "macros": "macros.json",
+    "combat_state": "combat_state.json",
+    "player_characters": "player_characters.json",
 }
 
 # Categories that use a dict as their empty default; all others use a list.
-_DICT_CATEGORIES = {"modified_monsters", "encounters"}
+_DICT_CATEGORIES = {"modified_monsters", "encounters", "combat_state"}
 
 
 class PersistenceService:
@@ -144,6 +146,31 @@ class PersistenceService:
         self._save("macros", data)
 
     # ------------------------------------------------------------------
+    # Combat state
+    # ------------------------------------------------------------------
+
+    def load_combat_state(self) -> dict:
+        """Return the combat state dict or empty dict."""
+        data = self._load("combat_state")
+        if not isinstance(data, dict):
+            return {}
+        return data
+
+    def save_combat_state(self, data: dict) -> None:
+        self._save("combat_state", data)
+
+    # ------------------------------------------------------------------
+    # Player characters
+    # ------------------------------------------------------------------
+
+    def load_player_characters(self) -> list:
+        """Return list of player character dicts."""
+        return self._load("player_characters")
+
+    def save_player_characters(self, data: list) -> None:
+        self._save("player_characters", data)
+
+    # ------------------------------------------------------------------
     # Utility
     # ------------------------------------------------------------------
 
@@ -164,6 +191,7 @@ class PersistenceService:
         """Return number of entries in the given category.
 
         For encounters: counts active (1 if present) + number of saved encounters.
+        For combat_state: returns len(combatants) from the loaded dict.
         For all other categories: returns len() of the loaded data.
         """
         if category == "encounters":
@@ -173,4 +201,9 @@ class PersistenceService:
             active = data.get("active")
             saved = data.get("saved", [])
             return len(saved) + (1 if active else 0)
+        if category == "combat_state":
+            data = self._load("combat_state")
+            if not isinstance(data, dict):
+                return 0
+            return len(data.get("combatants", []))
         return len(self._load(category))
