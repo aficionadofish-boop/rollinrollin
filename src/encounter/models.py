@@ -21,6 +21,13 @@ class SaveParticipant:
     """One participant in a save roll — name plus resolved save bonus."""
     name: str           # e.g. "Goblin 1", "Goblin 2", "Hobgoblin"
     save_bonus: int     # resolved from Monster.saves[ability] or (score-10)//2
+    advantage: Optional[Literal["normal", "advantage", "disadvantage"]] = None
+    # None = inherit from SaveRequest.advantage
+    detected_features: list[str] = field(default_factory=list)
+    # e.g. ["MR (auto)", "LR 2/3"]
+    lr_uses: int = 0       # remaining legendary resistance uses at roll time
+    lr_max: int = 0        # max LR for this creature
+    monster_name: Optional[str] = None  # base monster name for LR counter keying
 
 
 @dataclass
@@ -47,6 +54,9 @@ class SaveParticipantResult:
     total: int             # d20_natural + save_bonus + flat_modifier + bonus_dice totals
     passed: bool           # total >= dc
     dc: int
+    detected_features: list[str] = field(default_factory=list)
+    lr_uses: int = 0
+    lr_max: int = 0
 
 
 @dataclass

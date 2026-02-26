@@ -17,6 +17,7 @@ Module-level helpers:
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
@@ -221,9 +222,11 @@ class SaveRollService:
         roller: Roller,
     ) -> SaveParticipantResult:
         # 1. Roll d20 based on advantage mode
-        if request.advantage == "advantage":
+        # Per-participant advantage overrides request-level advantage when set
+        effective_advantage = participant.advantage if participant.advantage is not None else request.advantage
+        if effective_advantage == "advantage":
             d20_result = roll_expression("2d20kh1", roller, request.seed)
-        elif request.advantage == "disadvantage":
+        elif effective_advantage == "disadvantage":
             d20_result = roll_expression("2d20kl1", roller, request.seed)
         else:
             d20_result = roll_expression("1d20", roller, request.seed)
@@ -259,6 +262,9 @@ class SaveRollService:
             total=total,
             passed=passed,
             dc=request.dc,
+            detected_features=participant.detected_features,
+            lr_uses=participant.lr_uses,
+            lr_max=participant.lr_max,
         )
 
     # ------------------------------------------------------------------
@@ -277,3 +283,108 @@ class SaveRollService:
             failed=failed_count,
             failed_names=failed_names,
         )
+
+
+# ---------------------------------------------------------------------------
+# FeatureRule and FeatureDetectionService
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class FeatureRule:
+    """A single detection rule for save feature detection."""
+    trigger: str          # substring to match against action raw_text (case-insensitive)
+    label: str            # display label, e.g. "MR (auto)", "Evasion"
+    behavior: str         # "auto-advantage", "auto-disadvantage", "auto-fail", "auto-pass", "reminder"
+    enabled: bool = True
+    is_builtin: bool = False  # True = cannot be deleted, only disabled
+
+    def to_dict(self) -> dict:
+        return {
+            "trigger": self.trigger,
+            "label": self.label,
+            "behavior": self.behavior,
+            "enabled": self.enabled,
+        }
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "FeatureRule":
+        return cls(
+            trigger=d.get("trigger", ""),
+            label=d.get("label", ""),
+            behavior=d.get("behavior", "reminder"),
+            enabled=d.get("enabled", True),
+            is_builtin=False,
+        )
+
+
+BUILTIN_RULES: list[FeatureRule] = [
+    FeatureRule(trigger="magic resistance", label="MR (auto)", behavior="auto-advantage", is_builtin=True),
+    FeatureRule(trigger="legendary resistance", label="LR", behavior="reminder", is_builtin=True),
+]
+
+_LR_COUNT_RE = re.compile(r"legendary resistance\s*\(?(\d+)/day\)?", re.IGNORECASE)
+
+
+class FeatureDetectionService:
+    """Scans Monster.actions[*].raw_text and applies FeatureRules.
+
+    Produces per-participant advantage and feature label lists.
+    Stateless — all state management happens in UI layer.
+    """
+
+    def detect_for_participant(
+        self,
+        monster,
+        rules: list[FeatureRule],
+        is_magical_save: bool,
+    ) -> tuple:
+        """Return (advantage_override, detected_labels, lr_uses, lr_max).
+
+        advantage_override: Optional[str] — None if no rule overrides.
+        detected_labels: list[str] — feature labels for display.
+        lr_uses: int — max LR uses detected (0 if none).
+        lr_max: int — same as lr_uses at detection time (UI decrements lr_uses).
+        """
+        if monster is None:
+            return None, [], 0, 0
+
+        actions = getattr(monster, "actions", [])
+        all_raw = " ".join(getattr(a, "raw_text", "") or "" for a in actions)
+
+        advantage_override = None
+        labels: list[str] = []
+        lr_uses = 0
+        lr_max = 0
+
+        for rule in rules:
+            if not rule.enabled:
+                continue
+            if rule.trigger.lower() not in all_raw.lower():
+                continue
+
+            # Magic Resistance: only triggers when is_magical_save is True
+            if rule.trigger.lower() == "magic resistance" and not is_magical_save:
+                continue
+
+            if rule.behavior == "auto-advantage":
+                advantage_override = "advantage"
+                labels.append(rule.label)
+            elif rule.behavior == "auto-disadvantage":
+                advantage_override = "disadvantage"
+                labels.append(rule.label)
+            elif rule.behavior == "auto-fail":
+                labels.append(f"{rule.label} (auto-fail)")
+            elif rule.behavior == "auto-pass":
+                labels.append(f"{rule.label} (auto-pass)")
+            elif rule.behavior == "reminder":
+                if rule.trigger.lower() == "legendary resistance":
+                    lr_m = _LR_COUNT_RE.search(all_raw)
+                    if lr_m:
+                        lr_max = max(lr_max, int(lr_m.group(1)))
+                        lr_uses = lr_max
+                    labels.append(f"LR {lr_uses}/{lr_max}")
+                else:
+                    labels.append(f"{rule.label} (reminder)")
+
+        return advantage_override, labels, lr_uses, lr_max
