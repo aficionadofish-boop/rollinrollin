@@ -131,6 +131,10 @@ Recent decisions affecting current work:
 - [Phase 13-02]: Crit rows use gold-tinted div rgba(212,175,55,0.25); miss rows use red-tinted rgba(180,0,0,0.18) via _wrap_crit_line()/_wrap_miss_line()
 - [Phase 13-02]: append_html() uses QTextCursor.MoveOperation.End + insertHtml() — avoids plain-text/HTML mode-mixing pitfall
 - [Phase 13-02]: All original plain-text format methods kept intact; HTML methods are additive for clipboard/future export compatibility
+- [Phase 13-04]: Theme preset dropdown clears custom colors on switch (clean-slate) — prevents stale per-channel overrides from prior preset bleeding into new one
+- [Phase 13-04]: Color picker buttons styled as swatches (background-color + contrast label) — simpler than icon squares, immediately obvious to DM
+- [Phase 13-04]: Sandbox font applied on save (not live) — MacroEditor is in a different tab; live cross-tab font preview adds complexity for minimal benefit
+- [Phase 13-04]: blockSignals(True) on theme combo during apply_settings() prevents _on_theme_changed() from clearing saved custom colors on load
 - [Phase 13-05]: TemplateCard dispatch condition is lr.template_name AND lr.template_fields — template with name but no fields falls back to ResultCard (card would be empty except header)
 - [Phase 13-05]: Accent color stored as _accent_color on ResultPanel; updated via set_accent_color() called on theme change via app.py _apply_settings
 - [Phase 13-05]: _resolve_field_values uses left-to-right token matching by index — relies on preprocessor and inline roll resolution both processing left-to-right
@@ -147,5 +151,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 13-05-PLAN.md (TemplateCard widget, ResultPanel dispatch to TemplateCard vs ResultCard, accent color propagation through MacroSandboxTab and app.py)
+Stopped at: Completed 13-04-PLAN.md (SettingsTab Theming group — preset dropdown, color pickers, sandbox font selector; MacroSandboxTab.set_sandbox_font(); app.py wiring)
 Resume file: .planning/ROADMAP.md

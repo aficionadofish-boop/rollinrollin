@@ -93,9 +93,9 @@ Requirements for milestone v2.0 (Combat Manager). Each maps to roadmap phases.
 ### Theming
 
 - [x] **THEME-01**: Settings offers multiple text/background color pair presets
-- [ ] **THEME-02**: User can set text and background colors separately
+- [x] **THEME-02**: User can set text and background colors separately
 - [x] **THEME-03**: High contrast mode available
-- [ ] **THEME-04**: User can change fonts for the macro sandbox separately from the rest of the app
+- [x] **THEME-04**: User can change fonts for the macro sandbox separately from the rest of the app
 
 ### UI Polish
 
@@ -206,9 +206,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | OUTPUT-03 | Phase 13 | Complete |
 | OUTPUT-04 | Phase 13 | Complete |
 | THEME-01 | Phase 13 | Complete |
-| THEME-02 | Phase 13 | Pending |
+| THEME-02 | Phase 13 | Complete |
 | THEME-03 | Phase 13 | Complete |
-| THEME-04 | Phase 13 | Pending |
+| THEME-04 | Phase 13 | Complete |
 | UI-01 | Phase 13 | Complete |
 
 **Coverage:**
