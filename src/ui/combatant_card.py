@@ -17,12 +17,147 @@ from PySide6.QtWidgets import (
     QPushButton,
     QWidget,
     QSizePolicy,
+    QLayout,
+    QWidgetItem,
 )
-from PySide6.QtCore import Qt, Signal, QMimeData, QPoint
-from PySide6.QtGui import QFont, QIntValidator, QDrag
+from PySide6.QtCore import Qt, Signal, QPoint, QRect, QSize
+from PySide6.QtGui import QFont, QIntValidator
 
 from src.combat.models import CombatantState
 from src.ui.hp_bar import HpBar
+
+
+# ---------------------------------------------------------------------------
+# FlowLayout — wrapping horizontal flow layout for condition chips
+# ---------------------------------------------------------------------------
+
+class FlowLayout(QLayout):
+    """A wrapping flow layout: places items left-to-right, wrapping to new rows.
+
+    Supports hasHeightForWidth() so parent widgets resize their height correctly.
+    Max 2 rows — items that would start row 3+ are hidden; a "+N more" badge is
+    added automatically if any items are hidden.
+
+    Usage: call addWidget(w) to add widgets (do NOT call addItem directly).
+    """
+
+    _MAX_ROWS = 2
+
+    def __init__(self, parent=None, spacing: int = 4) -> None:
+        super().__init__(parent)
+        self._items: list[QWidgetItem] = []
+        self._spacing = spacing
+
+    # Convenience method (used instead of addItem) ----------------------
+
+    def addWidget(self, widget) -> None:  # type: ignore[override]
+        """Add a widget to the flow layout."""
+        item = QWidgetItem(widget)
+        self._items.append(item)
+        self.invalidate()
+
+    # QLayout interface -------------------------------------------------
+
+    def addItem(self, item) -> None:  # type: ignore[override]
+        self._items.append(item)
+
+    def count(self) -> int:
+        return len(self._items)
+
+    def itemAt(self, index: int):
+        if 0 <= index < len(self._items):
+            return self._items[index]
+        return None
+
+    def takeAt(self, index: int):
+        if 0 <= index < len(self._items):
+            return self._items.pop(index)
+        return None
+
+    def expandingDirections(self):
+        return Qt.Orientation(0)
+
+    def hasHeightForWidth(self) -> bool:
+        return True
+
+    def heightForWidth(self, width: int) -> int:
+        return self._do_layout(QRect(0, 0, width, 0), test_only=True)
+
+    def setGeometry(self, rect: QRect) -> None:
+        super().setGeometry(rect)
+        self._do_layout(rect, test_only=False)
+
+    def sizeHint(self) -> QSize:
+        return self.minimumSize()
+
+    def minimumSize(self) -> QSize:
+        size = QSize()
+        for item in self._items:
+            size = size.expandedTo(item.minimumSize())
+        margins = self.contentsMargins()
+        size += QSize(margins.left() + margins.right(), margins.top() + margins.bottom())
+        return size
+
+    # Layout engine -----------------------------------------------------
+
+    def _do_layout(self, rect: QRect, test_only: bool) -> int:
+        """Place items into rows within rect. Returns total height used.
+
+        Items that would start on row 3+ are hidden. The last visible item on
+        row 2 may be replaced by a "+N more" badge if any items are hidden.
+        """
+        margins = self.contentsMargins()
+        effective_rect = rect.adjusted(margins.left(), margins.top(),
+                                       -margins.right(), -margins.bottom())
+        x = effective_rect.x()
+        y = effective_rect.y()
+        row_height = 0
+        current_row = 1  # 1-indexed
+
+        # Pass 1: compute positions and which items are on which row
+        positions = []  # (item, row, x_pos, y_pos, w, h)
+        row_y: list[int] = [effective_rect.y()]  # y-position of each row start
+
+        for item in self._items:
+            hint = item.sizeHint()
+            item_w = hint.width()
+            item_h = hint.height()
+
+            # Would this item overflow the current row?
+            if x != effective_rect.x() and x + item_w > effective_rect.right() + 1:
+                # Wrap to next row
+                x = effective_rect.x()
+                y += row_height + self._spacing
+                row_height = 0
+                current_row += 1
+                if current_row > len(row_y):
+                    row_y.append(y)
+
+            positions.append((item, current_row, x, y, item_w, item_h))
+            x += item_w + self._spacing
+            row_height = max(row_height, item_h)
+
+        total_height = y + row_height - effective_rect.y()
+
+        if not test_only:
+            # Determine overflow: items on rows > MAX_ROWS are hidden
+            hidden_count = sum(1 for (item, row, *_) in positions if row > self._MAX_ROWS)
+
+            # If there are hidden items, we may need to replace the last visible
+            # item with a "+N more" badge. We find the last item on row MAX_ROWS.
+            # For simplicity: just show/hide items. The badge widget is managed
+            # externally (in _rebuild_condition_chips).
+            for (item, row, ix, iy, iw, ih) in positions:
+                w = item.widget()
+                if w is None:
+                    continue
+                if row > self._MAX_ROWS:
+                    w.hide()
+                else:
+                    w.show()
+                    w.setGeometry(QRect(QPoint(ix, iy), QSize(iw, ih)))
+
+        return total_height
 
 
 # ---------------------------------------------------------------------------
@@ -136,6 +271,7 @@ class CombatantCard(QFrame):
     condition_clicked = Signal(str, str)
     initiative_changed = Signal(str, int)
     card_clicked = Signal(str, object)  # combatant_id, Qt.KeyboardModifiers
+    collapse_requested = Signal(str)    # combatant_id — emitted on double-click to collapse back to CompactSubRow
 
     def __init__(self, state: CombatantState, parent=None) -> None:
         super().__init__(parent)
@@ -144,7 +280,6 @@ class CombatantCard(QFrame):
         self._damage_input_visible = False
         self._active_turn = False
         self._selected = False
-        self._drag_start_pos: QPoint | None = None
 
         self.setFrameShape(QFrame.Shape.StyledPanel)
         self.setStyleSheet(
@@ -197,13 +332,16 @@ class CombatantCard(QFrame):
         )
         top_row.addWidget(self._ac_badge)
 
-        # Initiative spinbox
+        # Initiative label + spinbox (UX-02: label is separate, spinbox shows number only)
+        init_label = QLabel("Init")
+        init_label.setStyleSheet("font-size: 8pt; color: #aaa;")
+        top_row.addWidget(init_label)
+
         self._initiative_spin = QSpinBox()
         self._initiative_spin.setRange(-10, 40)
         self._initiative_spin.setValue(state.initiative)
-        self._initiative_spin.setFixedWidth(55)
+        self._initiative_spin.setFixedWidth(48)
         self._initiative_spin.setToolTip("Initiative")
-        self._initiative_spin.setPrefix("Init ")
         self._initiative_spin.valueChanged.connect(self._on_initiative_changed)
         top_row.addWidget(self._initiative_spin)
 
@@ -270,12 +408,11 @@ class CombatantCard(QFrame):
 
         main_layout.addLayout(mid_row)
 
-        # ---- Bottom row — condition chips ----
+        # ---- Bottom row — condition chips (UX-05: FlowLayout with max 2 rows) ----
         self._chip_container = QWidget()
-        self._chip_layout = QHBoxLayout(self._chip_container)
-        self._chip_layout.setContentsMargins(0, 0, 0, 0)
-        self._chip_layout.setSpacing(4)
-        self._chip_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self._chip_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        self._chip_layout = FlowLayout(spacing=4)
+        self._chip_container.setLayout(self._chip_layout)
 
         self._plus_btn = QPushButton("+")
         self._plus_btn.setFixedSize(22, 22)
@@ -294,7 +431,11 @@ class CombatantCard(QFrame):
         main_layout.addWidget(self._chip_container)
 
     def _rebuild_condition_chips(self, state: CombatantState) -> None:
-        """Clear and recreate all condition chips from state."""
+        """Clear and recreate all condition chips from state.
+
+        UX-04: "+" button is always first (far left).
+        UX-05: chips use FlowLayout; overflow beyond 2 rows shows "+N more" badge.
+        """
         # Remove all widgets from chip layout except the persistent + button
         while self._chip_layout.count():
             item = self._chip_layout.takeAt(0)
@@ -302,6 +443,10 @@ class CombatantCard(QFrame):
             if w and w is not self._plus_btn:
                 w.deleteLater()
 
+        # UX-04: "+" button always first (far left)
+        self._chip_layout.addWidget(self._plus_btn)
+
+        # Add condition chips (FlowLayout handles wrapping and max-2-row enforcement)
         for cond in state.conditions:
             chip = _ConditionChip(cond.name, cond.duration, cond.expired)
             chip.clicked.connect(
@@ -309,7 +454,7 @@ class CombatantCard(QFrame):
             )
             self._chip_layout.addWidget(chip)
 
-        self._chip_layout.addWidget(self._plus_btn)
+        self._chip_container.updateGeometry()
 
     # ------------------------------------------------------------------
     # Slots
@@ -343,30 +488,19 @@ class CombatantCard(QFrame):
             self.initiative_changed.emit(self._combatant_id, value)
 
     # ------------------------------------------------------------------
-    # Drag-to-reorder support
+    # Mouse event handling
     # ------------------------------------------------------------------
 
     def mousePressEvent(self, event) -> None:
         if event.button() == Qt.MouseButton.LeftButton:
-            self._drag_start_pos = event.pos()
             self.card_clicked.emit(self._combatant_id, event.modifiers())
         super().mousePressEvent(event)
 
-    def mouseMoveEvent(self, event) -> None:
-        if (
-            event.buttons() & Qt.MouseButton.LeftButton
-            and self._drag_start_pos is not None
-            and (event.pos() - self._drag_start_pos).manhattanLength() > 10
-        ):
-            drag = QDrag(self)
-            mime = QMimeData()
-            mime.setData(
-                "application/x-combatant-id",
-                self._combatant_id.encode("utf-8"),
-            )
-            drag.setMimeData(mime)
-            drag.exec(Qt.DropAction.MoveAction)
-        super().mouseMoveEvent(event)
+    def mouseDoubleClickEvent(self, event) -> None:
+        """BUG-13: Double-click on an expanded CombatantCard emits collapse_requested."""
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.collapse_requested.emit(self._combatant_id)
+        event.accept()
 
     # ------------------------------------------------------------------
     # Public API
@@ -442,10 +576,6 @@ class CombatantCard(QFrame):
             lbl.isVisible() for lbl in label_map.values()
         )
         self._stats_widget.setVisible(any_visible)
-
-    def set_drag_enabled(self, enabled: bool) -> None:
-        """Enable or disable drag-to-reorder. When disabled, mouse events pass normally."""
-        self._drag_enabled = enabled
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -661,14 +791,17 @@ class GroupCard(QFrame):
         )
         header_layout.addWidget(self._ac_badge)
 
-        # Initiative spinbox (shared roll for group)
+        # Initiative label + spinbox (UX-02: label outside, number only in spinbox)
+        group_init_label = QLabel("Init")
+        group_init_label.setStyleSheet("font-size: 8pt; color: #aaa;")
+        header_layout.addWidget(group_init_label)
+
         self._initiative_spin = QSpinBox()
         self._initiative_spin.setRange(-10, 40)
         init_val = self._members[0].initiative if self._members else 0
         self._initiative_spin.setValue(init_val)
-        self._initiative_spin.setFixedWidth(55)
+        self._initiative_spin.setFixedWidth(48)
         self._initiative_spin.setToolTip("Initiative (shared for group)")
-        self._initiative_spin.setPrefix("Init ")
         self._initiative_spin.valueChanged.connect(self._on_group_initiative_changed)
         header_layout.addWidget(self._initiative_spin)
 
@@ -677,10 +810,21 @@ class GroupCard(QFrame):
         self._cond_summary_label.setStyleSheet("font-size: 8pt; color: #FFC107;")
         header_layout.addWidget(self._cond_summary_label)
 
-        # Average HP bar
+        # Average HP bar (BUG-12: clicking opens group damage input)
         avg_cur, avg_max, avg_temp = self._compute_avg_hp()
         self._avg_hp_bar = HpBar(avg_max, avg_cur, avg_temp)
+        self._avg_hp_bar.clicked.connect(self._toggle_group_damage_input)
         header_layout.addWidget(self._avg_hp_bar, 2)
+
+        # Group damage input (hidden by default — shown when HP bar is clicked)
+        self._group_damage_input = QLineEdit()
+        self._group_damage_input.setPlaceholderText("e.g. -12 or +5")
+        self._group_damage_input.setFixedWidth(100)
+        self._group_damage_input.setValidator(QIntValidator(-9999, 9999))
+        self._group_damage_input.setVisible(False)
+        self._group_damage_input.returnPressed.connect(self._on_group_damage_submitted)
+        self._group_damage_input_visible = False
+        header_layout.addWidget(self._group_damage_input)
 
         # Expand/collapse button
         self._expand_btn = QPushButton("v")
@@ -747,6 +891,8 @@ class GroupCard(QFrame):
                 card.condition_add_requested.connect(self.condition_add_requested)
                 card.condition_clicked.connect(self.condition_clicked)
                 card.initiative_changed.connect(self.initiative_changed)
+                # BUG-13: connect double-click collapse signal
+                card.collapse_requested.connect(self._on_collapse_requested)
                 if self._active_member_id == state.id:
                     card.set_active_turn(True)
                 self._individual_cards[state.id] = card
@@ -773,6 +919,63 @@ class GroupCard(QFrame):
         """Emit initiative_changed for the first member (representative for the group)."""
         if self._members:
             self.initiative_changed.emit(self._members[0].id, value)
+
+    def _toggle_group_damage_input(self) -> None:
+        """BUG-12: Show or hide the group damage input next to the HP bar."""
+        self._group_damage_input_visible = not self._group_damage_input_visible
+        self._group_damage_input.setVisible(self._group_damage_input_visible)
+        if self._group_damage_input_visible:
+            self._group_damage_input.clear()
+            self._group_damage_input.setFocus()
+
+    def _on_group_damage_submitted(self) -> None:
+        """BUG-12: Parse group damage input and distribute first-come-first-served.
+
+        For DAMAGE (negative value): apply to first non-defeated member, overflow
+        to the next, until all damage is consumed or all members are defeated.
+
+        For HEALING (positive value): apply full healing to the first member in order
+        (simple approach per plan spec).
+        """
+        text = self._group_damage_input.text().strip()
+        if not text:
+            return
+        try:
+            value = int(text)
+        except ValueError:
+            return
+
+        self._group_damage_input.clear()
+        self._group_damage_input.setVisible(False)
+        self._group_damage_input_visible = False
+
+        if value == 0:
+            return
+
+        if value > 0:
+            # Healing: apply to first member in order
+            if self._members:
+                self.damage_entered.emit(self._members[0].id, value)
+        else:
+            # Damage: first-come-first-served distribution
+            remaining_damage = abs(value)
+            for member in self._members:
+                if remaining_damage <= 0:
+                    break
+                if member.current_hp <= 0:
+                    # Already defeated — skip
+                    continue
+                # How much can this member absorb?
+                effective_hp = member.current_hp + member.temp_hp
+                absorbed = min(remaining_damage, effective_hp)
+                self.damage_entered.emit(member.id, -absorbed)
+                remaining_damage -= absorbed
+
+    def _on_collapse_requested(self, combatant_id: str) -> None:
+        """BUG-13: Collapse an expanded full CombatantCard back to CompactSubRow."""
+        if self._expanded_individual == combatant_id:
+            self._expanded_individual = None
+            self._build_members_view()
 
     # ------------------------------------------------------------------
     # Public API
