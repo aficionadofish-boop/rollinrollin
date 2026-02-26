@@ -92,7 +92,6 @@ class _MonsterRowWidget(QWidget):
         self._count_spin.valueChanged.connect(self._on_count_changed)
 
         self._remove_btn = QPushButton("Del")
-        self._remove_btn.setFixedWidth(36)
         self._remove_btn.setFixedHeight(24)
         self._remove_btn.setToolTip(f"Remove {monster.name}")
         self._remove_btn.clicked.connect(lambda: self.remove_requested.emit(self._monster_name))
@@ -152,7 +151,7 @@ class EncounterSidebarDock(QDockWidget):
     save_btn_clicked = Signal()                 # Save button pressed
     load_btn_clicked = Signal()                 # Load button pressed
 
-    _COLLAPSED_WIDTH = 36
+    _COLLAPSED_WIDTH = 50
     _DEFAULT_EXPANDED_WIDTH = 300
 
     def __init__(self, library, parent=None) -> None:
@@ -219,7 +218,6 @@ class EncounterSidebarDock(QDockWidget):
         self._name_label.setStyleSheet("font-weight: bold; font-size: 11px;")
         self._name_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self._collapse_btn = QPushButton("Hide")
-        self._collapse_btn.setFixedWidth(40)
         self._collapse_btn.setFixedHeight(24)
         self._collapse_btn.setToolTip("Collapse sidebar")
         self._collapse_btn.clicked.connect(self.toggle_collapse)
@@ -283,13 +281,12 @@ class EncounterSidebarDock(QDockWidget):
         layout.setSpacing(0)
 
         self._handle_btn = QPushButton("Show")
-        self._handle_btn.setFixedWidth(36)
-        self._handle_btn.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
+        self._handle_btn.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
         self._handle_btn.setToolTip("Expand encounter sidebar")
         self._handle_btn.clicked.connect(self.toggle_collapse)
 
         layout.addWidget(self._handle_btn)
-        self._handle_widget.setFixedWidth(36)
+        self._handle_widget.setFixedWidth(50)
 
     # ------------------------------------------------------------------
     # Collapse / expand (instant toggle)
