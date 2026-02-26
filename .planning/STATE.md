@@ -107,6 +107,11 @@ Recent decisions affecting current work:
 - [Phase 11-04]: Send to Saves resolves to SaveParticipant with CON save bonus by default; PCs without monster_name get save_bonus=0
 - [Phase 11-04]: Combat state saved only when combatants list is non-empty (prevents overwriting good persisted state with empty dict)
 - [Phase 11-04]: Sidebar setVisible(False) when Combat Tracker tab is active; setVisible(True) on any other tab switch
+- [Phase 12-01]: Per-participant advantage: SaveParticipant.advantage (Optional) overrides SaveRequest.advantage when not None — backward compat preserved
+- [Phase 12-01]: FeatureDetectionService is stateless — LR counters live in SavesTab._lr_counters dict keyed by monster_name (not participant name)
+- [Phase 12-01]: LR count uses max() across all action raw_text entries to avoid double-counting duplicate action entries
+- [Phase 12-01]: save_rules persistence category uses list default (not dict) — list of custom rule dicts
+- [Phase 12-01]: ct_send_overrides_sidebar: bool = True — CT send replaces sidebar checked state by default
 - [Phase 12-02]: Sidebar checkbox state NOT persisted to disk — all rows start checked on set_encounter() and app launch (avoids confusion when DM returns days later)
 - [Phase 12-02]: One checkbox per monster type row (grouped creatures toggle as a group) — individual-creature toggling deferred
 - [Phase 12-02]: get_checked_members() returns filtered (Monster, count) list; get_members() unchanged (still returns all)
@@ -123,5 +128,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 12-02-PLAN.md (per-creature checkboxes on encounter sidebar, Select All/None/Invert, get_checked_members())
+Stopped at: Completed 12-01-PLAN.md (domain models, FeatureDetectionService, save_rules persistence, ct_send_overrides_sidebar)
 Resume file: .planning/ROADMAP.md

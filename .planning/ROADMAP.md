@@ -146,5 +146,5 @@ Phase 8 → Phase 9 (parallel with 10) → Phase 10 → Phase 11 → Phase 12 �
 | 9. Monster Editor and Equipment Presets | v2.0 | 5/5 | Complete | 2026-02-26 |
 | 10. Persistent Encounter Sidebar | v2.0 | 2/2 | Complete | 2026-02-26 |
 | 11. Combat Tracker | 4/4 | Complete    | 2026-02-26 | - |
-| 12. Save Roller Upgrades | 1/3 | In Progress|  | - |
+| 12. Save Roller Upgrades | 2/3 | In Progress|  | - |
 | 13. Output Polish, Theming, and UI | v2.0 | 0/? | Not started | - |

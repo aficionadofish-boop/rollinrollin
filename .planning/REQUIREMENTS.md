@@ -75,13 +75,13 @@ Requirements for milestone v2.0 (Combat Manager). Each maps to roadmap phases.
 
 ### Save Roller Upgrades
 
-- [ ] **SAVE-08**: User can select a subset of creatures from the encounter for save rolls (not all-or-nothing)
-- [ ] **SAVE-09**: App detects Magic Resistance from monster traits via keyword matching; auto-applies advantage when "Spell Save" toggle is on
-- [ ] **SAVE-10**: App detects Legendary Resistance with uses/day count; displays reminder in save log
+- [x] **SAVE-08**: User can select a subset of creatures from the encounter for save rolls (not all-or-nothing)
+- [x] **SAVE-09**: App detects Magic Resistance from monster traits via keyword matching; auto-applies advantage when "Spell Save" toggle is on
+- [x] **SAVE-10**: App detects Legendary Resistance with uses/day count; displays reminder in save log
 - [ ] **SAVE-11**: Toggleable checkboxes: "Is save magical?", enable/disable Magic Resistance detection, enable/disable Legendary Resistance detection
-- [ ] **SAVE-12**: Detected features override the global advantage setting per-creature (e.g. Magic Resistance creature rolls with advantage even when global is normal)
+- [x] **SAVE-12**: Detected features override the global advantage setting per-creature (e.g. Magic Resistance creature rolls with advantage even when global is normal)
 - [ ] **SAVE-13**: Feature detection summary shown per creature in save results
-- [ ] **SAVE-14**: User can open and edit the feature detection filter list to add custom triggers with a name and assigned behavior (reminder like Legendary Resistance, or auto-advantage like Magic Resistance)
+- [x] **SAVE-14**: User can open and edit the feature detection filter list to add custom triggers with a name and assigned behavior (reminder like Legendary Resistance, or auto-advantage like Magic Resistance)
 
 ### Output Polish
 
@@ -194,13 +194,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | COMBAT-13 | Phase 11 | Complete |
 | COMBAT-14 | Phase 11 | Complete |
 | COMBAT-15 | Phase 11 | Complete |
-| SAVE-08 | Phase 12 | Pending |
-| SAVE-09 | Phase 12 | Pending |
-| SAVE-10 | Phase 12 | Pending |
+| SAVE-08 | Phase 12 | Complete |
+| SAVE-09 | Phase 12 | Complete |
+| SAVE-10 | Phase 12 | Complete |
 | SAVE-11 | Phase 12 | Pending |
-| SAVE-12 | Phase 12 | Pending |
+| SAVE-12 | Phase 12 | Complete |
 | SAVE-13 | Phase 12 | Pending |
-| SAVE-14 | Phase 12 | Pending |
+| SAVE-14 | Phase 12 | Complete |
 | OUTPUT-01 | Phase 13 | Pending |
 | OUTPUT-02 | Phase 13 | Pending |
 | OUTPUT-03 | Phase 13 | Pending |
