@@ -16,6 +16,7 @@ from src.parser.formats._shared_patterns import (
     AC_RE, HP_RE, CR_RE, TYPE_RE, SAVES_RE, SAVE_BONUS_RE,
     ABILITY_CELL_RE, ABILITIES,
     ACTION_SECTION_RE, ACTION_NAME_RE, TO_HIT_RE, HIT_LINE_RE,
+    extract_named_section,
 )
 
 
@@ -161,8 +162,39 @@ def _split_action_blocks(text: str) -> list[str]:
 
 
 def _extract_actions(text: str) -> list[Action]:
-    """Extract all actions from a monster segment's text."""
-    blocks = _split_action_blocks(text)
+    """Extract all actions from a monster segment's text.
+
+    If an 'Actions' section header is found, only text within that section is
+    parsed for regular actions (preventing text from Legendary Actions or Lair
+    Actions from bleeding in). Falls back to parsing the whole text if no
+    section headers are present.
+    """
+    actions_section = extract_named_section(text, "Actions")
+    if actions_section:
+        # Parse only within the Actions section
+        parse_text = actions_section
+    else:
+        # No explicit section headers — fall back to full-text parsing
+        parse_text = text
+
+    blocks = _split_action_blocks(parse_text)
+    actions: list[Action] = []
+    for block in blocks:
+        action = _parse_action(block)
+        if action is not None:
+            actions.append(action)
+    return actions
+
+
+def _extract_section_actions(text: str, section_name: str) -> list[Action]:
+    """Extract actions from a named section (e.g. 'Legendary Actions', 'Lair Actions').
+
+    Returns an empty list if the section is not found.
+    """
+    section_text = extract_named_section(text, section_name)
+    if not section_text:
+        return []
+    blocks = _split_action_blocks(section_text)
     actions: list[Action] = []
     for block in blocks:
         action = _parse_action(block)
@@ -212,6 +244,8 @@ def parse_plain(content: str) -> ParseResult:
         ability_scores = _extract_ability_scores(segment)
         saves = _extract_saves(segment)
         actions = _extract_actions(segment)
+        legendary_actions = _extract_section_actions(segment, "Legendary Actions")
+        lair_actions = _extract_section_actions(segment, "Lair Actions")
 
         monster = Monster(
             name=name,
@@ -219,6 +253,8 @@ def parse_plain(content: str) -> ParseResult:
             hp=hp if hp is not None else 0,
             cr=cr if cr is not None else "?",
             actions=actions,
+            legendary_actions=legendary_actions,
+            lair_actions=lair_actions,
             saves=saves,
             creature_type=creature_type,
             ability_scores=ability_scores,

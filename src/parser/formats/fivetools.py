@@ -14,6 +14,7 @@ from typing import Optional
 
 from src.domain.models import Action, DamagePart, Monster
 from src.parser.models import ParseResult
+from src.parser.formats._shared_patterns import extract_named_section
 
 
 # ---------------------------------------------------------------------------
@@ -240,25 +241,26 @@ def _parse_action(action_text: str) -> Optional[Action]:
 
 
 def _extract_actions(clean_text: str) -> list[Action]:
-    """Extract all action entries from a statblock's clean text.
+    """Extract regular action entries from a statblock's clean text.
 
-    Includes traits (before Actions heading) and all action sections.
+    If an 'Actions' section header is found, only text within that section is
+    parsed (preventing text from Legendary Actions or Lair Actions from
+    bleeding in). Traits before the Actions heading are also included when no
+    explicit section header exists.
+
+    Falls back to parsing the whole text if no section headers are present.
     """
     actions: list[Action] = []
 
-    # Find all action section boundaries
-    section_matches = list(ACTION_SECTION_RE.finditer(clean_text))
-
-    if not section_matches:
-        # No action section headings — try the whole text for named entries
-        action_text_block = clean_text
+    actions_section = extract_named_section(clean_text, "Actions")
+    if actions_section:
+        # Parse only within the Actions section
+        action_text_block = actions_section
     else:
-        # Text before first section heading = traits block
-        # Include everything from first section to end
-        action_text_block = clean_text[0:]
+        # No explicit 'Actions' section header — parse the whole block
+        # (handles older plain-text format without section headings)
+        action_text_block = clean_text
 
-    # Split on "***Name.***" pattern to extract individual action blocks
-    # Use a split that keeps the delimiter
     action_blocks = _split_action_blocks(action_text_block)
 
     for block in action_blocks:
@@ -266,6 +268,23 @@ def _extract_actions(clean_text: str) -> list[Action]:
         if action is not None:
             actions.append(action)
 
+    return actions
+
+
+def _extract_section_actions(clean_text: str, section_name: str) -> list[Action]:
+    """Extract actions from a named section (e.g. 'Legendary Actions', 'Lair Actions').
+
+    Returns an empty list if the section is not found.
+    """
+    section_text = extract_named_section(clean_text, section_name)
+    if not section_text:
+        return []
+    blocks = _split_action_blocks(section_text)
+    actions: list[Action] = []
+    for block in blocks:
+        action = _parse_action(block)
+        if action is not None:
+            actions.append(action)
     return actions
 
 
@@ -404,6 +423,8 @@ def parse_fivetools(content: str) -> ParseResult:
         ability_scores = _extract_ability_scores(clean)
         saves = _extract_saves(clean)
         actions = _extract_actions(clean)
+        legendary_actions = _extract_section_actions(clean, "Legendary Actions")
+        lair_actions = _extract_section_actions(clean, "Lair Actions")
         size = _extract_size(clean)
         skills = _extract_skills(clean)
 
@@ -413,6 +434,8 @@ def parse_fivetools(content: str) -> ParseResult:
             hp=hp if hp is not None else 0,
             cr=cr if cr is not None else "?",
             actions=actions,
+            legendary_actions=legendary_actions,
+            lair_actions=lair_actions,
             saves=saves,
             creature_type=creature_type,
             ability_scores=ability_scores,
