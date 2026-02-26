@@ -810,7 +810,15 @@ class MonsterEditorDialog(QDialog):
         if replace_index is not None:
             self._working_copy.actions.insert(replace_index, new_action)
         else:
-            self._working_copy.actions.append(new_action)
+            # Insert after the last parsed attack action (before unparsed
+            # entries like spellcasting) so weapons stay grouped together.
+            insert_at = len(self._working_copy.actions)
+            for i in range(len(self._working_copy.actions) - 1, -1, -1):
+                a = self._working_copy.actions[i]
+                if a.is_parsed and a.to_hit_bonus is not None:
+                    insert_at = i + 1
+                    break
+            self._working_copy.actions.insert(insert_at, new_action)
 
         # Track equipped weapon
         equip_item = EquipmentItem(item_type="weapon", item_name=action_name, magic_bonus=magic_bonus)
