@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 14 of 16 (Bug Fixes & Critical Polish)
-Plan: 3 of 6 in current phase
+Plan: 4 of 6 in current phase
 Status: In Progress
-Last activity: 2026-02-26 — Phase 14 Plan 03 complete (BUG-06 — parser section boundary detection, legendary_actions/lair_actions model fields)
+Last activity: 2026-02-26 — Phase 14 Plan 04 complete (BUG-08/09/10 — attack output HTML rendering: div-to-span wrappers, regular miss red tint removed, no extra blank lines)
 
-Progress: [█████████░░░░░░░░░░░] Phase 14 in progress (3/6 plans)
+Progress: [████████████░░░░░░░░] Phase 14 in progress (4/6 plans)
 
 ## Performance Metrics
 
@@ -150,6 +150,8 @@ Recent decisions affecting current work:
 - [Phase 14-03]: SECTION_BOUNDARY_RE covers both #-style and bold-text (***Section***) section headers — handles all real-world statblock formats
 - [Phase 14-03]: extract_named_section() fallback: when no section header found, returns "" so callers fall back to full-text parsing (backward compat)
 - [Phase 14-03]: Lair Actions added to SECTION_BOUNDARY_RE (was absent from original ACTION_SECTION_RE) — this was the direct trigger for the Lich bug
+- [Phase 14-04]: BUG-08 regular miss gets no background tint — only nat-1 misses call _wrap_miss_line(); removed _wrap_miss_line() from regular miss else-branch in _format_compare_line_html
+- [Phase 14-04]: BUG-09+BUG-10 attack output wrappers changed from block div to inline span — div caused full-width gold fill and implicit paragraph margins (extra blank lines) in QTextEdit HTML renderer
 
 ### Roadmap Evolution
 
@@ -169,5 +171,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 14-03-PLAN.md (BUG-06 — parser section boundary detection, legendary_actions/lair_actions model fields)
-Resume file: .planning/phases/14-bug-fixes-critical-polish/14-03-SUMMARY.md
+Stopped at: Completed 14-04-PLAN.md (BUG-08/09/10 — attack output HTML rendering: div-to-span wrappers, regular miss plain text, no extra blank lines)
+Resume file: .planning/phases/14-bug-fixes-critical-polish/14-04-SUMMARY.md

@@ -154,7 +154,7 @@ Phase 8 → Phase 9 (parallel with 10) → Phase 10 → Phase 11 → Phase 12 �
 | 11. Combat Tracker | v2.0 | 4/4 | Complete | 2026-02-26 |
 | 12. Save Roller Upgrades | v2.0 | 3/3 | Complete | 2026-02-26 |
 | 13. Output Polish, Theming, and UI | v2.0 | 5/5 | Complete | 2026-02-26 |
-| 14. Bug Fixes & Critical Polish | v2.0 | 3/6 | In Progress | - |
+| 14. Bug Fixes & Critical Polish | 4/6 | In Progress|  | - |
 | 15. Editor & Parser Overhaul | v2.1 | 0/? | Planned | - |
 | 16. Buff System & Output Improvements | v2.1 | 0/? | Planned | - |
 
@@ -302,10 +302,10 @@ Phase 8 → Phase 9 (parallel with 10) → Phase 10 → Phase 11 → Phase 12 �
 
 **Plans:** 4/6 plans executed
 Plans:
-- [ ] 14-01-PLAN.md -- Persistence fix + Library selection fix + Sidebar rotated text (BUG-01, BUG-02, UX-01)
-- [ ] 14-02-PLAN.md -- Editor cascade fixes: CR, skills, ability scores, spellcasting focus (BUG-03, BUG-04, BUG-05, BUG-07)
-- [ ] 14-03-PLAN.md -- Parser section boundaries + Monster model legendary/lair actions (BUG-06)
-- [ ] 14-04-PLAN.md -- Attack output HTML: crit/miss wrapping and line spacing (BUG-08, BUG-09, BUG-10)
+- [x] 14-01-PLAN.md -- Persistence fix + Library selection fix + Sidebar rotated text (BUG-01, BUG-02, UX-01)
+- [x] 14-02-PLAN.md -- Editor cascade fixes: CR, skills, ability scores, spellcasting focus (BUG-03, BUG-04, BUG-05, BUG-07)
+- [x] 14-03-PLAN.md -- Parser section boundaries + Monster model legendary/lair actions (BUG-06)
+- [x] 14-04-PLAN.md -- Attack output HTML: crit/miss wrapping and line spacing (BUG-08, BUG-09, BUG-10)
 - [ ] 14-05-PLAN.md -- Combat Tracker: stats toggle, LR counter persistence, 0 HP behavior (BUG-11, BUG-15, BUG-16)
 - [ ] 14-06-PLAN.md -- Combatant card: group damage/collapse, rubber-band, Init label, condition chips (BUG-12, BUG-13, BUG-14, UX-02, UX-03, UX-04, UX-05)
 
