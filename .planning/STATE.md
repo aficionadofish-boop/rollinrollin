@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** DMs can manage the full combat loop — prep monsters, roll attacks and saves, and track combat state — in seconds, with D&D 5e rule fidelity and persistent data.
-**Current focus:** Phase 13 in progress — Output Polish Theming and UI Plan 01 complete (ThemeService foundation — 3 presets, AppSettings theme fields, main.py migration, _apply_settings wiring)
+**Current focus:** Phase 13 complete — Output Polish Theming and UI all 5 plans done (ThemeService foundation, HTML attack output, template fields data model, sandbox font, template card rendering)
 
 ## Current Position
 
 Phase: 13 of 13 (Output Polish Theming and UI)
-Plan: 3 of 5 in current phase (Plans 01, 02, 03 complete — ThemeService foundation, HTML attack output, template fields data model)
-Status: In Progress
-Last activity: 2026-02-26 — Phase 13 Plan 01 complete (ThemeService with Dark/Default/High Contrast presets, AppSettings theme fields, main.py migrated, MainWindow._apply_settings wired)
+Plan: 5 of 5 in current phase (Plans 01-05 complete — ThemeService foundation, HTML attack output, template fields data model, sandbox font wiring, template card rendering)
+Status: Complete
+Last activity: 2026-02-26 — Phase 13 Plan 05 complete (TemplateCard widget, ResultPanel dispatch, accent color propagation)
 
-Progress: [████████████████] Phase 13 Plans 01-03 complete (3/5 plans)
+Progress: [████████████████████] Phase 13 Plans 01-05 complete (5/5 plans)
 
 ## Performance Metrics
 
@@ -31,7 +31,7 @@ Progress: [████████████████] Phase 13 Plans 01-0
 | 10 (v2.0) | 2/2 | Complete |
 | 11 (v2.0) | 4/4 | Complete |
 | 12 (v2.0) | 3/3 | Complete |
-| 13 (v2.0) | 2/5 | In Progress |
+| 13 (v2.0) | 5/5 | Complete |
 
 ## Accumulated Context
 
@@ -131,6 +131,9 @@ Recent decisions affecting current work:
 - [Phase 13-02]: Crit rows use gold-tinted div rgba(212,175,55,0.25); miss rows use red-tinted rgba(180,0,0,0.18) via _wrap_crit_line()/_wrap_miss_line()
 - [Phase 13-02]: append_html() uses QTextCursor.MoveOperation.End + insertHtml() — avoids plain-text/HTML mode-mixing pitfall
 - [Phase 13-02]: All original plain-text format methods kept intact; HTML methods are additive for clipboard/future export compatibility
+- [Phase 13-05]: TemplateCard dispatch condition is lr.template_name AND lr.template_fields — template with name but no fields falls back to ResultCard (card would be empty except header)
+- [Phase 13-05]: Accent color stored as _accent_color on ResultPanel; updated via set_accent_color() called on theme change via app.py _apply_settings
+- [Phase 13-05]: _resolve_field_values uses left-to-right token matching by index — relies on preprocessor and inline roll resolution both processing left-to-right
 
 ### Pending Todos
 
@@ -144,5 +147,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 13-01-PLAN.md (ThemeService foundation — 3 preset stylesheets, AppSettings theme fields, main.py migration, MainWindow._apply_settings wiring)
+Stopped at: Completed 13-05-PLAN.md (TemplateCard widget, ResultPanel dispatch to TemplateCard vs ResultCard, accent color propagation through MacroSandboxTab and app.py)
 Resume file: .planning/ROADMAP.md
