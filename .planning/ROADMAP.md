@@ -110,7 +110,11 @@ Plans:
   3. A monster with "Legendary Resistance (3/Day)" displays a remaining-uses counter in its save row; the DM sees a reminder when legendary resistance could apply
   4. User can open the feature detection filter list and add a custom trigger (e.g. "Evasion") with an assigned behavior (reminder or auto-advantage); it applies on the next save roll for any monster with that trait
   5. The per-creature feature detection summary shows detected features vs manually overridden advantage for every row in the results
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 12-01-PLAN.md -- Domain models + FeatureDetectionService + persistence + settings (TDD-ready)
+- [ ] 12-02-PLAN.md -- Sidebar checkboxes + Select All/None/Invert selection shortcuts
+- [ ] 12-03-PLAN.md -- SavesTab UI overhaul: toggles, detection rules, per-row results with LR interaction, MainWindow wiring
 
 ### Phase 13: Output Polish, Theming, and UI
 **Goal**: The app looks and feels polished — attack output is color-coded by damage type, Roll20 template macros render as styled cards, the DM can switch to a high-contrast or custom color theme, and all active toggles are visually obvious
@@ -142,5 +146,5 @@ Phase 8 → Phase 9 (parallel with 10) → Phase 10 → Phase 11 → Phase 12 �
 | 9. Monster Editor and Equipment Presets | v2.0 | 5/5 | Complete | 2026-02-26 |
 | 10. Persistent Encounter Sidebar | v2.0 | 2/2 | Complete | 2026-02-26 |
 | 11. Combat Tracker | 4/4 | Complete    | 2026-02-26 | - |
-| 12. Save Roller Upgrades | v2.0 | 0/? | Not started | - |
+| 12. Save Roller Upgrades | v2.0 | 0/3 | Not started | - |
 | 13. Output Polish, Theming, and UI | v2.0 | 0/? | Not started | - |
