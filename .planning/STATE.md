@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** DMs can manage the full combat loop — prep monsters, roll attacks and saves, and track combat state — in seconds, with D&D 5e rule fidelity and persistent data.
-**Current focus:** Phase 10 complete — ready for Phase 11 (Combat Tracker)
+**Current focus:** Phase 11 in progress — combat service layer complete (Plan 01 of ?)
 
 ## Current Position
 
-Phase: 10 of 13 (Persistent Encounter Sidebar)
-Plan: 2 of 2 in current phase (both complete, verified)
-Status: Complete
-Last activity: 2026-02-26 — Phase 10 verified and closed
+Phase: 11 of 13 (Combat Tracker)
+Plan: 1 of ? in current phase (Plan 01 complete)
+Status: In Progress
+Last activity: 2026-02-26 — Phase 11 Plan 01 complete (combat domain models + CombatTrackerService + PersistenceService extension)
 
-Progress: [██████████████] 100% (Phase 10 complete)
+Progress: [██████████████] Phase 11 started (1/? plans)
 
 ## Performance Metrics
 
@@ -29,7 +29,8 @@ Progress: [██████████████] 100% (Phase 10 complete)
 | 8 (v2.0) | 3/3 | Complete |
 | 9 (v2.0) | 5/5 | Complete |
 | 10 (v2.0) | 2/2 | Complete |
-| 11-13 (v2.0) | 0/? | Not started |
+| 11 (v2.0) | 1/? | In Progress |
+| 12-13 (v2.0) | 0/? | Not started |
 
 ## Accumulated Context
 
@@ -86,6 +87,11 @@ Recent decisions affecting current work:
 - [Phase 10-UAT]: Dark theme: no forced background colors, translucent selection overlay rgba(255,255,255,30), plain text button labels
 - [Phase 10-UAT]: Collapsed strip width 60px (originally 20px) — text labels need more space than symbols
 - [Phase 10-UAT]: Duplicate encounter save prevention in _on_sidebar_save — exact name+members match check
+- [Phase 11-01]: CombatTrackerService holds _prev_snapshot as a dict (not a CombatState copy) for minimal memory overhead during undo
+- [Phase 11-01]: Grouped initiative rolls once per group_id when grouping_enabled=True; each monster in the group gets the same initiative value
+- [Phase 11-01]: ConditionEntry.color field preserved in serialization (set by UI layer, not service)
+- [Phase 11-01]: Auto-regen via advance_turn() only when regeneration_hp > 0; pass_one_round() does not auto-regen
+- [Phase 11-01]: Feature detection scans Monster.actions[*].raw_text with regex for Legendary Resistance count, Legendary Actions count, Regeneration HP
 
 ### Pending Todos
 
@@ -99,5 +105,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Phase 10 complete and verified. Next: Phase 11 (Combat Tracker)
+Stopped at: Completed 11-01-PLAN.md (combat domain models, CombatTrackerService, PersistenceService extension)
 Resume file: .planning/ROADMAP.md

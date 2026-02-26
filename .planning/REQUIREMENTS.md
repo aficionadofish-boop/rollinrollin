@@ -49,29 +49,29 @@ Requirements for milestone v2.0 (Combat Manager). Each maps to roadmap phases.
 
 ### Persistent Encounter Sidebar
 
-- [ ] **SIDEBAR-01**: Collapsible sidebar visible on Library, Attack Roller, and Saves tabs showing the active encounter
+- [x] **SIDEBAR-01**: Collapsible sidebar visible on Library, Attack Roller, and Saves tabs showing the active encounter
 - [ ] **SIDEBAR-02**: User can add/remove monsters from the encounter via the sidebar
-- [ ] **SIDEBAR-03**: Sidebar encounter persists between tab switches and between sessions
+- [x] **SIDEBAR-03**: Sidebar encounter persists between tab switches and between sessions
 - [ ] **SIDEBAR-04**: User can save/load encounters from the sidebar
-- [ ] **SIDEBAR-05**: Sidebar can be collapsed/expanded by clicking a toggle on its edge
+- [x] **SIDEBAR-05**: Sidebar can be collapsed/expanded by clicking a toggle on its edge
 
 ### Combat Tracker
 
 - [ ] **COMBAT-01**: New Combat Tracker tab showing all combatants from the active encounter
 - [ ] **COMBAT-02**: Each combatant has a visual health bar with editable current/max HP
-- [ ] **COMBAT-03**: Each combatant has a temp HP field (absorbed before regular HP)
+- [x] **COMBAT-03**: Each combatant has a temp HP field (absorbed before regular HP)
 - [ ] **COMBAT-04**: Each combatant can have multiple conditions/buffs with name and round duration
 - [ ] **COMBAT-05**: Preset dropdown with standard 5e conditions (Blinded, Charmed, Deafened, Frightened, Grappled, Incapacitated, Invisible, Paralyzed, Petrified, Poisoned, Prone, Restrained, Stunned, Unconscious)
 - [ ] **COMBAT-06**: Preset dropdown with common D&D buffs/effects (Bless, Shield, Hypnotic Pattern, Fear, Web, Entangle, Maze, etc.)
 - [ ] **COMBAT-07**: User can add custom conditions with name and duration
 - [ ] **COMBAT-08**: Conditions have unique colors per type
-- [ ] **COMBAT-09**: One-button initiative roll for all encounter monsters using existing dice engine
+- [x] **COMBAT-09**: One-button initiative roll for all encounter monsters using existing dice engine
 - [ ] **COMBAT-10**: Grouped initiative option: same monster types share initiative, displayed as "Nx [Monster]" with expandable dropdown for individual HP/condition tracking
 - [ ] **COMBAT-11**: Player character subtab with name, AC, HP, condition trackers; PCs can be added to initiative
 - [ ] **COMBAT-12**: Initiative mode toggle: enabled sorts by initiative (descending) with "Next Turn" cycling; disabled shows "Pass 1 Round" button
-- [ ] **COMBAT-13**: When turn advances or "Pass 1 Round" is clicked, all condition round counters decrement by 1; conditions at 0 are flagged/removed
+- [x] **COMBAT-13**: When turn advances or "Pass 1 Round" is clicked, all condition round counters decrement by 1; conditions at 0 are flagged/removed
 - [ ] **COMBAT-14**: User can select specific monsters in tracker and click a button to jump to Saves tab with those loaded
-- [ ] **COMBAT-15**: User can enter a signed number (+12, -23) in a damage/healing field per combatant; app auto-applies (temp HP absorbed first, remainder from current HP)
+- [x] **COMBAT-15**: User can enter a signed number (+12, -23) in a damage/healing field per combatant; app auto-applies (temp HP absorbed first, remainder from current HP)
 
 ### Save Roller Upgrades
 
@@ -174,26 +174,26 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EQUIP-07 | Phase 9 | Complete |
 | EQUIP-08 | Phase 9 | Complete |
 | EQUIP-09 | Phase 9 | Pending |
-| SIDEBAR-01 | Phase 10 | Pending |
+| SIDEBAR-01 | Phase 10 | Complete |
 | SIDEBAR-02 | Phase 10 | Pending |
-| SIDEBAR-03 | Phase 10 | Pending |
+| SIDEBAR-03 | Phase 10 | Complete |
 | SIDEBAR-04 | Phase 10 | Pending |
-| SIDEBAR-05 | Phase 10 | Pending |
+| SIDEBAR-05 | Phase 10 | Complete |
 | COMBAT-01 | Phase 11 | Pending |
 | COMBAT-02 | Phase 11 | Pending |
-| COMBAT-03 | Phase 11 | Pending |
+| COMBAT-03 | Phase 11 | Complete |
 | COMBAT-04 | Phase 11 | Pending |
 | COMBAT-05 | Phase 11 | Pending |
 | COMBAT-06 | Phase 11 | Pending |
 | COMBAT-07 | Phase 11 | Pending |
 | COMBAT-08 | Phase 11 | Pending |
-| COMBAT-09 | Phase 11 | Pending |
+| COMBAT-09 | Phase 11 | Complete |
 | COMBAT-10 | Phase 11 | Pending |
 | COMBAT-11 | Phase 11 | Pending |
 | COMBAT-12 | Phase 11 | Pending |
-| COMBAT-13 | Phase 11 | Pending |
+| COMBAT-13 | Phase 11 | Complete |
 | COMBAT-14 | Phase 11 | Pending |
-| COMBAT-15 | Phase 11 | Pending |
+| COMBAT-15 | Phase 11 | Complete |
 | SAVE-08 | Phase 12 | Pending |
 | SAVE-09 | Phase 12 | Pending |
 | SAVE-10 | Phase 12 | Pending |
