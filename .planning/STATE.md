@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** DMs can manage the full combat loop — prep monsters, roll attacks and saves, and track combat state — in seconds, with D&D 5e rule fidelity and persistent data.
-**Current focus:** Phase 13 in progress — Output Polish Theming and UI Plan 03 complete (template_fields data model — MacroPreprocessor captures {{key=value}} pairs for template card rendering)
+**Current focus:** Phase 13 in progress — Output Polish Theming and UI Plan 01 complete (ThemeService foundation — 3 presets, AppSettings theme fields, main.py migration, _apply_settings wiring)
 
 ## Current Position
 
 Phase: 13 of 13 (Output Polish Theming and UI)
-Plan: 3 of 5 in current phase (Plan 03 complete — template_fields propagated from preprocessor to MacroLineResult)
+Plan: 3 of 5 in current phase (Plans 01, 02, 03 complete — ThemeService foundation, HTML attack output, template fields data model)
 Status: In Progress
-Last activity: 2026-02-26 — Phase 13 Plan 03 complete (CleanedMacro.template_fields + MacroLineResult.template_fields; _extract_template_fields returns 3-tuple; all 5 service code paths updated)
+Last activity: 2026-02-26 — Phase 13 Plan 01 complete (ThemeService with Dark/Default/High Contrast presets, AppSettings theme fields, main.py migrated, MainWindow._apply_settings wired)
 
-Progress: [████████████████] Phase 13 Plan 03 complete (3/5 plans)
+Progress: [████████████████] Phase 13 Plans 01-03 complete (3/5 plans)
 
 ## Performance Metrics
 
@@ -31,7 +31,7 @@ Progress: [████████████████] Phase 13 Plan 03 co
 | 10 (v2.0) | 2/2 | Complete |
 | 11 (v2.0) | 4/4 | Complete |
 | 12 (v2.0) | 3/3 | Complete |
-| 13 (v2.0) | 3/5 | In Progress |
+| 13 (v2.0) | 2/5 | In Progress |
 
 ## Accumulated Context
 
@@ -120,9 +120,17 @@ Recent decisions affecting current work:
 - [Phase 12-03]: LR counters reset only on encounter change, not on each roll — critical for multi-roll LR tracking within a fight
 - [Phase 12-03]: monster_name monkey-patched onto SaveParticipantResult at roll time — avoids domain model churn for UI-layer concern
 - [Phase 12-03]: Tab switch to Saves auto-loads only if sidebar has checked members — avoids noisy empty-participant message
-- [Phase 13-03]: template_fields values are RAW — may contain [[...]] inline roll tokens; Plan 05 (TemplateCard) will match resolved inline_results to field values by token order
-- [Phase 13-03]: Bare {{value}} fields (no = sign) NOT added to template_fields — expression-only; only {{key=value}} pairs captured
-- [Phase 13-03]: {{name=...}} not duplicated in template_fields — captured as template_name only (no duplication)
+- [Phase 13-01]: ThemeService._PRESETS maps theme_name strings to full stylesheet strings; preset selection is O(1) dict lookup
+- [Phase 13-01]: Dark theme remains default (AppSettings.theme_name = 'dark'); dark-background optimized per-widget colors already in codebase
+- [Phase 13-01]: ThemeService.apply() lazy-imports QApplication to keep ThemeService Qt-free except at apply() call time
+- [Phase 13-01]: main.py applies ThemeService.build_stylesheet(AppSettings()) at startup as flash-prevention before settings load
+- [Phase 13-01]: MainWindow stores self._theme_service instance and exposes get_theme_service() for child widget accent color access
+- [Phase 13-01]: Custom color template uses double-brace escaping ({{...}}) so .format() works without conflicting with CSS braces
+- [Phase 13-02]: Physical damage types (slashing, piercing, bludgeoning) share neutral gray tones — understated to let magical types pop
+- [Phase 13-02]: Full damage segment (number + type label) is colored as a unit; separator "+" between parts stays uncolored
+- [Phase 13-02]: Crit rows use gold-tinted div rgba(212,175,55,0.25); miss rows use red-tinted rgba(180,0,0,0.18) via _wrap_crit_line()/_wrap_miss_line()
+- [Phase 13-02]: append_html() uses QTextCursor.MoveOperation.End + insertHtml() — avoids plain-text/HTML mode-mixing pitfall
+- [Phase 13-02]: All original plain-text format methods kept intact; HTML methods are additive for clipboard/future export compatibility
 
 ### Pending Todos
 
@@ -136,5 +144,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 13-03-PLAN.md (template_fields data model — CleanedMacro + MacroLineResult + all 5 service code paths)
+Stopped at: Completed 13-01-PLAN.md (ThemeService foundation — 3 preset stylesheets, AppSettings theme fields, main.py migration, MainWindow._apply_settings wiring)
 Resume file: .planning/ROADMAP.md

@@ -85,21 +85,21 @@ Requirements for milestone v2.0 (Combat Manager). Each maps to roadmap phases.
 
 ### Output Polish
 
-- [ ] **OUTPUT-01**: Attack roll outputs use different colors for different damage types
-- [ ] **OUTPUT-02**: Critical hits and critical misses are color-coded in attack output
-- [ ] **OUTPUT-03**: Macro sandbox parses `&{template:default}{{name=XYZ}}{{key=value}}` syntax
+- [x] **OUTPUT-01**: Attack roll outputs use different colors for different damage types
+- [x] **OUTPUT-02**: Critical hits and critical misses are color-coded in attack output
+- [x] **OUTPUT-03**: Macro sandbox parses `&{template:default}{{name=XYZ}}{{key=value}}` syntax
 - [ ] **OUTPUT-04**: Template macros render as styled cards approximating Roll20 layout (colored header, labeled key/value rows)
 
 ### Theming
 
-- [ ] **THEME-01**: Settings offers multiple text/background color pair presets
+- [x] **THEME-01**: Settings offers multiple text/background color pair presets
 - [ ] **THEME-02**: User can set text and background colors separately
-- [ ] **THEME-03**: High contrast mode available
+- [x] **THEME-03**: High contrast mode available
 - [ ] **THEME-04**: User can change fonts for the macro sandbox separately from the rest of the app
 
 ### UI Polish
 
-- [ ] **UI-01**: Active toggles across all tabs are visually highlighted to clearly indicate the current selection (e.g. DEX on Saves tab, Advantage on Attack tab)
+- [x] **UI-01**: Active toggles across all tabs are visually highlighted to clearly indicate the current selection (e.g. DEX on Saves tab, Advantage on Attack tab)
 
 ## v1.0 Requirements (Validated)
 
@@ -201,15 +201,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SAVE-12 | Phase 12 | Complete |
 | SAVE-13 | Phase 12 | Complete |
 | SAVE-14 | Phase 12 | Complete |
-| OUTPUT-01 | Phase 13 | Pending |
-| OUTPUT-02 | Phase 13 | Pending |
-| OUTPUT-03 | Phase 13 | Pending |
+| OUTPUT-01 | Phase 13 | Complete |
+| OUTPUT-02 | Phase 13 | Complete |
+| OUTPUT-03 | Phase 13 | Complete |
 | OUTPUT-04 | Phase 13 | Pending |
-| THEME-01 | Phase 13 | Pending |
+| THEME-01 | Phase 13 | Complete |
 | THEME-02 | Phase 13 | Pending |
-| THEME-03 | Phase 13 | Pending |
+| THEME-03 | Phase 13 | Complete |
 | THEME-04 | Phase 13 | Pending |
-| UI-01 | Phase 13 | Pending |
+| UI-01 | Phase 13 | Complete |
 
 **Coverage:**
 - v2.0 requirements: 64 total
