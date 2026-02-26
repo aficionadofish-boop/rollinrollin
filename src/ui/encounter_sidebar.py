@@ -22,7 +22,61 @@ from PySide6.QtWidgets import (
     QListWidgetItem,
     QAbstractItemView,
 )
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QSize
+from PySide6.QtGui import QPainter
+
+# ---------------------------------------------------------------------------
+# Rotated button — used for collapsed sidebar handle
+# ---------------------------------------------------------------------------
+
+
+class _RotatedButton(QPushButton):
+    """QPushButton that renders its text rotated 90 degrees (bottom-to-top).
+
+    Used as the thin collapsed sidebar handle so the label "Show" is legible
+    in a ~24px wide vertical strip without being clipped.
+    """
+
+    _BTN_WIDTH = 24
+
+    def __init__(self, text: str, parent=None) -> None:
+        super().__init__(text, parent)
+
+    def sizeHint(self) -> QSize:
+        """Return a narrow hint; height determined by font metrics of the text."""
+        fm = self.fontMetrics()
+        text_width = fm.horizontalAdvance(self.text())
+        # Width is the narrow dimension; height accommodates the full text length
+        return QSize(self._BTN_WIDTH, text_width + 16)
+
+    def paintEvent(self, event) -> None:
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        # Draw background using the default button style
+        opt = self.style().drawControl
+        from PySide6.QtWidgets import QStyleOptionButton
+        option = QStyleOptionButton()
+        self.initStyleOption(option)
+        self.style().drawControl(
+            self.style().ControlElement.CE_PushButtonBevel, option, painter, self
+        )
+
+        # Draw text rotated -90 degrees (so it reads bottom-to-top)
+        painter.save()
+        painter.translate(self.width(), 0)
+        painter.rotate(90)
+        # The rotated coordinate system now has (0,0) at top-right of the button;
+        # draw text in the full rect of the rotated space (height × width).
+        import PySide6.QtCore as _qc
+        painter.drawText(
+            _qc.QRect(0, 0, self.height(), self.width()),
+            int(Qt.AlignmentFlag.AlignCenter),
+            self.text(),
+        )
+        painter.restore()
+        painter.end()
+
 
 # ---------------------------------------------------------------------------
 # XP lookup table and helpers (D&D 5e SRD, static values)
@@ -164,7 +218,7 @@ class EncounterSidebarDock(QDockWidget):
     save_btn_clicked = Signal()                 # Save button pressed
     load_btn_clicked = Signal()                 # Load button pressed
 
-    _COLLAPSED_WIDTH = 60
+    _COLLAPSED_WIDTH = 24
     _DEFAULT_EXPANDED_WIDTH = 300
 
     def __init__(self, library, parent=None) -> None:
@@ -307,18 +361,18 @@ class EncounterSidebarDock(QDockWidget):
         layout.addWidget(self._list_widget, 1)
 
     def _build_handle(self) -> None:
-        """Build the thin 20px collapsed strip with expand button."""
+        """Build the thin collapsed strip with a rotated expand button."""
         layout = QVBoxLayout(self._handle_widget)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        self._handle_btn = QPushButton("Show")
+        self._handle_btn = _RotatedButton("Show")
         self._handle_btn.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
         self._handle_btn.setToolTip("Expand encounter sidebar")
         self._handle_btn.clicked.connect(self.toggle_collapse)
 
         layout.addWidget(self._handle_btn)
-        self._handle_widget.setFixedWidth(60)
+        self._handle_widget.setFixedWidth(self._COLLAPSED_WIDTH)
 
     # ------------------------------------------------------------------
     # Collapse / expand (instant toggle)
