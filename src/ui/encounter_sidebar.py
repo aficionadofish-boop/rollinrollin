@@ -151,7 +151,7 @@ class EncounterSidebarDock(QDockWidget):
     save_btn_clicked = Signal()                 # Save button pressed
     load_btn_clicked = Signal()                 # Load button pressed
 
-    _COLLAPSED_WIDTH = 50
+    _COLLAPSED_WIDTH = 60
     _DEFAULT_EXPANDED_WIDTH = 300
 
     def __init__(self, library, parent=None) -> None:
@@ -286,7 +286,7 @@ class EncounterSidebarDock(QDockWidget):
         self._handle_btn.clicked.connect(self.toggle_collapse)
 
         layout.addWidget(self._handle_btn)
-        self._handle_widget.setFixedWidth(50)
+        self._handle_widget.setFixedWidth(60)
 
     # ------------------------------------------------------------------
     # Collapse / expand (instant toggle)
