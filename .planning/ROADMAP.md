@@ -26,7 +26,7 @@
 
 - [x] **Phase 8: Domain Expansion and Persistence Foundation** - New domain models, JSON persistence service, and Monster Math Engine — the prerequisite layer for all v2.0 features (completed 2026-02-25)
 - [x] **Phase 9: Monster Editor and Equipment Presets** - Full stat editing with live cascading recalculation, equipment presets (+X weapons/armor/shields/foci), and persistent monster overrides (completed 2026-02-25)
-- [ ] **Phase 10: Persistent Encounter Sidebar** - QDockWidget sidebar visible across Library, Attack, and Saves tabs; SavesTab extracted from EncountersTab as standalone tab
+- [x] **Phase 10: Persistent Encounter Sidebar** - QDockWidget sidebar visible across Library, Attack, and Saves tabs; SavesTab extracted from EncountersTab as standalone tab (completed 2026-02-26)
 - [ ] **Phase 11: Combat Tracker** - New Combat Tracker tab with HP bars, condition tracking, initiative ordering, turn cycling, and player character subtab
 - [ ] **Phase 12: Save Roller Upgrades** - Subset creature selection, Magic Resistance and Legendary Resistance auto-detection, per-creature feature detection summary, Combat-to-Saves bridge
 - [ ] **Phase 13: Output Polish, Theming, and UI** - Color-coded attack output, Roll20 template card rendering, theming system, and active toggle highlighting
@@ -135,7 +135,7 @@ Phase 8 → Phase 9 (parallel with 10) → Phase 10 → Phase 11 → Phase 12 �
 | 7. Packaging and Distribution | v1.0 | 2/2 | Complete | 2026-02-24 |
 | 8. Domain Expansion and Persistence Foundation | v2.0 | 3/3 | Complete | 2026-02-25 |
 | 9. Monster Editor and Equipment Presets | v2.0 | 5/5 | Complete | 2026-02-26 |
-| 10. Persistent Encounter Sidebar | v2.0 | 2/2 | Human verify | - |
+| 10. Persistent Encounter Sidebar | v2.0 | 2/2 | Complete | 2026-02-26 |
 | 11. Combat Tracker | v2.0 | 0/? | Not started | - |
 | 12. Save Roller Upgrades | v2.0 | 0/? | Not started | - |
 | 13. Output Polish, Theming, and UI | v2.0 | 0/? | Not started | - |

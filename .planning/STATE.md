@@ -5,23 +5,21 @@
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** DMs can manage the full combat loop — prep monsters, roll attacks and saves, and track combat state — in seconds, with D&D 5e rule fidelity and persistent data.
-**Current focus:** Phase 10 — Persistent Encounter Sidebar
+**Current focus:** Phase 10 complete — ready for Phase 11 (Combat Tracker)
 
 ## Current Position
 
 Phase: 10 of 13 (Persistent Encounter Sidebar)
-Plan: 2 of ? in current phase (Plan 02 complete — awaiting human verification)
-Status: In progress (checkpoint:human-verify)
-Last activity: 2026-02-26 — Phase 10 Plan 02 complete: sidebar integrated into MainWindow, human verification pending
+Plan: 2 of 2 in current phase (both complete, verified)
+Status: Complete
+Last activity: 2026-02-26 — Phase 10 verified and closed
 
-Progress: [█████████████░] 90% (Phase 10 Plan 02 complete, verification pending)
+Progress: [██████████████] 100% (Phase 10 complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 16 (all v1.0)
-- Average duration: ~30-45 min per plan (estimated from v1.0 ship speed)
-- Total execution time: v1.0 shipped same day as start (2026-02-24)
+- Total plans completed: 18 (16 v1.0 + 2 v2.0 Phase 8 + 5 v2.0 Phase 9 + 2 v2.0 Phase 10... wait, 16 + 3 + 5 + 2 = 26 total)
 
 **By Phase:**
 
@@ -30,7 +28,7 @@ Progress: [█████████████░] 90% (Phase 10 Plan 02 com
 | 1-7 (v1.0) | 16/16 | Complete |
 | 8 (v2.0) | 3/3 | Complete |
 | 9 (v2.0) | 5/5 | Complete |
-| 10 (v2.0) | 2/? | In progress (human verify) |
+| 10 (v2.0) | 2/2 | Complete |
 | 11-13 (v2.0) | 0/? | Not started |
 
 ## Accumulated Context
@@ -77,13 +75,17 @@ Recent decisions affecting current work:
 - [Phase 10-01]: encounters PersistenceService category changed from list to dict schema {active, saved} — list was never populated by UI; dict enables active+saved CRUD
 - [Phase 10-01]: count('encounters') returns len(saved) + (1 if active else 0) — reflects both active and saved encounters
 - [Phase 10-01]: sidebar_width: int = 300 added to AppSettings for cross-session width persistence
-- [Phase 10-01]: EncounterSidebarDock collapse uses width constraints (not QDockWidget.hide()) so thin 20px strip remains visible
+- [Phase 10-01]: EncounterSidebarDock collapse uses width constraints (not QDockWidget.hide()) so thin strip remains visible
 - [Phase 10-01]: sidebar always starts expanded — collapse state not persisted (DM expects to see encounter on launch)
 - [Phase 10-02]: SavesTab keeps file name encounters_tab.py to avoid breaking any future imports — only class name changed
 - [Phase 10-02]: LoadEncounterDialog tracks row_to_original mapping so deletions do not shift the index used for load
 - [Phase 10-02]: set_active_creature adds monster to creature list if not already present (sidebar single-click preload)
 - [Phase 10-02]: _load_persisted_data called AFTER sidebar is constructed so set_encounter() works during startup
 - [Phase 10-02]: _persisted_encounters removed — sidebar is now the authoritative in-memory encounter state
+- [Phase 10-UAT]: QPropertyAnimation removed — instant collapse/expand via setVisible + width constraints (user preference)
+- [Phase 10-UAT]: Dark theme: no forced background colors, translucent selection overlay rgba(255,255,255,30), plain text button labels
+- [Phase 10-UAT]: Collapsed strip width 60px (originally 20px) — text labels need more space than symbols
+- [Phase 10-UAT]: Duplicate encounter save prevention in _on_sidebar_save — exact name+members match check
 
 ### Pending Todos
 
@@ -97,5 +99,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Checkpoint:human-verify at end of 10-02-PLAN.md — sidebar integration complete, awaiting DM verification
-Resume file: .planning/phases/10-persistent-encounter-sidebar/10-02-SUMMARY.md
+Stopped at: Phase 10 complete and verified. Next: Phase 11 (Combat Tracker)
+Resume file: .planning/ROADMAP.md

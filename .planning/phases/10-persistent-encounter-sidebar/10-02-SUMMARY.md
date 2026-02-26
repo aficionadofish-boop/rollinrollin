@@ -145,6 +145,27 @@ self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self._sidebar)
 - The plan mentioned `set_expanded_width` should be called on startup — this is done in `_load_persisted_data()` after sidebar creation.
 - `_load_persisted_data()` is now called AFTER sidebar is created (moved from before tabs). This was necessary because sidebar must exist before we can call `set_encounter()` on it.
 
+## UAT Fix Commits (Post-Checkpoint)
+
+After human verification, the following issues were identified and fixed:
+
+| Commit | Fix |
+|--------|-----|
+| a821c2c | Sidebar freeze on last row removal, animation replaced with instant toggle, selection visibility, context menu signal wiring, duplicate encounter save prevention |
+| 5ba571f | Dark theme selection styling (translucent rgba overlay), focus border suppression, remove button rendering |
+| a93aef7 | Plain text labels for sidebar buttons (Hide/Show/Del) — symbol characters broken in dark theme |
+| 3bea61d | Remove fixed widths on buttons so text fits |
+| ec4e019 | Widen collapsed strip to 60px for Show button |
+
+**Key UAT-driven changes:**
+- QPropertyAnimation removed entirely — instant collapse/expand via `setVisible` + width constraints
+- Auto-collapse on last monster removal removed (caused freeze)
+- Dark theme: no forced background colors, translucent selection overlay `rgba(255, 255, 255, 30)`, plain text button labels
+- `_COLLAPSED_WIDTH` increased from 20px to 60px
+- `view_stat_block_requested` signal wired in MainWindow → `_on_view_stat_block` handler
+- `select_monster_by_name` added to MonsterLibraryTab for programmatic selection
+- Duplicate encounter save prevention in `_on_sidebar_save`
+
 ## Self-Check: PASSED
 
-All created/modified files exist on disk. Both task commits (e24563c, cee5620) exist in git log. SUMMARY.md created successfully.
+All created/modified files exist on disk. All task commits and UAT fix commits exist in git log. Human verification checkpoint approved.
