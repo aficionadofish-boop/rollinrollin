@@ -11,7 +11,7 @@ _FILENAMES = {
 }
 
 # Categories that use a dict as their empty default; all others use a list.
-_DICT_CATEGORIES = {"modified_monsters"}
+_DICT_CATEGORIES = {"modified_monsters", "encounters"}
 
 
 class PersistenceService:
@@ -61,15 +61,65 @@ class PersistenceService:
         self._save("loaded_monsters", data)
 
     # ------------------------------------------------------------------
-    # Encounters
+    # Encounters — active encounter and saved encounters
     # ------------------------------------------------------------------
 
-    def load_encounters(self) -> list:
-        """Return list of {name: str, members: [{name: str, count: int}]}."""
-        return self._load("encounters")
+    def load_active_encounter(self) -> dict | None:
+        """Return the active encounter dict {name, members} or None if missing."""
+        data = self._load("encounters")
+        if not isinstance(data, dict):
+            return None
+        active = data.get("active")
+        if not active:
+            return None
+        return active
 
-    def save_encounters(self, data: list) -> None:
+    def save_active_encounter(self, encounter_data: dict) -> None:
+        """Persist active encounter, preserving saved encounters in the same file."""
+        data = self._load("encounters")
+        if not isinstance(data, dict):
+            data = {}
+        data["active"] = encounter_data
         self._save("encounters", data)
+
+    def load_saved_encounters(self) -> list:
+        """Return the list of saved encounter dicts [{name, members, saved_at}]."""
+        data = self._load("encounters")
+        if not isinstance(data, dict):
+            return []
+        return data.get("saved", [])
+
+    def save_saved_encounter(self, encounter: dict) -> None:
+        """Append a named encounter to the saved list."""
+        data = self._load("encounters")
+        if not isinstance(data, dict):
+            data = {}
+        saved = data.get("saved", [])
+        saved.append(encounter)
+        data["saved"] = saved
+        self._save("encounters", data)
+
+    def delete_saved_encounter(self, index: int) -> None:
+        """Remove a saved encounter by index."""
+        data = self._load("encounters")
+        if not isinstance(data, dict):
+            return
+        saved = data.get("saved", [])
+        if 0 <= index < len(saved):
+            saved.pop(index)
+            data["saved"] = saved
+            self._save("encounters", data)
+
+    def save_encounters(self, data: dict) -> None:
+        """Write the entire encounters dict at once (flush/autosave lifecycle)."""
+        self._save("encounters", data)
+
+    def load_encounters(self) -> dict:
+        """Return the full encounters dict. Kept for backward compatibility."""
+        data = self._load("encounters")
+        if not isinstance(data, dict):
+            return {}
+        return data
 
     # ------------------------------------------------------------------
     # Modified monsters
@@ -111,5 +161,16 @@ class PersistenceService:
             self.flush(category)
 
     def count(self, category: str) -> int:
-        """Return number of entries in the given category."""
+        """Return number of entries in the given category.
+
+        For encounters: counts active (1 if present) + number of saved encounters.
+        For all other categories: returns len() of the loaded data.
+        """
+        if category == "encounters":
+            data = self._load("encounters")
+            if not isinstance(data, dict):
+                return 0
+            active = data.get("active")
+            saved = data.get("saved", [])
+            return len(saved) + (1 if active else 0)
         return len(self._load(category))

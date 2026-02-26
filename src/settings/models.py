@@ -22,3 +22,6 @@ class AppSettings:
     # Default AC / DC
     default_target_ac: int = 15
     default_save_dc: int = 13
+
+    # Sidebar
+    sidebar_width: int = 300

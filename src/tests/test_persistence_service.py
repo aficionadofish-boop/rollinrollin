@@ -14,8 +14,8 @@ from src.persistence.service import PersistenceService
 # Helpers
 # ---------------------------------------------------------------------------
 
-LIST_CATEGORIES = ["loaded_monsters", "encounters", "macros"]
-DICT_CATEGORIES = ["modified_monsters"]
+LIST_CATEGORIES = ["loaded_monsters", "macros"]
+DICT_CATEGORIES = ["modified_monsters", "encounters"]
 ALL_CATEGORIES = LIST_CATEGORIES + DICT_CATEGORIES
 
 
@@ -44,9 +44,18 @@ def test_save_then_load_round_trip(tmp_path):
     svc.save_loaded_monsters(["path/a.txt", "path/b.txt"])
     assert svc.load_loaded_monsters() == ["path/a.txt", "path/b.txt"]
 
-    encounters = [{"name": "Ambush", "members": [{"name": "Goblin", "count": 3}]}]
-    svc.save_encounters(encounters)
-    assert svc.load_encounters() == encounters
+    # Encounters now use dict schema with active/saved keys
+    encounter_data = {"name": "Ambush", "members": [{"name": "Goblin", "count": 3}]}
+    svc.save_active_encounter(encounter_data)
+    assert svc.load_active_encounter() == encounter_data
+
+    saved_enc = {
+        "name": "Ambush",
+        "members": [{"name": "Goblin", "count": 3}],
+        "saved_at": "2026-02-26T14:30:00",
+    }
+    svc.save_saved_encounter(saved_enc)
+    assert svc.load_saved_encounters() == [saved_enc]
 
     modified = {"Goblin+": {"hp": 8, "ac": 13, "ability_scores": {}, "saves": {}}}
     svc.save_modified_monsters(modified)
@@ -62,14 +71,15 @@ def test_flush_writes_empty_structure(tmp_path):
     svc = make_service(tmp_path)
 
     svc.save_loaded_monsters(["a.txt"])
-    svc.save_encounters([{"name": "Fight"}])
+    svc.save_active_encounter({"name": "Fight", "members": []})
     svc.save_modified_monsters({"Goblin+": {}})
     svc.save_macros(["!roll 1d6"])
 
     svc.flush("encounters")
 
     assert svc.load_loaded_monsters() == ["a.txt"]
-    assert svc.load_encounters() == []
+    assert svc.load_active_encounter() is None
+    assert svc.load_saved_encounters() == []
     assert svc.load_modified_monsters() == {"Goblin+": {}}
     assert svc.load_macros() == ["!roll 1d6"]
 
@@ -79,14 +89,15 @@ def test_flush_all(tmp_path):
     svc = make_service(tmp_path)
 
     svc.save_loaded_monsters(["a.txt"])
-    svc.save_encounters([{"name": "Fight"}])
+    svc.save_active_encounter({"name": "Fight", "members": []})
     svc.save_modified_monsters({"Goblin+": {}})
     svc.save_macros(["!roll 1d6"])
 
     svc.flush_all()
 
     assert svc.load_loaded_monsters() == []
-    assert svc.load_encounters() == []
+    assert svc.load_active_encounter() is None
+    assert svc.load_saved_encounters() == []
     assert svc.load_modified_monsters() == {}
     assert svc.load_macros() == []
 
@@ -106,6 +117,28 @@ def test_count_returns_entry_count(tmp_path):
 
     svc.flush("modified_monsters")
     assert svc.count("modified_monsters") == 0
+
+
+def test_count_encounters_reflects_active_and_saved(tmp_path):
+    """count('encounters') returns: len(saved) + (1 if active else 0)."""
+    svc = make_service(tmp_path)
+
+    # Empty: no active, no saved
+    assert svc.count("encounters") == 0
+
+    # Only active
+    svc.save_active_encounter({"name": "Fight", "members": []})
+    assert svc.count("encounters") == 1
+
+    # Active + one saved
+    svc.save_saved_encounter({
+        "name": "Saved1", "members": [], "saved_at": "2026-02-26T00:00:00"
+    })
+    assert svc.count("encounters") == 2
+
+    # Flush clears everything
+    svc.flush("encounters")
+    assert svc.count("encounters") == 0
 
 
 def test_corrupt_json_returns_empty(tmp_path):
@@ -213,3 +246,39 @@ def test_modified_monsters_from_dict_old_format_loads_without_error(tmp_path):
     assert mod.skills == {}
     assert mod.hp_formula is None
     assert mod.size is None
+
+
+def test_active_encounter_load_merge_does_not_clobber_saved(tmp_path):
+    """save_active_encounter preserves existing saved encounters."""
+    svc = make_service(tmp_path)
+
+    # First, save a named encounter
+    svc.save_saved_encounter({
+        "name": "Ambush", "members": [{"name": "Bandit", "count": 5}],
+        "saved_at": "2026-02-26T10:00:00"
+    })
+    assert len(svc.load_saved_encounters()) == 1
+
+    # Now set active encounter
+    svc.save_active_encounter({"name": "Active Fight", "members": [{"name": "Goblin", "count": 2}]})
+
+    # Saved encounters should be preserved
+    assert len(svc.load_saved_encounters()) == 1
+    assert svc.load_active_encounter()["name"] == "Active Fight"
+
+
+def test_delete_saved_encounter(tmp_path):
+    """delete_saved_encounter removes the entry at the given index."""
+    svc = make_service(tmp_path)
+
+    svc.save_saved_encounter({"name": "Enc1", "members": [], "saved_at": "2026-02-26T10:00:00"})
+    svc.save_saved_encounter({"name": "Enc2", "members": [], "saved_at": "2026-02-26T11:00:00"})
+    svc.save_saved_encounter({"name": "Enc3", "members": [], "saved_at": "2026-02-26T12:00:00"})
+
+    assert len(svc.load_saved_encounters()) == 3
+
+    svc.delete_saved_encounter(1)  # Remove "Enc2"
+    remaining = svc.load_saved_encounters()
+    assert len(remaining) == 2
+    assert remaining[0]["name"] == "Enc1"
+    assert remaining[1]["name"] == "Enc3"
