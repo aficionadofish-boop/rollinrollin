@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 10 of 13 (Persistent Encounter Sidebar)
-Plan: 0 of ? in current phase (not yet planned)
-Status: Ready to plan
-Last activity: 2026-02-26 — Phase 9 complete: Monster Editor and Equipment Presets verified and closed
+Plan: 1 of ? in current phase (Plan 01 complete)
+Status: In progress
+Last activity: 2026-02-26 — Phase 10 Plan 01 complete: EncounterSidebarDock core widget built
 
-Progress: [█████████████░] 85% (Phase 9 complete, Phase 10 next)
+Progress: [█████████████░] 87% (Phase 10 Plan 01 complete)
 
 ## Performance Metrics
 
@@ -30,7 +30,8 @@ Progress: [█████████████░] 85% (Phase 9 complete, Ph
 | 1-7 (v1.0) | 16/16 | Complete |
 | 8 (v2.0) | 3/3 | Complete |
 | 9 (v2.0) | 5/5 | Complete |
-| 10-13 (v2.0) | 0/? | Not started |
+| 10 (v2.0) | 1/? | In progress |
+| 11-13 (v2.0) | 0/? | Not started |
 
 ## Accumulated Context
 
@@ -73,6 +74,11 @@ Recent decisions affecting current work:
 - [Phase 09-05]: PersistenceService load+merge in _save_override: load current dict, update key, save back — avoids clobbering other saved modifications
 - [Phase 09-05]: Badge collision priority: incomplete "!" > modified pencil > "" (incomplete takes precedence)
 - [Phase 09-05]: closeEvent Save calls real _save_override() with event.ignore() so dialog controls its own close lifecycle
+- [Phase 10-01]: encounters PersistenceService category changed from list to dict schema {active, saved} — list was never populated by UI; dict enables active+saved CRUD
+- [Phase 10-01]: count('encounters') returns len(saved) + (1 if active else 0) — reflects both active and saved encounters
+- [Phase 10-01]: sidebar_width: int = 300 added to AppSettings for cross-session width persistence
+- [Phase 10-01]: EncounterSidebarDock collapse uses width constraints (not QDockWidget.hide()) so thin 20px strip remains visible
+- [Phase 10-01]: sidebar always starts expanded — collapse state not persisted (DM expects to see encounter on launch)
 
 ### Pending Todos
 
@@ -86,5 +92,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Phase 9 complete — ready to plan Phase 10
-Resume file: .planning/phases/09-monster-editor-and-equipment-presets/09-VERIFICATION.md
+Stopped at: Completed 10-01-PLAN.md — EncounterSidebarDock core widget and persistence schema
+Resume file: .planning/phases/10-persistent-encounter-sidebar/10-01-SUMMARY.md
