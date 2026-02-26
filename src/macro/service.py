@@ -168,6 +168,7 @@ class MacroSandboxService:
                     warnings=[MacroWarning(token=w.token, reason=w.reason) for w in macro.warnings],
                     error=str(e),
                     template_name=macro.template_name,
+                    template_fields=macro.template_fields,
                 ))
                 line_number += 1
                 continue
@@ -194,6 +195,7 @@ class MacroSandboxService:
                     warnings=warnings,
                     error=None,
                     template_name=macro.template_name,
+                    template_fields=macro.template_fields,
                 ))
             else:
                 try:
@@ -205,6 +207,7 @@ class MacroSandboxService:
                         warnings=warnings,
                         error=None,
                         template_name=macro.template_name,
+                        template_fields=macro.template_fields,
                     ))
                 except (ValueError, ParseError) as e:
                     # If we have inline results or a template name, suppress the error —
@@ -217,6 +220,7 @@ class MacroSandboxService:
                             warnings=warnings,
                             error=None,
                             template_name=macro.template_name,
+                            template_fields=macro.template_fields,
                         ))
                     else:
                         results.append(MacroLineResult(
@@ -226,6 +230,7 @@ class MacroSandboxService:
                             warnings=warnings,
                             error=str(e),
                             template_name=macro.template_name,
+                            template_fields=macro.template_fields,
                         ))
 
             line_number += 1
