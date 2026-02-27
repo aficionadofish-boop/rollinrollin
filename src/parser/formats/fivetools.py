@@ -12,9 +12,15 @@ from __future__ import annotations
 import re
 from typing import Optional
 
-from src.domain.models import Action, DamagePart, Monster
+from src.domain.models import Action, DamagePart, Monster, Trait
 from src.parser.models import ParseResult
-from src.parser.formats._shared_patterns import extract_named_section
+from src.parser.formats._shared_patterns import (
+    extract_named_section,
+    extract_all_sections,
+    detect_dice_in_text,
+    detect_recharge,
+    extract_speed as _shared_extract_speed,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -207,8 +213,9 @@ def _parse_action(action_text: str) -> Optional[Action]:
     to_hit_m = TO_HIT_RE.search(joined)
     to_hit_bonus: Optional[int] = int(to_hit_m.group(1)) if to_hit_m else None
 
-    # Extract damage parts
+    # Extract damage parts and after_text
     damage_parts: list[DamagePart] = []
+    after_text: str = ""
     hit_m = HIT_LINE_RE.search(joined)
     if hit_m:
         # Primary damage component
@@ -228,6 +235,8 @@ def _parse_action(action_text: str) -> Optional[Action]:
                 damage_type=secondary_type,
                 raw_text=hit_m.group(0),
             ))
+        # Capture text after the hit/damage line
+        after_text = joined[hit_m.end():].strip()
 
     is_parsed = to_hit_bonus is not None and len(damage_parts) > 0
 
@@ -237,6 +246,7 @@ def _parse_action(action_text: str) -> Optional[Action]:
         damage_parts=damage_parts,
         raw_text=joined,
         is_parsed=is_parsed,
+        after_text=after_text,
     )
 
 
@@ -309,6 +319,62 @@ def _split_action_blocks(text: str) -> list[str]:
             blocks.append(block)
 
     return blocks
+
+
+# ---------------------------------------------------------------------------
+# Trait and speed extraction (Phase 15)
+# ---------------------------------------------------------------------------
+
+def _extract_traits(clean_text: str) -> list[Trait]:
+    """Extract trait entries from a statblock's clean text.
+
+    Looks for an explicit 'Traits' section first. If not found, uses the
+    preamble (text before the first section header). Within that text, any
+    ***Name.*** block that has NO to_hit_bonus AND NO damage_parts is
+    classified as a Trait.
+
+    Returns a (possibly empty) list of Trait dataclass instances.
+    """
+    # Try explicit Traits section first
+    traits_section = extract_named_section(clean_text, "Traits")
+    if traits_section:
+        candidate_text = traits_section
+    else:
+        # Fall back to preamble (text before first section header)
+        sections = extract_all_sections(clean_text)
+        candidate_text = sections.get('preamble', '')
+
+    blocks = _split_action_blocks(candidate_text)
+    traits: list[Trait] = []
+    for block in blocks:
+        # Extract name
+        joined = ' '.join(line.strip() for line in block.splitlines() if line.strip())
+        first_line = block.strip().splitlines()[0].strip() if block.strip() else ""
+        name_m = ACTION_NAME_RE.match(first_line) or ACTION_NAME_RE.match(joined)
+        if not name_m:
+            continue
+        name = name_m.group(1).strip()
+
+        # Only classify as Trait if no attack roll and no damage line
+        if TO_HIT_RE.search(joined) or HIT_LINE_RE.search(joined):
+            continue
+
+        # Description: everything after the name marker
+        description = ACTION_NAME_RE.sub('', joined, count=1).strip()
+
+        traits.append(Trait(
+            name=name,
+            description=description,
+            rollable_dice=detect_dice_in_text(description),
+            recharge_range=detect_recharge(name),
+        ))
+
+    return traits
+
+
+def _extract_speed(clean_text: str) -> str:
+    """Extract speed string from the **Speed** line in a statblock."""
+    return _shared_extract_speed(clean_text)
 
 
 # ---------------------------------------------------------------------------
@@ -427,6 +493,8 @@ def parse_fivetools(content: str) -> ParseResult:
         lair_actions = _extract_section_actions(clean, "Lair Actions")
         size = _extract_size(clean)
         skills = _extract_skills(clean)
+        traits = _extract_traits(clean)
+        speed = _extract_speed(clean)
 
         monster = Monster(
             name=name,
@@ -444,6 +512,8 @@ def parse_fivetools(content: str) -> ParseResult:
             incomplete=incomplete,
             size=size,
             skills=skills,
+            traits=traits,
+            speed=speed,
         )
         monsters.append(monster)
 

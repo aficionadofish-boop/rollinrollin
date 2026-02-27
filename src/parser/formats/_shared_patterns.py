@@ -7,6 +7,8 @@ from __future__ import annotations
 import re
 from typing import Optional
 
+from src.domain.models import DetectedDie, Trait
+
 
 # ---------------------------------------------------------------------------
 # Compiled regex constants — shared across all format parsers
@@ -55,6 +57,21 @@ HIT_LINE_RE = re.compile(
     r'\*?Hit:\*?\s+'
     r'(\d+)\s*\(([^)]+)\)\s+(\w+)\s+damage'
     r'(?:\s+plus\s+\d+\s*\(([^)]+)\)\s+(\w+)\s+damage)?',
+    re.IGNORECASE
+)
+
+# Speed line: "**Speed** 30 ft., fly 60 ft."
+SPEED_RE = re.compile(r'\*\*Speed\*\*\s+(.+)', re.IGNORECASE)
+
+# Dice formula in trait text: "54 (12d8) acid damage" — captures average, dice expr, damage type
+DICE_IN_TRAIT_RE = re.compile(
+    r'(\d+)\s*\((\d+d\d+(?:[+-]\d+)?)\)\s+(\w+)\s+damage',
+    re.IGNORECASE
+)
+
+# Recharge pattern in trait names: "(Recharge 5-6)" or "(Recharge 6)"
+RECHARGE_RE = re.compile(
+    r'\(Recharge\s+(\d+)(?:\s*[-\u2013]\s*(\d+))?\)',
     re.IGNORECASE
 )
 
@@ -113,6 +130,51 @@ def extract_named_section(text: str, section_name: str) -> str:
     next_m = SECTION_BOUNDARY_RE.search(text, start)
     end = next_m.start() if next_m else len(text)
     return text[start:end]
+
+
+def detect_dice_in_text(text: str) -> list[DetectedDie]:
+    """Scan text for dice formula patterns like '54 (12d8) acid damage'.
+
+    Returns a list of DetectedDie instances for every match found.
+    """
+    results: list[DetectedDie] = []
+    for m in DICE_IN_TRAIT_RE.finditer(text):
+        average_str = m.group(1)
+        dice_expr = m.group(2)
+        damage_type = m.group(3).lower()
+        results.append(DetectedDie(
+            full_match=m.group(0),
+            dice_expr=dice_expr,
+            damage_type=damage_type,
+            average=int(average_str),
+        ))
+    return results
+
+
+def detect_recharge(name: str) -> Optional[tuple[int, int]]:
+    """Detect a recharge range from a trait name like 'Acid Breath (Recharge 5-6)'.
+
+    Returns (min, max) tuple — e.g. (5, 6) for "Recharge 5-6" or (6, 6) for "Recharge 6".
+    Returns None if no recharge pattern is found.
+    """
+    m = RECHARGE_RE.search(name)
+    if not m:
+        return None
+    lo = int(m.group(1))
+    hi = int(m.group(2)) if m.group(2) is not None else lo
+    return (lo, hi)
+
+
+def extract_speed(text: str) -> str:
+    """Extract the speed value from a **Speed** line.
+
+    Returns the speed text (e.g. "30 ft., fly 60 ft.") or "" if not found.
+    """
+    m = SPEED_RE.search(text)
+    if not m:
+        return ""
+    # Strip trailing asterisks or markup that might appear at end of line
+    return m.group(1).strip()
 
 
 def extract_all_sections(text: str) -> dict[str, str]:
