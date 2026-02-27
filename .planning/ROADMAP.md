@@ -155,7 +155,7 @@ Phase 8 → Phase 9 (parallel with 10) → Phase 10 → Phase 11 → Phase 12 �
 | 12. Save Roller Upgrades | v2.0 | 3/3 | Complete | 2026-02-26 |
 | 13. Output Polish, Theming, and UI | v2.0 | 5/5 | Complete | 2026-02-26 |
 | 14. Bug Fixes & Critical Polish | 6/6 | Complete    | 2026-02-26 | - |
-| 15. Editor & Parser Overhaul | v2.1 | 0/? | Planned | - |
+| 15. Editor & Parser Overhaul | v2.1 | 0/3 | Planned | - |
 | 16. Buff System & Output Improvements | v2.1 | 0/? | Planned | - |
 
 ### Phase 14: Bug Fixes & Critical Polish
@@ -402,8 +402,11 @@ Plans:
   10. CR, HP, and Skills sections are compacted alongside the ability scores in the editor (PARSE-10)
   11. Equipment section is at the bottom of the editor, right above Buffs (PARSE-11)
 
+**Plans:** 3 plans
 Plans:
-- [ ] TBD (run /gsd:plan-phase 15 to break down)
+- [ ] 15-01-PLAN.md -- Domain models (Trait, DetectedDie) + parser updates (trait extraction, speed, after-text, dice detection, recharge) across all 3 formats
+- [ ] 15-02-PLAN.md -- Editor layout: Core Stats merge, Traits section UI with edit modal, action header labels, after-text editing, Equipment reposition
+- [ ] 15-03-PLAN.md -- Attack Roller: rollable trait buttons with dice substitution + recharge, speed display, [[XdY]] notation, after-text on hits
 
 ### Phase 16: Buff System & Output Improvements
 
