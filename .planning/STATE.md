@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 15 of 16 (Editor & Parser Overhaul)
-Plan: 1 of 5 in current phase
+Plan: 3 of 5 in current phase
 Status: In Progress
-Last activity: 2026-02-27 — Phase 15 Plan 01 complete (Trait/DetectedDie dataclasses, Monster.traits/speed, Action.after_text, _extract_traits/_extract_speed in all three parsers)
+Last activity: 2026-02-27 — Phase 15 Plan 03 complete (rollable trait buttons, recharge support, after-text on hits, speed display, traits section, [[XdY]] auto-average notation)
 
-Progress: [███████████████░░░░░] Phase 15 started (1/5 plans)
+Progress: [████████████████░░░░] Phase 15 in progress (3/5 plans)
 
 ## Performance Metrics
 
@@ -167,6 +167,10 @@ Recent decisions affecting current work:
 - [Phase 15-01]: RECHARGE_RE includes unicode en-dash (\u2013) to handle copy-pasted statblock text from PDFs
 - [Phase 15-01]: detect_recharge() returns (6, 6) for single-value recharge like "(Recharge 6)" — consistent tuple interface for consumers
 - [Phase 15-01]: Monster.traits and Monster.speed use field defaults (list/str) so all existing Monster construction and MonsterModification.from_dict() backward compat is preserved
+- [Phase 15-03]: After-text stored as _last_after_text on AttackRollerTab; avoids adding after_text to RollRequest domain model
+- [Phase 15-03]: RAW mode always shows after-text; COMPARE mode shows only when at least one hit occurred
+- [Phase 15-03]: _render_double_bracket is module-level function in monster_detail.py; replaces [[NdS]] with '{avg} [[NdS]]' display-only
+- [Phase 15-03]: Speed row and traits section use QWidget wrapper setVisible(True/False) rather than layout manipulation
 
 ### Roadmap Evolution
 
@@ -186,5 +190,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-27
-Stopped at: Completed 15-01-PLAN.md (Trait/DetectedDie dataclasses, Monster.traits/speed, Action.after_text, _extract_traits/_extract_speed in all three parsers)
-Resume file: .planning/phases/15-editor-parser-overhaul/15-01-SUMMARY.md
+Stopped at: Completed 15-03-PLAN.md (rollable trait buttons, recharge support, after-text on hits, speed display, traits section, [[XdY]] auto-average notation)
+Resume file: .planning/phases/15-editor-parser-overhaul/15-03-SUMMARY.md
