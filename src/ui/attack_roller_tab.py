@@ -25,6 +25,8 @@ from PySide6.QtWidgets import (
     QSizePolicy,
 )
 
+from src.engine.parser import roll_expression
+from src.domain.models import Trait
 from src.roll.service import RollService
 from src.roll.models import RollRequest, RollResult
 from src.ui.toggle_bar import ToggleBar
@@ -75,6 +77,7 @@ class AttackRollerTab(QWidget):
         self._roller = roller
         self._roll_service = RollService()
         self._last_result: RollResult | None = None
+        self._last_after_text: str = ""  # after_text from last rolled action
         self._creatures: list[tuple] = []  # [(Monster, count), ...]
         self._action_rows: list[QWidget] = []
         self._mode = "raw"
@@ -355,6 +358,27 @@ class AttackRollerTab(QWidget):
                 self._action_list_layout.insertWidget(insert_idx, row)
                 self._action_rows.append(row)
 
+            # Trait rows — only if any traits have rollable dice
+            rollable_traits = [
+                t for t in getattr(monster, "traits", [])
+                if t.rollable_dice
+            ]
+            if rollable_traits:
+                traits_divider = QLabel("Traits")
+                traits_divider.setStyleSheet(
+                    "font-weight: bold; font-style: italic; "
+                    "padding: 6px 0 2px 4px; color: #8ecae6;"
+                )
+                insert_idx = self._action_list_layout.count() - 1
+                self._action_list_layout.insertWidget(insert_idx, traits_divider)
+                self._action_rows.append(traits_divider)
+
+                for trait in rollable_traits:
+                    row = self._make_trait_row(trait)
+                    insert_idx = self._action_list_layout.count() - 1
+                    self._action_list_layout.insertWidget(insert_idx, row)
+                    self._action_rows.append(row)
+
     def _make_action_row(self, action) -> QWidget:
         """Build one action row: 'Scimitar (+4)  [Roll]'."""
         row = QWidget()
@@ -377,6 +401,34 @@ class AttackRollerTab(QWidget):
         layout.addWidget(roll_btn)
         return row
 
+    def _make_trait_row(self, trait: Trait) -> QWidget:
+        """Build one trait row: 'Acid Breath (Recharge 5-6)  [Roll]'."""
+        row = QWidget()
+        layout = QHBoxLayout(row)
+        layout.setContentsMargins(16, 1, 2, 1)
+
+        label_text = trait.name
+        if trait.recharge_range:
+            lo, hi = trait.recharge_range
+            if lo == hi:
+                label_text += f" (Recharge {lo})"
+            else:
+                label_text += f" (Recharge {lo}-{hi})"
+
+        name_label = QLabel(label_text)
+        name_label.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
+        )
+
+        roll_btn = QPushButton("Roll")
+        roll_btn.clicked.connect(
+            lambda checked, t=trait: self._on_roll_trait(t)
+        )
+
+        layout.addWidget(name_label)
+        layout.addWidget(roll_btn)
+        return row
+
     # ------------------------------------------------------------------
     # Roll trigger
     # ------------------------------------------------------------------
@@ -386,7 +438,61 @@ class AttackRollerTab(QWidget):
         request = self._build_roll_request(action)
         result = self._roll_service.execute_attack_roll(request, self._roller)
         self._last_result = result
+        self._last_after_text = getattr(action, "after_text", "") or ""
         self._render_results(result)
+
+    def _on_roll_trait(self, trait: Trait) -> None:
+        """Roll all detected dice in a trait and append formatted output."""
+        # Roll each detected die expression
+        roll_results: list[int] = []
+        for die in trait.rollable_dice:
+            result = roll_expression(die.dice_expr, self._roller)
+            roll_results.append(result.total)
+
+        # Roll recharge 1d6 if applicable
+        recharge_roll: int | None = None
+        recharge_passed: bool | None = None
+        if trait.recharge_range:
+            recharge_roll = self._roller.roll_one(6)
+            lo, hi = trait.recharge_range
+            recharge_passed = lo <= recharge_roll <= hi
+
+        html = self._format_trait_output(trait, roll_results, recharge_roll, recharge_passed)
+        self._output_panel.append_html(html)
+
+    def _format_trait_output(
+        self,
+        trait: Trait,
+        roll_results: list[int],
+        recharge_roll: int | None,
+        recharge_passed: bool | None,
+    ) -> str:
+        """Format the HTML output for a rolled trait."""
+        # Header line
+        header = self._html_escape(trait.name)
+        if trait.recharge_range and recharge_roll is not None:
+            lo, hi = trait.recharge_range
+            if lo == hi:
+                recharge_label = f"(Recharge {lo})"
+            else:
+                recharge_label = f"(Recharge {lo}-{hi})"
+            color = "#4CAF50" if recharge_passed else "#E63946"
+            header += (
+                f' {self._html_escape(recharge_label)}'
+                f' <span style="color:{color};">[rolled: {recharge_roll}]</span>'
+            )
+
+        # Body: substitute dice rolls into trait description
+        body = self._html_escape(trait.description)
+        for die, roll_total in zip(trait.rollable_dice, roll_results):
+            color = DAMAGE_COLORS.get(die.damage_type.lower(), _DEFAULT_DAMAGE_COLOR)
+            replacement = (
+                f'<span style="color:{color};">({roll_total})</span>'
+            )
+            # Replace the full_match text (HTML-escaped) with the colored result
+            body = body.replace(self._html_escape(die.full_match), replacement, 1)
+
+        return f"<b>{header}</b><br>{body}"
 
     def _build_roll_request(self, action) -> RollRequest:
         """Assemble a RollRequest from current UI toggle state."""
@@ -437,6 +543,16 @@ class AttackRollerTab(QWidget):
             self._output_panel.append_html(line)
         if mode == "compare":
             self._output_panel.append_html(self._format_summary_html(result.summary))
+        # After-attack-text: display once at the end if any hit occurred
+        # (RAW mode always shows it; COMPARE only when there was at least one hit)
+        after_text = self._last_after_text
+        if after_text:
+            any_hit = any(a.is_hit is True for a in result.attack_rolls)
+            if mode == "raw" or any_hit:
+                escaped = self._html_escape(after_text)
+                self._output_panel.append_html(
+                    f'<div style="margin-left:16px; font-size:90%; opacity:0.85;">{escaped}</div>'
+                )
 
     def _format_attack_line(self, attack, request) -> str:
         """Format one attack result as a compact single-line string."""
