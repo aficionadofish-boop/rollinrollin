@@ -37,6 +37,7 @@ from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
+    QDialogButtonBox,
     QGridLayout,
     QHBoxLayout,
     QInputDialog,
@@ -51,6 +52,7 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QSpinBox,
     QSplitter,
+    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
@@ -63,6 +65,7 @@ from src.domain.models import (
     Monster,
     MonsterModification,
     SKILL_TO_ABILITY,
+    Trait,
 )
 from src.equipment.data import SRD_ARMORS, SRD_WEAPONS
 from src.equipment.service import EquipmentService
@@ -301,13 +304,11 @@ class MonsterEditorDialog(QDialog):
         self._edit_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self._edit_layout.setSpacing(4)
 
-        self._build_ability_scores_section()
+        self._build_core_stats_section()
         self._build_saving_throws_section()
-        self._build_skills_section()
-        self._build_hp_section()
-        self._build_cr_section()
-        self._build_equipment_section()
+        self._build_traits_section()
         self._build_actions_section()
+        self._build_equipment_section()
         self._build_buffs_section()
 
         self._edit_layout.addStretch(1)
@@ -362,13 +363,18 @@ class MonsterEditorDialog(QDialog):
     # Section builders
     # ------------------------------------------------------------------
 
-    def _build_ability_scores_section(self) -> None:
-        """Build the 6-across ability score grid (expanded by default)."""
+    def _build_core_stats_section(self) -> None:
+        """Build the Core Stats section merging ability scores, CR, HP, Speed, and Skills."""
         content = QWidget()
-        grid = QGridLayout(content)
-        grid.setSpacing(6)
+        layout = QVBoxLayout(content)
+        layout.setSpacing(6)
 
+        # ---- Ability scores grid ----
         self._ability_spinboxes: dict[str, QSpinBox] = {}
+        ability_widget = QWidget()
+        grid = QGridLayout(ability_widget)
+        grid.setSpacing(6)
+        grid.setContentsMargins(0, 0, 0, 0)
 
         for col, ability in enumerate(_ABILITY_LABELS):
             header = QLabel(ability)
@@ -386,7 +392,79 @@ class MonsterEditorDialog(QDialog):
             grid.addWidget(spinbox, 1, col)
             self._ability_spinboxes[ability] = spinbox
 
-        section = CollapsibleSection("Ability Scores", content, expanded=True)
+        layout.addWidget(ability_widget)
+
+        # ---- CR | HP | Speed compact row ----
+        cr_hp_speed_row = QHBoxLayout()
+        cr_hp_speed_row.setSpacing(8)
+
+        # CR
+        cr_hp_speed_row.addWidget(QLabel("CR:"))
+        self._cr_combo = QComboBox()
+        for cr in _CR_VALUES:
+            self._cr_combo.addItem(cr)
+        current_cr = self._working_copy.cr or "1"
+        if current_cr in _CR_VALUES:
+            self._cr_combo.setCurrentText(current_cr)
+        self._cr_combo.currentTextChanged.connect(self._on_cr_changed)
+        self._cr_combo.setFixedWidth(70)
+        cr_hp_speed_row.addWidget(self._cr_combo)
+
+        cr_hp_speed_row.addWidget(QLabel("HP:"))
+        self._hp_flat_spinbox = QSpinBox()
+        self._hp_flat_spinbox.setRange(1, 9999)
+        self._hp_flat_spinbox.setValue(max(1, self._working_copy.hp))
+        self._hp_flat_spinbox.editingFinished.connect(self._on_hp_changed)
+        self._hp_flat_spinbox.setFixedWidth(65)
+        cr_hp_speed_row.addWidget(self._hp_flat_spinbox)
+
+        cr_hp_speed_row.addWidget(QLabel("Dice:"))
+        self._hp_formula_edit = QLineEdit()
+        self._hp_formula_edit.setPlaceholderText("e.g. 7d8+14")
+        self._hp_formula_edit.editingFinished.connect(self._on_hp_changed)
+        self._hp_formula_edit.setFixedWidth(90)
+        cr_hp_speed_row.addWidget(self._hp_formula_edit)
+
+        cr_hp_speed_row.addWidget(QLabel("Speed:"))
+        self._speed_edit = QLineEdit()
+        self._speed_edit.setPlaceholderText("e.g. 30 ft., fly 60 ft.")
+        self._speed_edit.setText(self._working_copy.speed or "")
+        self._speed_edit.textChanged.connect(self._on_speed_changed)
+        cr_hp_speed_row.addWidget(self._speed_edit, 1)
+
+        cr_hp_speed_row_widget = QWidget()
+        cr_hp_speed_row_widget.setLayout(cr_hp_speed_row)
+        layout.addWidget(cr_hp_speed_row_widget)
+
+        # ---- Skills section (inline) ----
+        self._skills_layout = QVBoxLayout()
+        self._skills_layout.setSpacing(4)
+        self._skills_layout.setContentsMargins(0, 0, 0, 0)
+        self._skill_rows: dict[str, tuple[list[QPushButton], QSpinBox, QWidget]] = {}
+
+        # Build rows for current skills
+        for skill_name, skill_value in list(self._working_copy.skills.items()):
+            self._add_skill_row(skill_name, skill_value)
+
+        # "Add Skill" row at the bottom
+        add_row = QHBoxLayout()
+        self._add_skill_combo = QComboBox()
+        self._add_skill_combo.addItem("-- Add Skill --")
+        for skill_name in sorted(SKILL_TO_ABILITY.keys()):
+            self._add_skill_combo.addItem(skill_name)
+        self._add_skill_combo.currentIndexChanged.connect(self._on_add_skill)
+        add_row.addWidget(self._add_skill_combo)
+        add_row.addStretch()
+
+        add_row_widget = QWidget()
+        add_row_widget.setLayout(add_row)
+        self._skills_layout.addWidget(add_row_widget)
+
+        skills_container = QWidget()
+        skills_container.setLayout(self._skills_layout)
+        layout.addWidget(skills_container)
+
+        section = CollapsibleSection("Core Stats", content, expanded=True)
         self._edit_layout.addWidget(section)
 
     def _build_saving_throws_section(self) -> None:
@@ -444,34 +522,6 @@ class MonsterEditorDialog(QDialog):
         section = CollapsibleSection("Saving Throws", content, expanded=False)
         self._edit_layout.addWidget(section)
 
-    def _build_skills_section(self) -> None:
-        """Build the skills section showing existing skills + add/remove."""
-        content = QWidget()
-        self._skills_layout = QVBoxLayout(content)
-        self._skills_layout.setSpacing(4)
-
-        self._skill_rows: dict[str, tuple[list[QPushButton], QSpinBox, QWidget]] = {}
-
-        # Build rows for current skills
-        for skill_name, skill_value in list(self._working_copy.skills.items()):
-            self._add_skill_row(skill_name, skill_value)
-
-        # "Add Skill" row at the bottom
-        add_row = QHBoxLayout()
-        self._add_skill_combo = QComboBox()
-        self._add_skill_combo.addItem("-- Add Skill --")
-        for skill_name in sorted(SKILL_TO_ABILITY.keys()):
-            self._add_skill_combo.addItem(skill_name)
-        self._add_skill_combo.currentIndexChanged.connect(self._on_add_skill)
-        add_row.addWidget(self._add_skill_combo)
-        add_row.addStretch()
-
-        add_row_widget = QWidget()
-        add_row_widget.setLayout(add_row)
-        self._skills_layout.addWidget(add_row_widget)
-
-        section = CollapsibleSection("Skills", content, expanded=False)
-        self._edit_layout.addWidget(section)
 
     def _add_skill_row(self, skill_name: str, skill_value: int) -> None:
         """Add a single skill row to the skills section."""
@@ -521,55 +571,78 @@ class MonsterEditorDialog(QDialog):
         # Sync toggle state for this skill
         self._sync_skill_toggle(skill_name, skill_value)
 
-    def _build_hp_section(self) -> None:
-        """Build the Hit Points section with formula + flat HP fields."""
+
+    def _build_traits_section(self) -> None:
+        """Build the Traits section with a compact name list and edit modal."""
         content = QWidget()
         layout = QVBoxLayout(content)
         layout.setSpacing(4)
 
-        # Hit dice formula
-        formula_row = QHBoxLayout()
-        formula_row.addWidget(QLabel("Hit Dice Formula:"))
-        self._hp_formula_edit = QLineEdit()
-        self._hp_formula_edit.setPlaceholderText("e.g. 7d8+14")
-        self._hp_formula_edit.editingFinished.connect(self._on_hp_changed)
-        formula_row.addWidget(self._hp_formula_edit, 1)
-        layout.addLayout(formula_row)
+        # Trait rows container (rebuilt on every change)
+        self._trait_rows_widget = QWidget()
+        self._trait_rows_layout = QVBoxLayout(self._trait_rows_widget)
+        self._trait_rows_layout.setContentsMargins(0, 0, 0, 0)
+        self._trait_rows_layout.setSpacing(2)
+        layout.addWidget(self._trait_rows_widget)
 
-        # Flat max HP
-        flat_row = QHBoxLayout()
-        flat_row.addWidget(QLabel("Max HP (flat):"))
-        self._hp_flat_spinbox = QSpinBox()
-        self._hp_flat_spinbox.setRange(1, 9999)
-        self._hp_flat_spinbox.setValue(max(1, self._working_copy.hp))
-        self._hp_flat_spinbox.editingFinished.connect(self._on_hp_changed)
-        flat_row.addWidget(self._hp_flat_spinbox)
-        flat_row.addStretch()
-        layout.addLayout(flat_row)
+        # "Add Trait" button
+        add_trait_btn = QPushButton("Add Trait")
+        add_trait_btn.clicked.connect(self._on_add_trait)
+        layout.addWidget(add_trait_btn)
 
-        section = CollapsibleSection("Hit Points", content, expanded=False)
+        # Editor-local trait list, initialized from working copy
+        self._trait_items: list[Trait] = list(self._working_copy.traits)
+
+        section = CollapsibleSection("Traits", content, expanded=False)
         self._edit_layout.addWidget(section)
 
-    def _build_cr_section(self) -> None:
-        """Build the Challenge Rating section with CR combo box."""
-        content = QWidget()
-        layout = QHBoxLayout(content)
-        layout.setContentsMargins(4, 4, 4, 4)
+        # Build initial trait rows
+        self._rebuild_trait_rows()
 
-        layout.addWidget(QLabel("Challenge Rating:"))
-        self._cr_combo = QComboBox()
-        for cr in _CR_VALUES:
-            self._cr_combo.addItem(cr)
-        # Set current CR
-        current_cr = self._working_copy.cr or "1"
-        if current_cr in _CR_VALUES:
-            self._cr_combo.setCurrentText(current_cr)
-        self._cr_combo.currentTextChanged.connect(self._on_cr_changed)
-        layout.addWidget(self._cr_combo)
-        layout.addStretch()
+    def _rebuild_trait_rows(self) -> None:
+        """Clear and rebuild all trait row widgets from _trait_items."""
+        layout = self._trait_rows_layout
+        while layout.count():
+            item = layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
 
-        section = CollapsibleSection("Challenge Rating", content, expanded=False)
-        self._edit_layout.addWidget(section)
+        for idx, trait in enumerate(self._trait_items):
+            row_widget = QWidget()
+            row_layout = QHBoxLayout(row_widget)
+            row_layout.setContentsMargins(0, 0, 0, 0)
+            row_layout.setSpacing(4)
+
+            # Trait name label
+            name_label = QLabel(trait.name)
+            row_layout.addWidget(name_label)
+
+            # Rollable indicator
+            if trait.rollable_dice:
+                rollable_label = QLabel("[rollable]")
+                rollable_label.setStyleSheet("color: #4EA8DE; font-size: 8pt;")
+                row_layout.addWidget(rollable_label)
+
+            row_layout.addStretch()
+
+            # Edit button
+            edit_btn = QPushButton("Edit")
+            edit_btn.setFixedWidth(40)
+            edit_btn.clicked.connect(
+                lambda _checked, _idx=idx: self._on_edit_trait(_idx)
+            )
+            row_layout.addWidget(edit_btn)
+
+            # Remove button
+            remove_btn = QPushButton("X")
+            remove_btn.setFixedWidth(24)
+            remove_btn.clicked.connect(
+                lambda _checked, _idx=idx: self._on_remove_trait(_idx)
+            )
+            row_layout.addWidget(remove_btn)
+
+            layout.addWidget(row_widget)
 
     def _build_equipment_section(self) -> None:
         """Build the Equipment section with weapon/armor/shield/focus pickers."""
@@ -1056,6 +1129,15 @@ class MonsterEditorDialog(QDialog):
             self._rebuild_action_rows()
             self._rebuild_preview()
 
+    def _on_after_text_changed(self, action_index: int, text_edit: "QTextEdit") -> None:
+        """Update the action's after_text when the after-attack text field changes."""
+        if self._recalculating:
+            return
+        if action_index < 0 or action_index >= len(self._working_copy.actions):
+            return
+        self._working_copy.actions[action_index].after_text = text_edit.toPlainText()
+        self._rebuild_preview()
+
     def _on_action_field_changed(self, action_index: int) -> None:
         """Read action row widgets and update working_copy action."""
         if self._recalculating:
@@ -1089,6 +1171,63 @@ class MonsterEditorDialog(QDialog):
             ]
 
         self._rebuild_preview()
+
+    # ------------------------------------------------------------------
+    # Traits section signal handlers
+    # ------------------------------------------------------------------
+
+    def _on_add_trait(self) -> None:
+        """Add a new empty trait and immediately open the edit modal."""
+        new_trait = Trait(name="New Trait", description="")
+        self._push_undo()  # Snapshot before adding so undo removes the new trait
+        self._trait_items.append(new_trait)
+        self._sync_traits_to_working_copy()
+        new_idx = len(self._trait_items) - 1
+        self._on_edit_trait_modal(new_idx)
+
+    def _on_remove_trait(self, trait_index: int) -> None:
+        """Remove a trait by index."""
+        if 0 <= trait_index < len(self._trait_items):
+            self._push_undo()
+            self._trait_items.pop(trait_index)
+            self._sync_traits_to_working_copy()
+            self._rebuild_trait_rows()
+            self._rebuild_preview()
+
+    def _on_edit_trait(self, trait_index: int) -> None:
+        """Push undo snapshot then open the edit modal for the trait."""
+        if trait_index < 0 or trait_index >= len(self._trait_items):
+            return
+        self._push_undo()
+        self._on_edit_trait_modal(trait_index)
+
+    def _on_edit_trait_modal(self, trait_index: int) -> None:
+        """Open the TraitEditDialog for the trait at trait_index (no undo push)."""
+        if trait_index < 0 or trait_index >= len(self._trait_items):
+            return
+        trait = self._trait_items[trait_index]
+        dialog = TraitEditDialog(trait, parent=self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            # Re-detect rollable dice and recharge after edit
+            from src.parser.formats._shared_patterns import detect_dice_in_text, detect_recharge
+            trait.rollable_dice = detect_dice_in_text(trait.description)
+            trait.recharge_range = detect_recharge(trait.name)
+            self._sync_traits_to_working_copy()
+            self._rebuild_trait_rows()
+            self._rebuild_preview()
+        else:
+            # User cancelled — pop the pre-emptive undo snapshot
+            if self._undo_stack:
+                self._working_copy = self._undo_stack.pop()
+                # Restore trait_items from the restored working_copy
+                self._trait_items = list(self._working_copy.traits)
+                if not self._undo_stack:
+                    self._dirty = False
+                self._rebuild_trait_rows()
+
+    def _sync_traits_to_working_copy(self) -> None:
+        """Write current _trait_items back to _working_copy.traits."""
+        self._working_copy.traits = list(self._trait_items)
 
     # ------------------------------------------------------------------
     # Buffs section signal handlers
@@ -1374,7 +1513,41 @@ class MonsterEditorDialog(QDialog):
 
         self._action_row_widgets: dict[int, tuple] = {}
 
+        # Add column header row if there are any actions
+        if self._working_copy.actions:
+            header_widget = QWidget()
+            header_layout = QHBoxLayout(header_widget)
+            header_layout.setContentsMargins(0, 0, 0, 0)
+            header_layout.setSpacing(4)
+            header_widget.setStyleSheet("background-color: rgba(255,255,255,15);")
+
+            def _make_header_label(text: str, width: int) -> QLabel:
+                lbl = QLabel(text)
+                lbl.setFixedWidth(width)
+                font = lbl.font()
+                font.setBold(True)
+                lbl.setFont(font)
+                lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                return lbl
+
+            header_layout.addWidget(_make_header_label("Name", 120))
+            header_layout.addWidget(_make_header_label("To-Hit", 55))
+            header_layout.addWidget(_make_header_label("Dmg Dice", 70))
+            header_layout.addWidget(_make_header_label("Bonus", 55))
+            header_layout.addWidget(_make_header_label("Dmg Type", 90))
+            # Spacer for the "..." toggle + remove button columns
+            header_layout.addWidget(_make_header_label("...", 30))
+            header_layout.addWidget(_make_header_label("", 24))
+            header_layout.addStretch()
+            layout.addWidget(header_widget)
+
         for idx, action in enumerate(self._working_copy.actions):
+            # Outer container: action row + optional after-text area stacked vertically
+            outer_widget = QWidget()
+            outer_layout = QVBoxLayout(outer_widget)
+            outer_layout.setContentsMargins(0, 0, 0, 0)
+            outer_layout.setSpacing(2)
+
             row_widget = QWidget()
             row_layout = QHBoxLayout(row_widget)
             row_layout.setContentsMargins(0, 0, 0, 0)
@@ -1436,6 +1609,25 @@ class MonsterEditorDialog(QDialog):
                 auto_label.setStyleSheet("color: #4EA8DE; font-size: 8pt;")
                 row_layout.addWidget(auto_label)
 
+            # After-text toggle button ("...")
+            after_text_edit = QTextEdit()
+            after_text_edit.setPlaceholderText("After-attack text (e.g. saving throw effects)...")
+            after_text_edit.setMaximumHeight(60)
+            after_text_edit.setVisible(False)
+            after_text_edit.setText(action.after_text or "")
+            after_text_edit.textChanged.connect(
+                lambda _idx=idx, _ate=after_text_edit: self._on_after_text_changed(_idx, _ate)
+            )
+
+            more_btn = QPushButton("...")
+            more_btn.setFixedWidth(30)
+            more_btn.setToolTip("Show/hide after-attack text")
+            more_btn.setCheckable(True)
+            more_btn.clicked.connect(
+                lambda _checked, _ate=after_text_edit: _ate.setVisible(_checked)
+            )
+            row_layout.addWidget(more_btn)
+
             # Remove button
             remove_btn = QPushButton("X")
             remove_btn.setFixedWidth(24)
@@ -1445,7 +1637,10 @@ class MonsterEditorDialog(QDialog):
             row_layout.addWidget(remove_btn)
 
             row_layout.addStretch()
-            layout.addWidget(row_widget)
+            outer_layout.addWidget(row_widget)
+            outer_layout.addWidget(after_text_edit)
+            layout.addWidget(outer_widget)
+
             self._action_row_widgets[idx] = (
                 name_edit, to_hit_spin, dmg_dice_edit, dmg_bonus_spin, dmg_type_edit
             )
@@ -1847,6 +2042,13 @@ class MonsterEditorDialog(QDialog):
             self._mod_sources.pop("hp", None)
         self._rebuild_preview()
 
+    def _on_speed_changed(self, text: str) -> None:
+        """Update working copy speed when speed field text changes."""
+        if self._recalculating:
+            return
+        self._working_copy.speed = text.strip()
+        self._rebuild_preview()
+
     def _on_cr_changed(self, cr_text: str) -> None:
         """Update CR and trigger full recalculation (cascades prof bonus).
 
@@ -1949,6 +2151,8 @@ class MonsterEditorDialog(QDialog):
 
     def _push_undo(self) -> None:
         """Push a deep copy of the working monster onto the undo stack."""
+        # Sync editor-local trait list to working_copy before snapshotting
+        self._working_copy.traits = list(getattr(self, "_trait_items", []))
         self._undo_stack.append(copy.deepcopy(self._working_copy))
         self._dirty = True
 
@@ -2050,6 +2254,15 @@ class MonsterEditorDialog(QDialog):
             if cr in _CR_VALUES:
                 self._cr_combo.setCurrentText(cr)
             self._cr_combo.blockSignals(False)
+
+            # Speed
+            self._speed_edit.blockSignals(True)
+            self._speed_edit.setText(self._working_copy.speed or "")
+            self._speed_edit.blockSignals(False)
+
+            # Traits — repopulate from working_copy
+            self._trait_items = list(self._working_copy.traits)
+            self._rebuild_trait_rows()
 
             # Rebuild action rows (restores from working_copy)
             self._rebuild_action_rows()
@@ -2318,8 +2531,9 @@ class MonsterEditorDialog(QDialog):
         - Persists the MonsterModification.
         - Emits monster_saved and closes.
         """
-        # Carry buffs onto the Monster object so AttackRollerTab sees them
+        # Carry buffs and traits onto the Monster object
         self._working_copy.buffs = list(self._buff_items)
+        self._working_copy.traits = list(self._trait_items)
 
         if self._library is not None:
             self._library.replace(self._working_copy)
@@ -2367,8 +2581,9 @@ class MonsterEditorDialog(QDialog):
 
         # Apply the proposed name to the working copy
         self._working_copy.name = proposed_name
-        # Carry buffs onto the Monster object
+        # Carry buffs and traits onto the Monster object
         self._working_copy.buffs = list(self._buff_items)
+        self._working_copy.traits = list(self._trait_items)
 
         if self._library is not None:
             self._library.add(self._working_copy)
@@ -2384,4 +2599,58 @@ class MonsterEditorDialog(QDialog):
 
         self._dirty = False
         self.monster_saved.emit(self._working_copy)
+        self.accept()
+
+
+# ---------------------------------------------------------------------------
+# TraitEditDialog
+# ---------------------------------------------------------------------------
+
+
+class TraitEditDialog(QDialog):
+    """Modal dialog for editing a single Trait's name and description.
+
+    Modifies the Trait object in-place on Accept.  Caller is responsible
+    for re-detecting rollable dice and rebuilding the trait list after
+    the dialog closes.
+    """
+
+    def __init__(self, trait: "Trait", parent: Optional[QWidget] = None) -> None:
+        super().__init__(parent)
+        self._trait = trait
+        self.setWindowTitle("Edit Trait")
+        self.setModal(True)
+        self.setMinimumWidth(400)
+        self._setup_ui()
+
+    def _setup_ui(self) -> None:
+        layout = QVBoxLayout(self)
+        layout.setSpacing(8)
+
+        # Name field
+        name_row = QHBoxLayout()
+        name_row.addWidget(QLabel("Name:"))
+        self._name_edit = QLineEdit(self._trait.name)
+        name_row.addWidget(self._name_edit, 1)
+        layout.addLayout(name_row)
+
+        # Description field (multiline)
+        layout.addWidget(QLabel("Description:"))
+        self._desc_edit = QTextEdit()
+        self._desc_edit.setPlainText(self._trait.description)
+        self._desc_edit.setMinimumHeight(120)
+        layout.addWidget(self._desc_edit)
+
+        # OK / Cancel buttons
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(self._on_accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    def _on_accept(self) -> None:
+        """Write edited values back to the trait object and accept."""
+        self._trait.name = self._name_edit.text().strip() or self._trait.name
+        self._trait.description = self._desc_edit.toPlainText()
         self.accept()
