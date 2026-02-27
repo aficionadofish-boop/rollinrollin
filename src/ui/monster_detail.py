@@ -150,6 +150,18 @@ class MonsterDetailPanel(QWidget):
         stats_grid.addWidget(self._type_label, 1, 3)
         self._content_layout.addLayout(stats_grid)
 
+        # 2b. Speed row (hidden when empty)
+        speed_row = QHBoxLayout()
+        self._speed_label_key = QLabel("Speed:")
+        self._speed_label_val = QLabel("")
+        self._speed_label_val.setWordWrap(True)
+        speed_row.addWidget(self._speed_label_key)
+        speed_row.addWidget(self._speed_label_val, 1)
+        self._speed_row_widget = QWidget()
+        self._speed_row_widget.setLayout(speed_row)
+        self._speed_row_widget.setVisible(False)
+        self._content_layout.addWidget(self._speed_row_widget)
+
         # 3. Ability scores row: STR DEX CON INT WIS CHA
         ability_layout = QHBoxLayout()
         self._ability_labels: dict[str, QLabel] = {}
@@ -194,7 +206,23 @@ class MonsterDetailPanel(QWidget):
         self._flags_label.setVisible(False)
         self._content_layout.addWidget(self._flags_label)
 
-        # 5. Actions section label + dynamic action rows
+        # 5. Traits section label + dynamic trait rows (hidden when empty)
+        self._traits_header = QLabel("Traits")
+        traits_header_font = self._traits_header.font()
+        traits_header_font.setBold(True)
+        traits_header_font.setPointSize(11)
+        self._traits_header.setFont(traits_header_font)
+        self._traits_header.setVisible(False)
+        self._content_layout.addWidget(self._traits_header)
+
+        self._traits_container = QWidget()
+        self._traits_layout = QVBoxLayout(self._traits_container)
+        self._traits_layout.setContentsMargins(0, 0, 0, 0)
+        self._traits_layout.setSpacing(2)
+        self._traits_container.setVisible(False)
+        self._content_layout.addWidget(self._traits_container)
+
+        # 5b. Actions section label + dynamic action rows
         self._actions_label = QLabel("Actions")
         actions_header_font = self._actions_label.font()
         actions_header_font.setBold(True)
@@ -256,6 +284,14 @@ class MonsterDetailPanel(QWidget):
         self._cr_label.setText(monster.cr or "\u2014")
         self._type_label.setText(monster.creature_type or "\u2014")
 
+        # Speed
+        speed = getattr(monster, "speed", "") or ""
+        if speed:
+            self._speed_label_val.setText(speed)
+            self._speed_row_widget.setVisible(True)
+        else:
+            self._speed_row_widget.setVisible(False)
+
         # Ability scores
         for ability in ABILITY_LABELS:
             score = monster.ability_scores.get(ability, 10)
@@ -294,6 +330,18 @@ class MonsterDetailPanel(QWidget):
         else:
             self._flags_label.setVisible(False)
 
+        # Traits — clear and rebuild
+        self._clear_traits_layout()
+        traits = getattr(monster, "traits", [])
+        if traits:
+            self._traits_header.setVisible(True)
+            self._traits_container.setVisible(True)
+            for trait in traits:
+                self._add_trait_row(trait)
+        else:
+            self._traits_header.setVisible(False)
+            self._traits_container.setVisible(False)
+
         # Actions — clear and rebuild
         self._clear_actions_layout()
         for action in monster.actions:
@@ -321,11 +369,15 @@ class MonsterDetailPanel(QWidget):
         self._hp_label.setText("")
         self._cr_label.setText("")
         self._type_label.setText("")
+        self._speed_row_widget.setVisible(False)
         for ability in ABILITY_LABELS:
             self._ability_labels[ability].setText("")
         self._saves_label.setText("")
         self._skills_label.setText("")
         self._flags_label.setVisible(False)
+        self._clear_traits_layout()
+        self._traits_header.setVisible(False)
+        self._traits_container.setVisible(False)
         self._clear_actions_layout()
         self._tags_edit.blockSignals(True)
         self._tags_edit.clear()
@@ -352,6 +404,26 @@ class MonsterDetailPanel(QWidget):
             self._lore_toggle_btn.setText("- Lore & Description")
         else:
             self._lore_toggle_btn.setText("+ Lore && Description")
+
+    def _clear_traits_layout(self) -> None:
+        """Remove all widgets from the traits layout."""
+        layout = self._traits_layout
+        while layout.count():
+            item = layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+
+    def _add_trait_row(self, trait) -> None:
+        """Add a single trait row with bold-italic name and description."""
+        # Apply [[XdY]] rendering to trait description
+        desc = _render_double_bracket(trait.description)
+        text = f"<b><i>{trait.name}.</i></b> {desc}"
+        label = QLabel()
+        label.setText(text)
+        label.setTextFormat(Qt.TextFormat.RichText)
+        label.setWordWrap(True)
+        self._traits_layout.addWidget(label)
 
     def _clear_actions_layout(self) -> None:
         """Remove all widgets from the actions layout."""
@@ -397,6 +469,7 @@ class MonsterDetailPanel(QWidget):
             # stripped of the standard attack formula already shown above
             extra = _extract_extra_effect(action.raw_text or "")
             if extra:
+                extra = _render_double_bracket(extra)
                 desc_label = QLabel(extra)
                 desc_label.setWordWrap(True)
                 desc_label.setStyleSheet(
@@ -410,6 +483,7 @@ class MonsterDetailPanel(QWidget):
             display_text = action.raw_text or action.name
             if _is_spellcasting_action(action):
                 display_text = _format_spellcasting_text(display_text)
+            display_text = _render_double_bracket(display_text)
             raw_label = QLabel(display_text)
             raw_label.setWordWrap(True)
             self._actions_layout.addWidget(raw_label)
@@ -419,6 +493,27 @@ class MonsterDetailPanel(QWidget):
         if self._current_monster is not None:
             tags = [t.strip() for t in text.split(",") if t.strip()]
             self._current_monster.tags = tags
+
+
+_DOUBLE_BRACKET_RE = re.compile(r'\[\[(\d+)d(\d+)\]\]')
+
+
+def _render_double_bracket(text: str) -> str:
+    """Replace [[NdS]] with '{avg} [[NdS]]' — auto-average notation (PARSE-08).
+
+    Average = floor(N * (S + 1) / 2), matching D&D 5e convention.
+    The replacement is display-only; source data is not modified.
+
+    Examples:
+        '[[4d6]]'  -> '14 [[4d6]]'  (4 * 3.5 = 14)
+        '[[12d8]]' -> '54 [[12d8]]' (12 * 4.5 = 54)
+    """
+    def _replace(m: re.Match) -> str:
+        n, s = int(m.group(1)), int(m.group(2))
+        avg = (n * (s + 1)) // 2
+        return f"{avg} [[{n}d{s}]]"
+
+    return _DOUBLE_BRACKET_RE.sub(_replace, text)
 
 
 def _extract_extra_effect(raw_text: str) -> str:
