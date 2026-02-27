@@ -42,6 +42,31 @@ class DamagePart:
 
 
 @dataclass
+class DetectedDie:
+    """A dice formula detected in trait description text.
+
+    Captures patterns like '54 (12d8) acid damage' found in trait descriptions.
+    """
+    full_match: str      # e.g. "54 (12d8) acid damage"
+    dice_expr: str       # e.g. "12d8"
+    damage_type: str     # e.g. "acid" or "unknown"
+    average: int         # e.g. 54
+
+
+@dataclass
+class Trait:
+    """A monster trait — a passive ability or special characteristic.
+
+    Distinct from Action: traits have no to_hit_bonus and no damage_parts.
+    Examples: Magic Resistance, Amphibious, Legendary Resistance (3/Day).
+    """
+    name: str
+    description: str
+    rollable_dice: list[DetectedDie] = field(default_factory=list)
+    recharge_range: Optional[tuple[int, int]] = None  # e.g. (5, 6) for "Recharge 5-6"
+
+
+@dataclass
 class Action:
     name: str
     to_hit_bonus: Optional[int]                   # None = not an attack roll, or parse failed
@@ -50,6 +75,7 @@ class Action:
     is_parsed: bool = True                        # False = raw_text only, no roll button
     damage_bonus: Optional[int] = None           # flat damage modifier (formalized from Phase 8 getattr fallback)
     is_equipment_generated: bool = False         # marks auto-generated weapon actions
+    after_text: str = ""                         # text after the hit/damage line (e.g. saving throw effects)
 
 
 @dataclass
@@ -71,6 +97,8 @@ class Monster:
     size: str = "Medium"                           # "Tiny", "Small", "Medium", "Large", "Huge", "Gargantuan"
     skills: dict[str, int] = field(default_factory=dict)  # e.g. {"Perception": 5, "Stealth": 4}
     buffs: list["BuffItem"] = field(default_factory=list)  # active buffs carried from editor (EDIT-10)
+    traits: list[Trait] = field(default_factory=list)      # passive traits separated from attack actions (Phase 15)
+    speed: str = ""                                # e.g. "40 ft., fly 80 ft." parsed from **Speed** line
 
 
 @dataclass
