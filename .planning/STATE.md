@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 
 ## Current Position
 
-Phase: 14 of 16 (Bug Fixes & Critical Polish)
-Plan: 6 of 6 in current phase
-Status: Complete
-Last activity: 2026-02-27 — Phase 14 Plan 06 complete (BUG-12/13/14, UX-02/03/04/05 — group damage input, double-click collapse, drag removal, Init label, FlowLayout chips)
+Phase: 15 of 16 (Editor & Parser Overhaul)
+Plan: 1 of 5 in current phase
+Status: In Progress
+Last activity: 2026-02-27 — Phase 15 Plan 01 complete (Trait/DetectedDie dataclasses, Monster.traits/speed, Action.after_text, _extract_traits/_extract_speed in all three parsers)
 
-Progress: [██████████████░░░░░░] Phase 14 complete (6/6 plans)
+Progress: [███████████████░░░░░] Phase 15 started (1/5 plans)
 
 ## Performance Metrics
 
@@ -162,6 +162,11 @@ Recent decisions affecting current work:
 - [Phase 14-06]: FlowLayout._MAX_ROWS=2 enforced at layout geometry time; items on row 3+ hidden via w.hide() — no +N badge widget required
 - [Phase 14-06]: Card drag fully removed from CombatantCard — QDrag/QMimeData removed; left-button moves propagate to CombatantListArea rubber-band
 - [Phase 14-06]: collapse_requested Signal on CombatantCard (double-click) connected in GroupCard._build_members_view; single-click via CompactSubRow.clicked still expands
+- [Phase 15-01]: Trait classification uses absence of attack indicators (TO_HIT_RE and HIT_LINE_RE) — clean separation with no heuristics needed for D&D 5e statblocks
+- [Phase 15-01]: Preamble fallback for traits: when no explicit Traits section exists, extract_all_sections().get('preamble', '') provides the pre-Actions text containing monster traits
+- [Phase 15-01]: RECHARGE_RE includes unicode en-dash (\u2013) to handle copy-pasted statblock text from PDFs
+- [Phase 15-01]: detect_recharge() returns (6, 6) for single-value recharge like "(Recharge 6)" — consistent tuple interface for consumers
+- [Phase 15-01]: Monster.traits and Monster.speed use field defaults (list/str) so all existing Monster construction and MonsterModification.from_dict() backward compat is preserved
 
 ### Roadmap Evolution
 
@@ -181,5 +186,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-27
-Stopped at: Completed 14-06-PLAN.md (BUG-12/13/14, UX-02/03/04/05 — group damage input, double-click collapse, drag removal, Init label, FlowLayout chips)
-Resume file: .planning/phases/14-bug-fixes-critical-polish/14-06-SUMMARY.md
+Stopped at: Completed 15-01-PLAN.md (Trait/DetectedDie dataclasses, Monster.traits/speed, Action.after_text, _extract_traits/_extract_speed in all three parsers)
+Resume file: .planning/phases/15-editor-parser-overhaul/15-01-SUMMARY.md
