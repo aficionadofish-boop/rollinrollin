@@ -155,7 +155,7 @@ Phase 8 → Phase 9 (parallel with 10) → Phase 10 → Phase 11 → Phase 12 �
 | 12. Save Roller Upgrades | v2.0 | 3/3 | Complete | 2026-02-26 |
 | 13. Output Polish, Theming, and UI | v2.0 | 5/5 | Complete | 2026-02-26 |
 | 14. Bug Fixes & Critical Polish | 6/6 | Complete    | 2026-02-26 | - |
-| 15. Editor & Parser Overhaul | 2/3 | In Progress|  | - |
+| 15. Editor & Parser Overhaul | 3/3 | Complete   | 2026-02-27 | - |
 | 16. Buff System & Output Improvements | v2.1 | 0/? | Planned | - |
 
 ### Phase 14: Bug Fixes & Critical Polish
@@ -402,7 +402,7 @@ Plans:
   10. CR, HP, and Skills sections are compacted alongside the ability scores in the editor (PARSE-10)
   11. Equipment section is at the bottom of the editor, right above Buffs (PARSE-11)
 
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 Plans:
 - [ ] 15-01-PLAN.md -- Domain models (Trait, DetectedDie) + parser updates (trait extraction, speed, after-text, dice detection, recharge) across all 3 formats
 - [ ] 15-02-PLAN.md -- Editor layout: Core Stats merge, Traits section UI with edit modal, action header labels, after-text editing, Equipment reposition

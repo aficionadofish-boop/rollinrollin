@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 Phase: 15 of 16 (Editor & Parser Overhaul)
 Plan: 3 of 5 in current phase
 Status: In Progress
-Last activity: 2026-02-27 — Phase 15 Plan 03 complete (rollable trait buttons, recharge support, after-text on hits, speed display, traits section, [[XdY]] auto-average notation)
+Last activity: 2026-02-28 — Phase 15 Plan 02 complete (Core Stats merge, Traits section with edit modal, action column headers, after-text expandable fields, section reorder)
 
 Progress: [████████████████░░░░] Phase 15 in progress (3/5 plans)
 
@@ -171,6 +171,10 @@ Recent decisions affecting current work:
 - [Phase 15-03]: RAW mode always shows after-text; COMPARE mode shows only when at least one hit occurred
 - [Phase 15-03]: _render_double_bracket is module-level function in monster_detail.py; replaces [[NdS]] with '{avg} [[NdS]]' display-only
 - [Phase 15-03]: Speed row and traits section use QWidget wrapper setVisible(True/False) rather than layout manipulation
+- [Phase 15]: Core Stats CR/HP/Speed compact horizontal row uses fixed-width combo/spinbox/lineedit with inline labels — keeps row narrow without a sub-section
+- [Phase 15]: Traits undo: push snapshot BEFORE opening edit modal, pop on cancel — prevents phantom undo entries from cancelled edits
+- [Phase 15]: _trait_items synced to _working_copy.traits in _push_undo() via getattr fallback — safe during __init__ before _trait_items is set
+- [Phase 15]: TraitEditDialog modifies Trait object in-place (same reference as in _trait_items) — no return value needed
 
 ### Roadmap Evolution
 
@@ -189,6 +193,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-27
-Stopped at: Completed 15-03-PLAN.md (rollable trait buttons, recharge support, after-text on hits, speed display, traits section, [[XdY]] auto-average notation)
-Resume file: .planning/phases/15-editor-parser-overhaul/15-03-SUMMARY.md
+Last session: 2026-02-28
+Stopped at: Completed 15-02-PLAN.md (Core Stats merge, Traits section UI, action column headers, after-attack-text expandable fields, section reorder)
+Resume file: .planning/phases/15-editor-parser-overhaul/15-02-SUMMARY.md
