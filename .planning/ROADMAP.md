@@ -514,5 +514,9 @@ Plans:
   9. HP bars show descriptive text ("Barely Injured", "Near Death", etc.) matching the HP percentage (COMBAT-UX-01)
   10. HP bar colors align with the 5-band health level system (COMBAT-UX-02)
 
+**Plans:** 4 plans
 Plans:
-- [ ] TBD (run /gsd:plan-phase 16 to break down)
+- [ ] 16-01-PLAN.md -- BuffItem model migration (4 boolean toggles) + editor checkbox UI (BUFF-01)
+- [ ] 16-02-PLAN.md -- Buff injection into attack/save rolls + output header + damage type summary (BUFF-02, BUFF-03, OUT-01, OUT-02)
+- [ ] 16-03-PLAN.md -- Encounter naming with timestamps + load dialog inline edit + sidebar resize persistence (ENC-01, ENC-02, ENC-03)
+- [ ] 16-04-PLAN.md -- HP bar 5-band color system + descriptive text labels (COMBAT-UX-01, COMBAT-UX-02)
