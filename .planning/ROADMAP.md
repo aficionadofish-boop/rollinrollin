@@ -156,7 +156,7 @@ Phase 8 → Phase 9 (parallel with 10) → Phase 10 → Phase 11 → Phase 12 �
 | 13. Output Polish, Theming, and UI | v2.0 | 5/5 | Complete | 2026-02-26 |
 | 14. Bug Fixes & Critical Polish | 6/6 | Complete    | 2026-02-26 | - |
 | 15. Editor & Parser Overhaul | 3/3 | Complete    | 2026-02-27 | - |
-| 16. Buff System & Output Improvements | v2.1 | 0/? | Planned | - |
+| 16. Buff System & Output Improvements | 1/4 | In Progress|  | - |
 
 ### Phase 14: Bug Fixes & Critical Polish
 
@@ -514,7 +514,7 @@ Plans:
   9. HP bars show descriptive text ("Barely Injured", "Near Death", etc.) matching the HP percentage (COMBAT-UX-01)
   10. HP bar colors align with the 5-band health level system (COMBAT-UX-02)
 
-**Plans:** 4 plans
+**Plans:** 1/4 plans executed
 Plans:
 - [ ] 16-01-PLAN.md -- BuffItem model migration (4 boolean toggles) + editor checkbox UI (BUFF-01)
 - [ ] 16-02-PLAN.md -- Buff injection into attack/save rolls + output header + damage type summary (BUFF-02, BUFF-03, OUT-01, OUT-02)

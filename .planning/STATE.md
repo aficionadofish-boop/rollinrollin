@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 
 ## Current Position
 
-Phase: 15 of 16 (Editor & Parser Overhaul)
-Plan: 3 of 5 in current phase
+Phase: 16 of 16 (Buff System & Output Improvements)
+Plan: 5 of 5 in current phase
 Status: In Progress
-Last activity: 2026-02-28 — Phase 15 Plan 02 complete (Core Stats merge, Traits section with edit modal, action column headers, after-text expandable fields, section reorder)
+Last activity: 2026-02-28 — Phase 16 Plan 04 complete (HP bar 5-band color system with descriptive text labels)
 
-Progress: [████████████████░░░░] Phase 15 in progress (3/5 plans)
+Progress: [████████████████████] Phase 16 in progress (4/5 plans)
 
 ## Performance Metrics
 
@@ -175,6 +175,7 @@ Recent decisions affecting current work:
 - [Phase 15]: Traits undo: push snapshot BEFORE opening edit modal, pop on cancel — prevents phantom undo entries from cancelled edits
 - [Phase 15]: _trait_items synced to _working_copy.traits in _push_undo() via getattr fallback — safe during __init__ before _trait_items is set
 - [Phase 15]: TraitEditDialog modifies Trait object in-place (same reference as in _trait_items) — no return value needed
+- [Phase 16-04]: HpBar 5-band label: font size set to 7pt (down from 8pt) to fit 'Badly Injured' (13 chars) in 24px bar; label='' for defeated state skips all text-drawing; full grey fill for defeated vs dark background
 
 ### Roadmap Evolution
 
@@ -194,5 +195,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 15-02-PLAN.md (Core Stats merge, Traits section UI, action column headers, after-attack-text expandable fields, section reorder)
-Resume file: .planning/phases/15-editor-parser-overhaul/15-02-SUMMARY.md
+Stopped at: Completed 16-04-PLAN.md (HP bar 5-band color system with descriptive text labels: Uninjured, Barely Injured, Injured, Badly Injured, Near Death)
+Resume file: .planning/phases/16-buff-system-output-improvements/16-04-SUMMARY.md
