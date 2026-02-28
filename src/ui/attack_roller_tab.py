@@ -338,8 +338,20 @@ class AttackRollerTab(QWidget):
             # Buff label — show active buffs if any (EDIT-10 cross-tab visibility)
             buffs = getattr(monster, "buffs", [])
             if buffs:
+                def _buff_targets_str(b) -> str:
+                    """Build a short targets summary from boolean fields."""
+                    parts = []
+                    if getattr(b, "affects_attacks", False):
+                        parts.append("atk")
+                    if getattr(b, "affects_saves", False):
+                        parts.append("sav")
+                    if getattr(b, "affects_ability_checks", False):
+                        parts.append("chk")
+                    if getattr(b, "affects_damage", False):
+                        parts.append("dmg")
+                    return "+".join(parts) if parts else "none"
                 buff_parts = [
-                    f"{b.name} ({b.bonus_value} {b.targets.replace('_', ' ')})"
+                    f"{b.name} ({b.bonus_value} {_buff_targets_str(b)})"
                     for b in buffs
                 ]
                 buff_label = QLabel(f"Buffs: {', '.join(buff_parts)}")

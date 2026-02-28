@@ -35,6 +35,7 @@ from typing import Optional
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QDialog,
     QDialogButtonBox,
@@ -102,13 +103,12 @@ COLOR_MANUAL      = "#F4A261"   # amber — manually edited values
 COLOR_CUSTOM_FLAG = "#E63946"   # red — custom override (doesn't match prof math)
 COLOR_BASE        = ""          # empty — unmodified base values (no color wrapping)
 
-# Buff target options
-_BUFF_TARGETS: list[str] = [
-    "Attack Rolls",
-    "Saving Throws",
-    "Ability Checks",
-    "Damage",
-    "All",
+# Buff checkbox labels and their BuffItem attribute names (in display order)
+_BUFF_CHECKBOX_ATTRS: list[tuple[str, str]] = [
+    ("Attacks", "affects_attacks"),
+    ("Saves", "affects_saves"),
+    ("Checks", "affects_ability_checks"),
+    ("Damage", "affects_damage"),
 ]
 
 
@@ -1236,7 +1236,8 @@ class MonsterEditorDialog(QDialog):
     def _on_add_buff(self) -> None:
         """Add a new empty buff to the buff list."""
         self._push_undo()
-        new_buff = BuffItem(name="New Buff", bonus_value="+0", targets="all")
+        # Default: Attacks=True, Saves=True, Checks=False, Damage=False (Bless-style defaults)
+        new_buff = BuffItem(name="New Buff", bonus_value="+0")
         self._buff_items.append(new_buff)
         self._rebuild_buff_rows()
         self._rebuild_preview()
@@ -1250,7 +1251,7 @@ class MonsterEditorDialog(QDialog):
             self._rebuild_preview()
 
     def _on_buff_field_changed(self, buff_index: int) -> None:
-        """Read buff row widgets and update the buff list."""
+        """Read buff name/bonus row widgets and update the buff list."""
         if self._recalculating:
             return
         if buff_index < 0 or buff_index >= len(self._buff_items):
@@ -1258,13 +1259,21 @@ class MonsterEditorDialog(QDialog):
         row_widgets = self._buff_row_widgets.get(buff_index)
         if row_widgets is None:
             return
-        name_edit, bonus_edit, target_combo = row_widgets
+        name_edit, bonus_edit = row_widgets
 
         self._push_undo()
         self._buff_items[buff_index].name = name_edit.text().strip() or "Buff"
         self._buff_items[buff_index].bonus_value = bonus_edit.text().strip() or "+0"
-        target_text = target_combo.currentText()
-        self._buff_items[buff_index].targets = target_text.lower().replace(" ", "_")
+        self._rebuild_preview()
+
+    def _on_buff_checkbox_changed(self, buff_idx: int, attr_name: str, checked: bool) -> None:
+        """Update a specific boolean field on a BuffItem when its checkbox is toggled."""
+        if self._recalculating:
+            return
+        if buff_idx < 0 or buff_idx >= len(self._buff_items):
+            return
+        self._push_undo()
+        setattr(self._buff_items[buff_idx], attr_name, checked)
         self._rebuild_preview()
 
     def _recompute_equipped_weapon_actions(self) -> None:
@@ -1683,18 +1692,16 @@ class MonsterEditorDialog(QDialog):
             )
             row_layout.addWidget(bonus_edit)
 
-            # Target
-            target_combo = QComboBox()
-            for tgt in _BUFF_TARGETS:
-                target_combo.addItem(tgt)
-            # Set current target
-            stored = buff.targets.replace("_", " ").title()
-            if stored in _BUFF_TARGETS:
-                target_combo.setCurrentText(stored)
-            target_combo.currentIndexChanged.connect(
-                lambda _i, _idx=idx: self._on_buff_field_changed(_idx)
-            )
-            row_layout.addWidget(target_combo)
+            # 4 target checkboxes: Attacks, Saves, Checks, Damage
+            for label, attr in _BUFF_CHECKBOX_ATTRS:
+                cb = QCheckBox(label)
+                cb.setChecked(getattr(buff, attr))
+                cb.stateChanged.connect(
+                    lambda state, _idx=idx, _attr=attr: self._on_buff_checkbox_changed(
+                        _idx, _attr, bool(state)
+                    )
+                )
+                row_layout.addWidget(cb)
 
             # Remove button
             remove_btn = QPushButton("X")
@@ -1706,7 +1713,7 @@ class MonsterEditorDialog(QDialog):
 
             row_layout.addStretch()
             layout.addWidget(row_widget)
-            self._buff_row_widgets[idx] = (name_edit, bonus_edit, target_combo)
+            self._buff_row_widgets[idx] = (name_edit, bonus_edit)
 
     # ------------------------------------------------------------------
     # Equipment helpers
