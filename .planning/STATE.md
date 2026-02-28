@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 16 of 16 (Buff System & Output Improvements)
-Plan: 5 of 5 in current phase
+Plan: 3 of 5 in current phase
 Status: In Progress
-Last activity: 2026-02-28 — Phase 16 Plan 04 complete (HP bar 5-band color system with descriptive text labels)
+Last activity: 2026-02-28 — Phase 16 Plan 01 complete (BuffItem 4 boolean fields, QCheckBox editor UI, backward-compatible migration)
 
-Progress: [████████████████████] Phase 16 in progress (4/5 plans)
+Progress: [████████████████████] Phase 16 in progress (3/5 plans, Plans 01, 03, 04 complete)
 
 ## Performance Metrics
 
@@ -175,7 +175,16 @@ Recent decisions affecting current work:
 - [Phase 15]: Traits undo: push snapshot BEFORE opening edit modal, pop on cancel — prevents phantom undo entries from cancelled edits
 - [Phase 15]: _trait_items synced to _working_copy.traits in _push_undo() via getattr fallback — safe during __init__ before _trait_items is set
 - [Phase 15]: TraitEditDialog modifies Trait object in-place (same reference as in _trait_items) — no return value needed
+- [Phase 16-01]: BuffItem.targets: str replaced by affects_attacks/affects_saves/affects_ability_checks/affects_damage booleans; defaults are True/True/False/False (Bless-style)
+- [Phase 16-01]: _BUFF_TARGET_MIGRATION module-level dict maps old targets string to 4 boolean dicts; "all" is fallback for unknown values
+- [Phase 16-01]: from_dict() migration: pop "targets" when affects_attacks absent (old format); pop "targets" silently when affects_attacks present (already migrated)
+- [Phase 16-01]: _BUFF_CHECKBOX_ATTRS tuple list [(label, attr)] drives both QCheckBox creation and stateChanged signal wiring in _rebuild_buff_rows()
 - [Phase 16-04]: HpBar 5-band label: font size set to 7pt (down from 8pt) to fit 'Badly Injured' (13 chars) in 24px bar; label='' for defeated state skips all text-drawing; full grey fill for defeated vs dark background
+- [Phase 16-03]: Auto-name guard uses string comparison (current_text == _current_auto_name or empty) — no separate is_custom flag needed
+- [Phase 16-03]: get_save_name() returns pure auto-name or '{custom} — {auto_base}' format at save time
+- [Phase 16-03]: LoadEncounterDialog inline edit extracts name before first em-dash separator (creature count and date are display-only metadata)
+- [Phase 16-03]: Renames processed before deletions in _on_sidebar_load so original indices remain valid when both occur in same dialog session
+- [Phase 16-03]: resizeEvent tracks expanded width (>= 200) for persistence; _expand() restores via resize() not setMaximumWidth()
 
 ### Roadmap Evolution
 
@@ -195,5 +204,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 16-04-PLAN.md (HP bar 5-band color system with descriptive text labels: Uninjured, Barely Injured, Injured, Badly Injured, Near Death)
-Resume file: .planning/phases/16-buff-system-output-improvements/16-04-SUMMARY.md
+Stopped at: Completed 16-01-PLAN.md (BuffItem 4 boolean fields, from_dict() migration, QCheckBox editor UI)
+Resume file: .planning/phases/16-buff-system-output-improvements/16-01-SUMMARY.md
