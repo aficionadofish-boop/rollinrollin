@@ -143,7 +143,21 @@ class BuffItem:
     """A custom named bonus for a modified monster."""
     name: str               # e.g. "Bless", "Rage"
     bonus_value: str        # e.g. "+1d4", "+2" (dice expr or flat)
-    targets: str            # e.g. "attack_rolls", "saving_throws", "all"
+    affects_attacks: bool = True           # applies to attack rolls
+    affects_saves: bool = True             # applies to saving throws
+    affects_ability_checks: bool = False   # applies to ability checks
+    affects_damage: bool = False           # applies to damage rolls
+
+
+# Migration mapping from old single-target string to new boolean fields.
+# Used in MonsterModification.from_dict() to convert saved data from pre-16-01 format.
+_BUFF_TARGET_MIGRATION: dict[str, dict[str, bool]] = {
+    "attack_rolls":   {"affects_attacks": True,  "affects_saves": False, "affects_ability_checks": False, "affects_damage": False},
+    "saving_throws":  {"affects_attacks": False, "affects_saves": True,  "affects_ability_checks": False, "affects_damage": False},
+    "ability_checks": {"affects_attacks": False, "affects_saves": False, "affects_ability_checks": True,  "affects_damage": False},
+    "damage":         {"affects_attacks": False, "affects_saves": False, "affects_ability_checks": False, "affects_damage": True},
+    "all":            {"affects_attacks": True,  "affects_saves": True,  "affects_ability_checks": True,  "affects_damage": True},
+}
 
 
 @dataclass
@@ -169,10 +183,29 @@ class MonsterModification:
         """Reconstruct MonsterModification from a JSON dict, handling both old and new formats."""
         d = dict(d)  # shallow copy to avoid mutating input
         d["equipment"] = [EquipmentItem(**e) for e in d.get("equipment", [])]
-        d["buffs"] = [BuffItem(**b) for b in d.get("buffs", [])]
+
+        # Buff deserialization with backward-compatible migration.
+        # Old format: {"name": "Bless", "bonus_value": "+1d4", "targets": "attack_rolls"}
+        # New format: {"name": "Bless", "bonus_value": "+1d4", "affects_attacks": True, ...}
+        import dataclasses as _dc
+        buff_fields = {f.name for f in _dc.fields(BuffItem)}
+        migrated_buffs = []
+        for b in d.get("buffs", []):
+            b = dict(b)
+            if "targets" in b and "affects_attacks" not in b:
+                # Old format: migrate targets string to boolean fields
+                targets_val = b.pop("targets")
+                b.update(_BUFF_TARGET_MIGRATION.get(targets_val, _BUFF_TARGET_MIGRATION["all"]))
+            else:
+                # New format or mixed: just clean up legacy targets key if present
+                b.pop("targets", None)
+            # Filter to known BuffItem fields for forward-compat
+            b = {k: v for k, v in b.items() if k in buff_fields}
+            migrated_buffs.append(BuffItem(**b))
+        d["buffs"] = migrated_buffs
+
         d["spellcasting_infos"] = [SpellcastingInfo(**s) for s in d.get("spellcasting_infos", [])]
         # Filter to only known fields to handle future additions or missing fields gracefully
-        import dataclasses as _dc
         known = {f.name for f in _dc.fields(cls)}
         d = {k: v for k, v in d.items() if k in known}
         return cls(**d)

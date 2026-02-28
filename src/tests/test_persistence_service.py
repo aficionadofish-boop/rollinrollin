@@ -194,7 +194,7 @@ def test_modified_monsters_round_trip_with_equipment_and_buffs(tmp_path):
             EquipmentItem(item_type="armor", item_name="Leather", magic_bonus=0),
         ],
         buffs=[
-            BuffItem(name="Bless", bonus_value="+1d4", targets="attack_rolls"),
+            BuffItem(name="Bless", bonus_value="+1d4", affects_attacks=True, affects_saves=True, affects_ability_checks=False, affects_damage=False),
         ],
     )
     as_dict = dataclasses.asdict(mod)

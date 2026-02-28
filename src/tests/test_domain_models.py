@@ -235,12 +235,71 @@ def test_equipment_item_round_trip():
 
 
 def test_buff_item_round_trip():
-    """BuffItem round-trips via dataclasses.asdict()."""
-    buf = BuffItem(name="Bless", bonus_value="+1d4", targets="attack_rolls")
+    """BuffItem round-trips via dataclasses.asdict() with 4 boolean fields."""
+    buf = BuffItem(name="Bless", bonus_value="+1d4", affects_attacks=True, affects_saves=True, affects_ability_checks=False, affects_damage=False)
     d = dataclasses.asdict(buf)
-    assert d == {"name": "Bless", "bonus_value": "+1d4", "targets": "attack_rolls"}
+    assert d == {
+        "name": "Bless",
+        "bonus_value": "+1d4",
+        "affects_attacks": True,
+        "affects_saves": True,
+        "affects_ability_checks": False,
+        "affects_damage": False,
+    }
     restored = BuffItem(**d)
     assert restored == buf
+
+
+def test_buff_item_defaults():
+    """BuffItem defaults: Attacks=True, Saves=True, Checks=False, Damage=False."""
+    buf = BuffItem(name="Bless", bonus_value="+1d4")
+    assert buf.affects_attacks is True
+    assert buf.affects_saves is True
+    assert buf.affects_ability_checks is False
+    assert buf.affects_damage is False
+
+
+def test_monster_modification_from_dict_migrates_old_buff_targets():
+    """MonsterModification.from_dict() migrates old 'targets' string to 4 boolean fields."""
+    data = {
+        "base_name": "Goblin",
+        "buffs": [{"name": "Bless", "bonus_value": "+1d4", "targets": "attack_rolls"}],
+    }
+    mod = MonsterModification.from_dict(data)
+    assert len(mod.buffs) == 1
+    buf = mod.buffs[0]
+    assert buf.affects_attacks is True
+    assert buf.affects_saves is False
+    assert buf.affects_ability_checks is False
+    assert buf.affects_damage is False
+
+
+def test_monster_modification_from_dict_migrates_saving_throws_target():
+    """MonsterModification.from_dict() migrates 'saving_throws' target correctly."""
+    data = {
+        "base_name": "Goblin",
+        "buffs": [{"name": "Bane", "bonus_value": "-1d4", "targets": "saving_throws"}],
+    }
+    mod = MonsterModification.from_dict(data)
+    buf = mod.buffs[0]
+    assert buf.affects_attacks is False
+    assert buf.affects_saves is True
+    assert buf.affects_ability_checks is False
+    assert buf.affects_damage is False
+
+
+def test_monster_modification_from_dict_migrates_all_target():
+    """MonsterModification.from_dict() migrates 'all' target to all True."""
+    data = {
+        "base_name": "Goblin",
+        "buffs": [{"name": "PowerSurge", "bonus_value": "+2", "targets": "all"}],
+    }
+    mod = MonsterModification.from_dict(data)
+    buf = mod.buffs[0]
+    assert buf.affects_attacks is True
+    assert buf.affects_saves is True
+    assert buf.affects_ability_checks is True
+    assert buf.affects_damage is True
 
 
 def test_monster_modification_from_dict_old_format():
@@ -260,7 +319,7 @@ def test_monster_modification_from_dict_new_format():
     data = {
         "base_name": "Goblin",
         "equipment": [{"item_type": "weapon", "item_name": "Shortsword", "magic_bonus": 1}],
-        "buffs": [{"name": "Rage", "bonus_value": "+2", "targets": "attack_rolls"}],
+        "buffs": [{"name": "Rage", "bonus_value": "+2", "affects_attacks": True, "affects_saves": False, "affects_ability_checks": False, "affects_damage": True}],
         "skills": {"Stealth": 6},
         "hp_formula": "2d6",
         "size": "Small",
@@ -273,6 +332,8 @@ def test_monster_modification_from_dict_new_format():
     assert len(mod.buffs) == 1
     assert isinstance(mod.buffs[0], BuffItem)
     assert mod.buffs[0].name == "Rage"
+    assert mod.buffs[0].affects_attacks is True
+    assert mod.buffs[0].affects_damage is True
     assert mod.skills == {"Stealth": 6}
     assert mod.hp_formula == "2d6"
     assert mod.size == "Small"
