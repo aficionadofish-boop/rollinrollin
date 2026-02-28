@@ -113,6 +113,17 @@ class PersistenceService:
             data["saved"] = saved
             self._save("encounters", data)
 
+    def rename_saved_encounter(self, index: int, new_name: str) -> None:
+        """Update the name of a saved encounter at the given index."""
+        data = self._load("encounters")
+        if not isinstance(data, dict):
+            return
+        saved = data.get("saved", [])
+        if 0 <= index < len(saved):
+            saved[index]["name"] = new_name
+            data["saved"] = saved
+            self._save("encounters", data)
+
     def save_encounters(self, data: dict) -> None:
         """Write the entire encounters dict at once (flush/autosave lifecycle)."""
         self._save("encounters", data)
