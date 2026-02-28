@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 16 of 16 (Buff System & Output Improvements)
-Plan: 3 of 5 in current phase
+Plan: 4 of 5 in current phase
 Status: In Progress
-Last activity: 2026-02-28 — Phase 16 Plan 01 complete (BuffItem 4 boolean fields, QCheckBox editor UI, backward-compatible migration)
+Last activity: 2026-02-28 — Phase 16 Plan 02 complete (buff dice injection into attack and save rolls, output header, damage type summary)
 
-Progress: [████████████████████] Phase 16 in progress (3/5 plans, Plans 01, 03, 04 complete)
+Progress: [████████████████████] Phase 16 in progress (4/5 plans, Plans 01, 02, 03, 04 complete)
 
 ## Performance Metrics
 
@@ -179,6 +179,10 @@ Recent decisions affecting current work:
 - [Phase 16-01]: _BUFF_TARGET_MIGRATION module-level dict maps old targets string to 4 boolean dicts; "all" is fallback for unknown values
 - [Phase 16-01]: from_dict() migration: pop "targets" when affects_attacks absent (old format); pop "targets" silently when affects_attacks present (already migrated)
 - [Phase 16-01]: _BUFF_CHECKBOX_ATTRS tuple list [(label, attr)] drives both QCheckBox creation and stateChanged signal wiring in _rebuild_buff_rows()
+- [Phase 16-02]: Buff dice injection: filter monster.buffs by affects_attacks/affects_saves boolean, map to BonusDiceEntry(formula=buff.bonus_value, label=buff.name)
+- [Phase 16-02]: SaveParticipant.bonus_dice field carries per-participant buff dice; SaveRollService merges participant.bonus_dice + request.bonus_dice so global UI entries still apply to all
+- [Phase 16-02]: _format_bonus_dice_part() uses 'd' in dice_notation to distinguish dice vs flat; first attack/row shows full '+ Bless 1d4(3)', subsequent show '+ 1d4(2)'
+- [Phase 16-02]: Damage type summary only shown in COMPARE when len(type_totals) > 1; buff bonus_dice_results excluded from type aggregation (buff detail is per-roll only)
 - [Phase 16-04]: HpBar 5-band label: font size set to 7pt (down from 8pt) to fit 'Badly Injured' (13 chars) in 24px bar; label='' for defeated state skips all text-drawing; full grey fill for defeated vs dark background
 - [Phase 16-03]: Auto-name guard uses string comparison (current_text == _current_auto_name or empty) — no separate is_custom flag needed
 - [Phase 16-03]: get_save_name() returns pure auto-name or '{custom} — {auto_base}' format at save time
@@ -204,5 +208,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 16-01-PLAN.md (BuffItem 4 boolean fields, from_dict() migration, QCheckBox editor UI)
-Resume file: .planning/phases/16-buff-system-output-improvements/16-01-SUMMARY.md
+Stopped at: Completed 16-02-PLAN.md (buff dice injection into attack and save rolls, output header, damage type summary)
+Resume file: .planning/phases/16-buff-system-output-improvements/16-02-SUMMARY.md
