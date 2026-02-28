@@ -530,8 +530,10 @@ class MainWindow(QMainWindow):
         """Save current sidebar encounter to the saved encounters list.
 
         Skips saving if an identical encounter (same name and members) already exists.
+        Uses get_save_name() which formats "{custom} — {auto}" when the DM typed
+        a custom name, or returns the pure auto-name otherwise.
         """
-        name = self._sidebar.get_encounter_name() or "Untitled Encounter"
+        name = self._sidebar.get_save_name() or "Untitled Encounter"
         members = self._sidebar.get_members()
         if not members:
             return
@@ -567,6 +569,11 @@ class MainWindow(QMainWindow):
 
         dialog = LoadEncounterDialog(saved, parent=self)
         accepted = dialog.exec() == LoadEncounterDialog.DialogCode.Accepted
+
+        # Process renames before deletions so original indices remain valid
+        for original_idx, new_name in dialog.pending_renames().items():
+            if original_idx not in dialog.deleted_indices():
+                self._persistence.rename_saved_encounter(original_idx, new_name)
 
         # Process deletions in reverse order to avoid index shifting
         deleted = sorted(dialog.deleted_indices(), reverse=True)

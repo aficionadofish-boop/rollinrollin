@@ -6,6 +6,8 @@ Wired into MainWindow in Plan 02.
 """
 from __future__ import annotations
 
+import datetime
+
 from PySide6.QtWidgets import (
     QCheckBox,
     QDockWidget,
@@ -13,6 +15,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QSpinBox,
     QPushButton,
     QScrollArea,
@@ -229,6 +232,7 @@ class EncounterSidebarDock(QDockWidget):
         self._expanded_width = self._DEFAULT_EXPANDED_WIDTH
         self._encounter_name = "Active Encounter"
         self._selected_monster_name: str | None = None
+        self._current_auto_name = ""  # Tracks the last generated auto-name
 
         self.setObjectName("encounter_sidebar")
         self.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetMovable)
@@ -279,16 +283,21 @@ class EncounterSidebarDock(QDockWidget):
         header_layout.setContentsMargins(0, 0, 0, 0)
         header_layout.setSpacing(2)
 
-        # Row 1: Encounter name + collapse button
+        # Row 1: Encounter name (editable) + collapse button
         name_row = QHBoxLayout()
-        self._name_label = QLabel(self._encounter_name)
-        self._name_label.setStyleSheet("font-weight: bold; font-size: 11px;")
-        self._name_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        self._name_edit = QLineEdit()
+        self._name_edit.setPlaceholderText("Encounter name...")
+        self._name_edit.setStyleSheet(
+            "QLineEdit { background: transparent; border: 1px solid transparent; "
+            "font-weight: bold; font-size: 11px; padding: 2px; }"
+            "QLineEdit:focus { border: 1px solid #555; }"
+        )
+        self._name_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self._collapse_btn = QPushButton("Hide")
         self._collapse_btn.setFixedHeight(24)
         self._collapse_btn.setToolTip("Collapse sidebar")
         self._collapse_btn.clicked.connect(self.toggle_collapse)
-        name_row.addWidget(self._name_label)
+        name_row.addWidget(self._name_edit)
         name_row.addWidget(self._collapse_btn)
         header_layout.addLayout(name_row)
 
@@ -398,6 +407,15 @@ class EncounterSidebarDock(QDockWidget):
         self._handle_widget.setVisible(False)
         self.setMinimumWidth(200)
         self.setMaximumWidth(16777215)  # QWIDGETSIZE_MAX — allows resize
+        # Restore to last user-chosen width (set via set_expanded_width on startup)
+        if self._expanded_width >= 200:
+            self.resize(self._expanded_width, self.height())
+
+    def resizeEvent(self, event) -> None:
+        """Track expanded width for persistence whenever the user resizes the sidebar."""
+        super().resizeEvent(event)
+        if not self._collapsed and event.size().width() >= 200:
+            self._expanded_width = event.size().width()
 
     # ------------------------------------------------------------------
     # Monster list management
@@ -441,8 +459,9 @@ class EncounterSidebarDock(QDockWidget):
     # ------------------------------------------------------------------
 
     def _on_count_changed(self, monster_name: str, new_count: int) -> None:
-        """Update summary and emit encounter_changed when a count spinbox changes."""
+        """Update summary, auto-name, and emit encounter_changed when count spinbox changes."""
         self._update_summary()
+        self._update_auto_name()
         self.encounter_changed.emit(self.get_members())
 
     def _on_single_click(self, item: QListWidgetItem) -> None:
@@ -540,6 +559,25 @@ class EncounterSidebarDock(QDockWidget):
             f"{total_creatures} creature{'s' if total_creatures != 1 else ''} | {total_xp:,} XP"
         )
 
+    def _generate_auto_name(self) -> str:
+        """Generate timestamped auto-name based on current time and creature count."""
+        ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+        members = self.get_members()
+        count = sum(c for _, c in members) if members else 0
+        return f"{ts} \u2014 {count} creature{'s' if count != 1 else ''}"
+
+    def _update_auto_name(self) -> None:
+        """Update the name field with a fresh auto-name if no custom name has been typed.
+
+        Only overwrites the field if it currently holds the previous auto-name (or is
+        empty), preserving any custom text the DM has typed.
+        """
+        new_auto = self._generate_auto_name()
+        current_text = self._name_edit.text()
+        if current_text == self._current_auto_name or current_text == "":
+            self._name_edit.setText(new_auto)
+        self._current_auto_name = new_auto
+
     # ------------------------------------------------------------------
     # Public API (called by MainWindow in Plan 02)
     # ------------------------------------------------------------------
@@ -563,6 +601,7 @@ class EncounterSidebarDock(QDockWidget):
 
         self._update_empty_state()
         self._update_summary()
+        self._update_auto_name()
         self.encounter_changed.emit(self.get_members())
 
     def remove_monster(self, name: str, all_of_type: bool = False) -> None:
@@ -581,6 +620,7 @@ class EncounterSidebarDock(QDockWidget):
 
         self._update_empty_state()
         self._update_summary()
+        self._update_auto_name()
         self.encounter_changed.emit(self.get_members())
 
     def set_encounter(self, name: str, members: list[tuple]) -> None:
@@ -596,7 +636,6 @@ class EncounterSidebarDock(QDockWidget):
         self._selected_monster_name = None
 
         self._encounter_name = name
-        self._name_label.setText(name)
 
         for monster, count in members:
             self._add_row(monster, count)
@@ -609,6 +648,17 @@ class EncounterSidebarDock(QDockWidget):
 
         self._update_empty_state()
         self._update_summary()
+
+        # Restore the encounter name into the edit field.
+        # If a real name was persisted, use it and treat it as the auto-name
+        # baseline so future creature changes update correctly.
+        if name:
+            self._name_edit.setText(name)
+            self._current_auto_name = name
+        else:
+            # No persisted name — generate a fresh auto-name
+            self._update_auto_name()
+
         self.encounter_changed.emit(self.get_members())
 
     def get_members(self) -> list[tuple]:
@@ -628,20 +678,39 @@ class EncounterSidebarDock(QDockWidget):
         return result
 
     def get_encounter_name(self) -> str:
-        """Return the current encounter name."""
-        return self._encounter_name
+        """Return the text currently in the name field (may be custom or auto-name)."""
+        return self._name_edit.text()
+
+    def get_save_name(self) -> str:
+        """Return the encounter name to use when saving.
+
+        If the DM typed a custom name (different from the auto-name), format is:
+        "{custom} — {timestamp} — {N} creatures"
+        Otherwise, return the pure auto-name.
+        """
+        user_text = self._name_edit.text().strip()
+        if not user_text or user_text == self._current_auto_name:
+            return self._current_auto_name or self._generate_auto_name()
+        # Custom name: append fresh auto timestamp+count
+        auto_base = self._generate_auto_name()
+        return f"{user_text} \u2014 {auto_base}"
 
     def set_encounter_name(self, name: str) -> None:
-        """Set the header name label."""
+        """Set the name field text and update auto-name baseline."""
         self._encounter_name = name
-        self._name_label.setText(name)
+        self._name_edit.setText(name)
+        self._current_auto_name = name
 
     def set_expanded_width(self, width: int) -> None:
-        """Restore persisted sidebar width (called on startup)."""
+        """Restore persisted sidebar width (called on startup).
+
+        Updates the internal target width; _expand() will apply it on next expand,
+        and we also apply it immediately if the sidebar is currently expanded.
+        """
         if width >= 200:
             self._expanded_width = width
             if not self._collapsed:
-                self.setMaximumWidth(width)
+                self.resize(width, self.height())
 
     def select_all(self) -> None:
         """Check all creature rows."""
