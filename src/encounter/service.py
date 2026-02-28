@@ -235,10 +235,12 @@ class SaveRollService:
         kept_face = next(f for f in d20_result.faces if f.kept)
         natural = kept_face.value
 
-        # 3. Roll bonus dice (mirrors RollService._roll_bonus_dice pattern)
+        # 3. Roll bonus dice: global (from SaveRequest) then per-participant (from buffs)
+        #    Mirrors RollService._roll_bonus_dice pattern
         bonus_dice_results: list = []
         bonus_total = 0
-        for entry in request.bonus_dice:
+        all_bonus_dice = list(request.bonus_dice) + list(getattr(participant, "bonus_dice", []))
+        for entry in all_bonus_dice:
             formula_clean = entry.formula.lstrip("+")
             b_result = roll_expression(formula_clean, roller, request.seed)
             sign = -1 if entry.formula.startswith("-") else 1

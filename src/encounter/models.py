@@ -28,6 +28,7 @@ class SaveParticipant:
     lr_uses: int = 0       # remaining legendary resistance uses at roll time
     lr_max: int = 0        # max LR for this creature
     monster_name: Optional[str] = None  # base monster name for LR counter keying
+    bonus_dice: list = field(default_factory=list)  # list[BonusDiceEntry] — per-participant buff dice
 
 
 @dataclass

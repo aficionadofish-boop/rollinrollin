@@ -26,6 +26,7 @@ from src.encounter.service import (
     FeatureRule,
     BUILTIN_RULES,
 )
+from src.roll.models import BonusDiceEntry
 from src.ui.toggle_bar import ToggleBar
 from src.ui.bonus_dice_list import BonusDiceList
 from src.ui.roll_output import RollOutputPanel
@@ -37,13 +38,29 @@ from src.ui.roll_output import RollOutputPanel
 
 
 def _expand_participants(members: list, ability: str) -> list:
-    """Expand encounter members to individual SaveParticipant list."""
+    """Expand encounter members to individual SaveParticipant list.
+
+    Buff dice for buffs with affects_saves=True are injected as per-participant
+    BonusDiceEntry objects so each monster's buffs apply to its own rolls only.
+    """
     participants = []
     for monster, count in members:
+        # Collect save buff dice for this monster type
+        save_buff_dice = [
+            BonusDiceEntry(formula=buff.bonus_value, label=buff.name)
+            for buff in getattr(monster, "buffs", [])
+            if getattr(buff, "affects_saves", False)
+        ]
         for i in range(1, count + 1):
             name = f"{monster.name} {i}" if count > 1 else monster.name
             bonus = _resolve_save_bonus(monster, ability.upper())
-            participants.append(SaveParticipant(name=name, save_bonus=bonus))
+            participants.append(
+                SaveParticipant(
+                    name=name,
+                    save_bonus=bonus,
+                    bonus_dice=list(save_buff_dice),  # copy per participant
+                )
+            )
     return participants
 
 
@@ -57,7 +74,7 @@ class _SaveResultRow(QFrame):
 
     lr_used = Signal(str)       # monster_name — to update LR counter in SavesTab
 
-    def __init__(self, result, adv_label: str, parent=None) -> None:
+    def __init__(self, result, adv_label: str, is_first: bool = False, parent=None) -> None:
         super().__init__(parent)
         self._result = result
         self._passed = result.passed
@@ -66,7 +83,7 @@ class _SaveResultRow(QFrame):
         layout.setSpacing(6)
 
         # Name + roll info
-        self._text_label = QLabel(self._format_line(result, adv_label))
+        self._text_label = QLabel(self._format_line(result, adv_label, is_first=is_first))
         self._text_label.setWordWrap(True)
         self._text_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         layout.addWidget(self._text_label, 1)
@@ -98,7 +115,7 @@ class _SaveResultRow(QFrame):
 
         self._apply_row_color()
 
-    def _format_line(self, result, adv_label: str) -> str:
+    def _format_line(self, result, adv_label: str, is_first: bool = False) -> str:
         faces = result.d20_faces
         if len(faces) == 2:
             kept_face = next(f for f in faces if f.kept)
@@ -110,8 +127,26 @@ class _SaveResultRow(QFrame):
         flat_str = ""
         if result.flat_modifier != 0:
             flat_str = f" {'+' if result.flat_modifier > 0 else ''}{result.flat_modifier}"
+
+        # Format bonus dice results with full label on first row, abbreviated on subsequent
+        buff_str = ""
+        for formula, signed_total, label in result.bonus_dice_results:
+            dice_notation = formula.lstrip("+-")
+            has_dice = "d" in dice_notation.lower()
+            sign = "+" if signed_total >= 0 else ""
+            if is_first and label:
+                if has_dice:
+                    buff_str += f" + {label} {dice_notation}({signed_total})"
+                else:
+                    buff_str += f" + {label}({sign}{signed_total})"
+            else:
+                if has_dice:
+                    buff_str += f" + {dice_notation}({signed_total})"
+                else:
+                    buff_str += f" {sign}{signed_total}"
+
         status = "PASS" if result.passed else "FAIL"
-        return f"{result.name}: {d20_str} {bonus_str}{flat_str} = {result.total} \u2014 {status}"
+        return f"{result.name}: {d20_str} {bonus_str}{flat_str}{buff_str} = {result.total} \u2014 {status}"
 
     def _apply_row_color(self) -> None:
         if not self._passed and self._result.lr_max > 0 and self._result.lr_uses > 0:
@@ -515,6 +550,15 @@ class SavesTab(QWidget):
             if p.monster_name is None:
                 p.monster_name = base_name
 
+            # Inject save buff dice from monster — only if not already set
+            # (sidebar path sets them in _expand_participants; CT path needs them here)
+            if not getattr(p, "bonus_dice", None) and monster is not None:
+                p.bonus_dice = [
+                    BonusDiceEntry(formula=buff.bonus_value, label=buff.name)
+                    for buff in getattr(monster, "buffs", [])
+                    if getattr(buff, "affects_saves", False)
+                ]
+
         request = SaveRequest(
             participants=self._participants,
             ability=ability,
@@ -534,7 +578,7 @@ class SavesTab(QWidget):
         adv_text = self._adv_bar.value().lower()
         if adv_text == "normal":
             adv_text = ""
-        for pr in result.participant_results:
+        for row_idx, pr in enumerate(result.participant_results):
             # Propagate monster_name from participant to result for LR tracking
             pr_monster_name = None
             for p in self._participants:
@@ -544,7 +588,7 @@ class SavesTab(QWidget):
             # Monkey-patch monster_name onto result for _SaveResultRow access
             pr.monster_name = pr_monster_name
 
-            row = _SaveResultRow(pr, adv_text)
+            row = _SaveResultRow(pr, adv_text, is_first=(row_idx == 0))
             row.lr_used.connect(self._on_lr_used)
             self._results_layout.insertWidget(self._results_layout.count() - 1, row)
             self._result_rows.append(row)
