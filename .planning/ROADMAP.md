@@ -156,7 +156,7 @@ Phase 8 → Phase 9 (parallel with 10) → Phase 10 → Phase 11 → Phase 12 �
 | 13. Output Polish, Theming, and UI | v2.0 | 5/5 | Complete | 2026-02-26 |
 | 14. Bug Fixes & Critical Polish | 6/6 | Complete    | 2026-02-26 | - |
 | 15. Editor & Parser Overhaul | 3/3 | Complete    | 2026-02-27 | - |
-| 16. Buff System & Output Improvements | 4/4 | Complete   | 2026-02-28 | - |
+| 16. Buff System & Output Improvements | 4/4 | Complete    | 2026-02-28 | - |
 
 ### Phase 14: Bug Fixes & Critical Polish
 
