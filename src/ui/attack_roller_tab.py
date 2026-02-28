@@ -28,7 +28,7 @@ from PySide6.QtWidgets import (
 from src.engine.parser import roll_expression
 from src.domain.models import Trait
 from src.roll.service import RollService
-from src.roll.models import RollRequest, RollResult
+from src.roll.models import BonusDiceEntry, RollRequest, RollResult
 from src.ui.toggle_bar import ToggleBar
 from src.ui.bonus_dice_list import BonusDiceList
 from src.ui.roll_output import RollOutputPanel
@@ -78,6 +78,8 @@ class AttackRollerTab(QWidget):
         self._roll_service = RollService()
         self._last_result: RollResult | None = None
         self._last_after_text: str = ""  # after_text from last rolled action
+        self._last_header: str = ""      # creature/attack header for output
+        self._last_monster = None        # Monster object for buff access
         self._creatures: list[tuple] = []  # [(Monster, count), ...]
         self._action_rows: list[QWidget] = []
         self._mode = "raw"
@@ -365,7 +367,7 @@ class AttackRollerTab(QWidget):
 
             # Action rows for this creature
             for action in rollable:
-                row = self._make_action_row(action)
+                row = self._make_action_row(action, monster)
                 insert_idx = self._action_list_layout.count() - 1
                 self._action_list_layout.insertWidget(insert_idx, row)
                 self._action_rows.append(row)
@@ -391,7 +393,7 @@ class AttackRollerTab(QWidget):
                     self._action_list_layout.insertWidget(insert_idx, row)
                     self._action_rows.append(row)
 
-    def _make_action_row(self, action) -> QWidget:
+    def _make_action_row(self, action, monster=None) -> QWidget:
         """Build one action row: 'Scimitar (+4)  [Roll]'."""
         row = QWidget()
         layout = QHBoxLayout(row)
@@ -406,7 +408,7 @@ class AttackRollerTab(QWidget):
 
         roll_btn = QPushButton("Roll")
         roll_btn.clicked.connect(
-            lambda checked, a=action: self._on_roll(a)
+            lambda checked, a=action, m=monster: self._on_roll(a, monster=m)
         )
 
         layout.addWidget(name_label)
@@ -445,9 +447,15 @@ class AttackRollerTab(QWidget):
     # Roll trigger
     # ------------------------------------------------------------------
 
-    def _on_roll(self, action) -> None:
+    def _on_roll(self, action, monster=None) -> None:
         """Roll N attacks for the given action using current toggle state."""
-        request = self._build_roll_request(action)
+        count = self._n_spin.value()
+        if monster:
+            self._last_header = f"{monster.name} \u2014 {action.name} ({count}x)"
+        else:
+            self._last_header = f"{action.name} ({count}x)"
+        self._last_monster = monster
+        request = self._build_roll_request(action, monster=monster)
         result = self._roll_service.execute_attack_roll(request, self._roller)
         self._last_result = result
         self._last_after_text = getattr(action, "after_text", "") or ""
@@ -506,8 +514,23 @@ class AttackRollerTab(QWidget):
 
         return f"<b>{header}</b><br>{body}"
 
-    def _build_roll_request(self, action) -> RollRequest:
-        """Assemble a RollRequest from current UI toggle state."""
+    def _build_roll_request(self, action, monster=None) -> RollRequest:
+        """Assemble a RollRequest from current UI toggle state.
+
+        If monster is provided, inject buff dice for buffs with affects_attacks=True.
+        Buff dice entries are appended after any manually-configured bonus dice.
+        """
+        # Start with manually-configured bonus dice from the UI list
+        bonus_dice = list(self._bonus_dice_list.get_entries())
+
+        # Inject buff dice from monster buffs that target attacks
+        if monster:
+            for buff in getattr(monster, "buffs", []):
+                if getattr(buff, "affects_attacks", False):
+                    bonus_dice.append(
+                        BonusDiceEntry(formula=buff.bonus_value, label=buff.name)
+                    )
+
         return RollRequest(
             action_name=action.name,
             to_hit_bonus=action.to_hit_bonus,
@@ -523,7 +546,7 @@ class AttackRollerTab(QWidget):
             nat1_always_miss=self._nat1_check.isChecked(),
             nat20_always_hit=self._nat20_check.isChecked(),
             flat_modifier=self._flat_mod_spin.value(),
-            bonus_dice=self._bonus_dice_list.get_entries(),
+            bonus_dice=bonus_dice,
             show_margin=self._show_margin_check.isChecked(),
             seed=None,  # Phase 6 (Settings) wires the global seed
             crunchy_crits=self._crunchy_crits_check.isChecked(),
@@ -549,12 +572,19 @@ class AttackRollerTab(QWidget):
     def _render_results(self, result: RollResult) -> None:
         """Re-render stored results in the current mode (no re-roll)."""
         self._output_panel.clear()
+        # Prepend creature/attack header if available
+        if self._last_header:
+            self._output_panel.append_html(
+                f"<b>{self._html_escape(self._last_header)}</b>"
+            )
         mode = result.request.mode
         for attack in result.attack_rolls:
             line = self._format_attack_line_html(attack, result.request)
             self._output_panel.append_html(line)
         if mode == "compare":
-            self._output_panel.append_html(self._format_summary_html(result.summary))
+            self._output_panel.append_html(
+                self._format_summary_html(result.summary, result.attack_rolls)
+            )
         # After-attack-text: display once at the end if any hit occurred
         # (RAW mode always shows it; COMPARE only when there was at least one hit)
         after_text = self._last_after_text
@@ -680,6 +710,36 @@ class AttackRollerTab(QWidget):
         """Escape HTML special characters in roll output text."""
         return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
+    def _format_bonus_dice_part(
+        self, formula: str, signed_total: int, label: str, is_first: bool
+    ) -> str:
+        """Format a single bonus dice result entry.
+
+        First attack (is_first=True): '+ Bless 1d4(3)' or '+ Bless(+2)' for flat bonuses.
+        Subsequent attacks: '+ 1d4(2)' or '+2' for flat bonuses.
+
+        The formula argument is the raw formula string (e.g. '+1d4', '-1d6', '+2').
+        """
+        sign = "+" if signed_total >= 0 else ""
+        # Strip leading +/- to get the dice notation (e.g. '1d4', '2', '1d6')
+        dice_notation = formula.lstrip("+-")
+        has_dice = any(c == 'd' for c in dice_notation.lower())
+
+        if is_first and label:
+            if has_dice:
+                # Full label: '+ Bless 1d4(3)'
+                return f"(+ {label} {dice_notation}({signed_total}))"
+            else:
+                # Flat bonus with label: '+ Bless(+2)'
+                return f"(+ {label}({sign}{signed_total}))"
+        else:
+            if has_dice:
+                # Abbreviated: '+ 1d4(2)'
+                return f"(+ {dice_notation}({signed_total}))"
+            else:
+                # Flat bonus abbreviated: '+2'
+                return f"({sign}{signed_total})"
+
     def _color_damage_segment(self, total: int, dtype: str, note: str = "") -> str:
         """Wrap a damage segment in a colored <span>. Colors the entire segment per user decision."""
         color = DAMAGE_COLORS.get(dtype.lower(), _DEFAULT_DAMAGE_COLOR)
@@ -746,9 +806,9 @@ class AttackRollerTab(QWidget):
             sign = "+" if attack.flat_modifier >= 0 else ""
             parts.append(self._html_escape(f"({sign}{attack.flat_modifier} flat)"))
         for (formula, signed_total, label) in attack.bonus_dice_results:
-            lbl = label if label else formula
-            sign = "+" if signed_total >= 0 else ""
-            parts.append(self._html_escape(f"({sign}{signed_total} {lbl})"))
+            parts.append(self._html_escape(
+                self._format_bonus_dice_part(formula, signed_total, label, is_first=(n == 1))
+            ))
 
         roll_str = " ".join(parts)
 
@@ -811,16 +871,44 @@ class AttackRollerTab(QWidget):
         else:
             return self._format_compare_line_html(attack, request)
 
-    def _format_summary_html(self, summary) -> str:
-        """Format COMPARE mode summary line as HTML-escaped text."""
+    def _format_summary_html(self, summary, attack_rolls=None) -> str:
+        """Format COMPARE mode summary line as HTML with per-damage-type breakdown.
+
+        When multiple damage types are present across all hits, appends a colored
+        per-type subtotal breakdown after the total.
+        Buff contribution totals are intentionally excluded (buff detail is per-roll only).
+        """
         crit_str = self._html_escape(
             f" ({summary.crits} crit)" if summary.crits else ""
         )
-        return (
+        base = (
             f"\u2500\u2500\u2500 Summary: {summary.hits} hits / "
             f"{summary.misses} misses{crit_str} | "
-            f"Total damage: {summary.total_damage} \u2500\u2500\u2500"
+            f"Total damage: {summary.total_damage}"
         )
+
+        # Aggregate per-damage-type totals from hits (and RAW rolls where is_hit is None)
+        if attack_rolls:
+            type_totals: dict[str, int] = {}
+            for ar in attack_rolls:
+                if ar.is_hit is not False:  # True (hit) or None (RAW mode)
+                    for dp in ar.damage_parts:
+                        type_totals[dp.damage_type] = (
+                            type_totals.get(dp.damage_type, 0) + dp.total
+                        )
+                    for ep in getattr(ar, "crit_extra_parts", []):
+                        type_totals[ep.damage_type] = (
+                            type_totals.get(ep.damage_type, 0) + ep.total
+                        )
+            # Only show breakdown when multiple types are present (single type is redundant)
+            if len(type_totals) > 1:
+                parts = [
+                    self._color_damage_segment(v, k) for k, v in type_totals.items()
+                ]
+                base += " \u2014 " + ", ".join(parts)
+
+        base += " \u2500\u2500\u2500"
+        return base
 
     # ------------------------------------------------------------------
     # Settings integration
