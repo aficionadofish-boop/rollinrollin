@@ -11,9 +11,15 @@ class HpBar(QWidget):
 
     Visual layout (left to right):
     - Dark gray background (#333) filling full width
-    - Green/yellow/red HP segment based on percentage
+    - 5-band HP segment color based on percentage:
+        100%       — bright green  (#4CAF50) "Uninjured"
+        75–99%     — green-yellow  (#8BC34A) "Barely Injured"
+        51–75%     — yellow        (#FFC107) "Injured"
+        26–50%     — orange        (#FF6B35) "Badly Injured"
+        1–25%      — red           (#F44336) "Near Death"
+        0% (dead)  — grey          (#666666) no label
     - Blue temp HP segment immediately to the right of the HP segment
-    - Centered text overlay: "{current_hp} / {max_hp}" or "{current_hp} + {temp_hp}t / {max_hp}"
+    - Centered descriptive text overlay (always visible, not hover-only)
 
     Click anywhere on the bar to emit the ``clicked`` signal (for click-to-reveal
     damage input in CombatantCard).
@@ -55,18 +61,33 @@ class HpBar(QWidget):
         # Background
         painter.fillRect(0, 0, w, h, QColor("#333333"))
 
-        # HP segment color
+        # HP segment color — 5-band system + defeated state
         hp_pct = self._current_hp / self._max_hp
-        if hp_pct > 0.5:
-            hp_color = QColor("#4CAF50")   # green
-        elif hp_pct > 0.25:
-            hp_color = QColor("#FFC107")   # yellow
+        if hp_pct == 0:
+            hp_color = QColor("#666666")   # grey (Defeated)
+            label = ""                      # no text when defeated
+        elif hp_pct <= 0.25:
+            hp_color = QColor("#F44336")   # red (Near Death)
+            label = "Near Death"
+        elif hp_pct <= 0.50:
+            hp_color = QColor("#FF6B35")   # orange (Badly Injured)
+            label = "Badly Injured"
+        elif hp_pct <= 0.75:
+            hp_color = QColor("#FFC107")   # yellow (Injured)
+            label = "Injured"
+        elif hp_pct < 1.0:
+            hp_color = QColor("#8BC34A")   # green-yellow (Barely Injured)
+            label = "Barely Injured"
         else:
-            hp_color = QColor("#F44336")   # red
+            hp_color = QColor("#4CAF50")   # bright green (Uninjured)
+            label = "Uninjured"
 
         hp_width = int(w * hp_pct)
         if hp_width > 0:
             painter.fillRect(0, 0, hp_width, h, hp_color)
+        elif hp_pct == 0:
+            # Defeated: fill full bar with grey
+            painter.fillRect(0, 0, w, h, hp_color)
 
         # Temp HP segment (blue, immediately right of HP segment)
         if self._temp_hp > 0:
@@ -78,24 +99,20 @@ class HpBar(QWidget):
             if temp_width > 0:
                 painter.fillRect(hp_width, 0, temp_width, h, QColor("#2196F3"))
 
-        # Text overlay — white bold with shadow for readability
-        font = QFont()
-        font.setBold(True)
-        font.setPointSize(8)
-        painter.setFont(font)
+        # Text overlay — descriptive label, always visible, white bold with shadow
+        if label:
+            font = QFont()
+            font.setBold(True)
+            font.setPointSize(7)
+            painter.setFont(font)
 
-        if self._temp_hp > 0:
-            text = f"{self._current_hp} + {self._temp_hp}t / {self._max_hp}"
-        else:
-            text = f"{self._current_hp} / {self._max_hp}"
+            # Draw shadow (dark, offset 1px)
+            painter.setPen(QColor("#000000"))
+            painter.drawText(1, 1, w, h, Qt.AlignmentFlag.AlignCenter, label)
 
-        # Draw shadow (dark, offset 1px)
-        painter.setPen(QColor("#000000"))
-        painter.drawText(1, 1, w, h, Qt.AlignmentFlag.AlignCenter, text)
-
-        # Draw foreground (white)
-        painter.setPen(QColor("#FFFFFF"))
-        painter.drawText(0, 0, w, h, Qt.AlignmentFlag.AlignCenter, text)
+            # Draw foreground (white)
+            painter.setPen(QColor("#FFFFFF"))
+            painter.drawText(0, 0, w, h, Qt.AlignmentFlag.AlignCenter, label)
 
         painter.end()
 
