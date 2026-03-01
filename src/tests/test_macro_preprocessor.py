@@ -192,3 +192,48 @@ class TestQuerySubstitution:
         )
         assert result == "1d20++2"
         # Note: double-plus normalization happens in the service layer, not here
+
+
+# ---------------------------------------------------------------------------
+# 7. Template field extraction with queries
+# ---------------------------------------------------------------------------
+
+class TestTemplateFieldsWithQueries:
+    def test_bare_template_value_added_to_fields(self, preprocessor):
+        """{{?{query}}} bare values are tracked in template_fields with empty key."""
+        result = preprocessor.process_line(
+            "&{template:default}{{name=Attack}}{{?{How Many|1, 1 Attack|2, 2 Attacks}}}"
+        )
+        assert result.template_name == "Attack"
+        assert len(result.template_fields) == 1
+        key, value = result.template_fields[0]
+        assert key == ""
+        assert "?{How Many|1, 1 Attack|2, 2 Attacks}" in value
+
+    def test_bare_template_value_suppresses_template_warning(self, preprocessor):
+        """With template_fields non-empty, the &{template:...} warning is suppressed."""
+        result = preprocessor.process_line(
+            "&{template:default}{{name=Test}}{{?{Choice|A, optA|B, optB}}}"
+        )
+        # template_fields has the bare value → warning suppressed
+        assert len(result.warnings) == 0
+
+    def test_keyed_template_field_with_query(self, preprocessor):
+        """{{Damage=?{Hits|1, [[1d6+3]]|2, [[2d6+6]]}}} keeps query in value."""
+        result = preprocessor.process_line(
+            "&{template:default}{{name=Damage Roll}}{{Damage=?{Hits|1, [[1d6+3]]|2, [[2d6+6]]}}}"
+        )
+        assert result.template_name == "Damage Roll"
+        assert len(result.template_fields) == 1
+        key, value = result.template_fields[0]
+        assert key == "Damage"
+        assert "?{Hits|1, [[1d6+3]]|2, [[2d6+6]]}" in value
+
+    def test_query_extracted_from_template_bare_value(self, preprocessor):
+        """Query inside bare template field is still extracted for user prompting."""
+        result = preprocessor.process_line(
+            "{{name=Test}}{{?{Pick|A, alpha|B, beta}}}"
+        )
+        assert len(result.queries) == 1
+        assert result.queries[0].prompt == "Pick"
+        assert result.queries[0].options == [("A", "alpha"), ("B", "beta")]

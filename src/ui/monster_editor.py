@@ -2065,16 +2065,38 @@ class MonsterEditorDialog(QDialog):
         state and rewrites _working_copy.saves with the new proficiency-based
         values, preventing stale numbers in both the form and the preview.
         Skills are cascaded via _cascade_skills_on_prof_change().
+        Attacks are cascaded via _cascade_actions_on_prof_change().
         """
         if self._recalculating:
             return
         self._push_undo()
+        # Capture old proficiency before updating CR
+        old_prof = self._engine.recalculate(self._working_copy).proficiency_bonus
         self._working_copy.cr = cr_text
+        new_prof = self._engine.recalculate(self._working_copy).proficiency_bonus
         # Cascade saves: recompute based on current UI toggle state
         self._sync_save_toggles(recompute_values=True)
         # Cascade skills: recompute based on current skill toggle state
         self._cascade_skills_on_prof_change()
+        # Cascade attacks: apply prof delta to all action to-hit bonuses
+        self._cascade_actions_on_prof_change(old_prof, new_prof)
         self._rebuild_preview()
+
+    def _cascade_actions_on_prof_change(self, old_prof: int, new_prof: int) -> None:
+        """Recompute to_hit_bonus for all actions when proficiency changes."""
+        prof_delta = new_prof - old_prof
+        if prof_delta == 0:
+            return
+        for action_list in [
+            self._working_copy.actions,
+            getattr(self._working_copy, "legendary_actions", []),
+            getattr(self._working_copy, "lair_actions", []),
+        ]:
+            for action in action_list:
+                if action.to_hit_bonus is None or getattr(action, "is_equipment_generated", False):
+                    continue
+                action.to_hit_bonus += prof_delta
+        self._rebuild_action_rows()
 
     # ------------------------------------------------------------------
     # Core operations
@@ -2489,11 +2511,31 @@ class MonsterEditorDialog(QDialog):
                         "dice_expr": dp.dice_expr,
                         "damage_type": dp.damage_type,
                         "raw_text": dp.raw_text,
+                        "condition": dp.condition,
                     }
                     for dp in action.damage_parts
                 ],
                 "raw_text": action.raw_text,
                 "is_parsed": action.is_parsed,
+                "after_text": action.after_text,
+            })
+
+        # Serialize traits
+        serialized_traits = []
+        for trait in wc.traits:
+            serialized_traits.append({
+                "name": trait.name,
+                "description": trait.description,
+                "rollable_dice": [
+                    {
+                        "full_match": d.full_match,
+                        "dice_expr": d.dice_expr,
+                        "damage_type": d.damage_type,
+                        "average": d.average,
+                    }
+                    for d in trait.rollable_dice
+                ],
+                "recharge_range": list(trait.recharge_range) if trait.recharge_range else None,
             })
 
         return MonsterModification(
@@ -2510,6 +2552,7 @@ class MonsterEditorDialog(QDialog):
             equipment=self.get_equipment_items(),
             buffs=self.get_buff_items(),
             actions=serialized_actions,
+            traits=serialized_traits,
         )
 
     def _modification_to_dict(self, mod: MonsterModification) -> dict:
@@ -2528,6 +2571,7 @@ class MonsterEditorDialog(QDialog):
             "equipment": [dataclasses.asdict(e) for e in mod.equipment],
             "buffs": [dataclasses.asdict(b) for b in mod.buffs],
             "actions": mod.actions,
+            "traits": mod.traits,
             "spellcasting_infos": [],
         }
 

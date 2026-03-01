@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from PySide6.QtWidgets import (
+    QApplication,
     QWidget,
     QHBoxLayout,
     QVBoxLayout,
@@ -29,7 +30,6 @@ from src.encounter.service import (
 from src.roll.models import BonusDiceEntry
 from src.ui.toggle_bar import ToggleBar
 from src.ui.bonus_dice_list import BonusDiceList
-from src.ui.roll_output import RollOutputPanel
 
 
 # ---------------------------------------------------------------------------
@@ -98,7 +98,11 @@ class _SaveResultRow(QFrame):
         self._lr_btn = None
         self._lr_spin = None
         if result.lr_max > 0:
-            # LR counter spinbox for manual adjustment
+            # LR label + counter spinbox
+            lr_label = QLabel("LR:")
+            lr_label.setStyleSheet("font-size: 8pt; color: #FFB300;")
+            layout.addWidget(lr_label)
+
             self._lr_spin = QSpinBox()
             self._lr_spin.setRange(0, result.lr_max)
             self._lr_spin.setValue(result.lr_uses)
@@ -120,6 +124,9 @@ class _SaveResultRow(QFrame):
         if len(faces) == 2:
             kept_face = next(f for f in faces if f.kept)
             other_face = next(f for f in faces if not f.kept)
+            # Derive label from roll if not provided (e.g. MR auto-advantage)
+            if not adv_label:
+                adv_label = "adv" if kept_face.value >= other_face.value else "disadv"
             d20_str = f"[{kept_face.value}, {other_face.value}]({adv_label})"
         else:
             d20_str = f"[{result.d20_natural}]"
@@ -441,21 +448,33 @@ class SavesTab(QWidget):
         self._roll_saves_btn.clicked.connect(self._execute_roll)
         root_layout.addWidget(self._roll_saves_btn)
 
-        # Per-row results area (replaces plain text for participant results)
+        # Per-row results area — results + summary in a single scroll area
         self._results_scroll = QScrollArea()
         self._results_scroll.setWidgetResizable(True)
         self._results_container = QWidget()
         self._results_layout = QVBoxLayout(self._results_container)
         self._results_layout.setContentsMargins(0, 0, 0, 0)
         self._results_layout.setSpacing(2)
+
+        # Summary label lives inside the scroll area, below the result rows
+        self._summary_label = QLabel()
+        self._summary_label.setStyleSheet(
+            "padding: 4px 6px; color: #aaa; font-size: 10pt;"
+        )
+        self._summary_label.setVisible(False)
+        self._results_layout.addWidget(self._summary_label)
+
         self._results_layout.addStretch()
         self._results_scroll.setWidget(self._results_container)
         root_layout.addWidget(self._results_scroll, 1)
 
-        # Summary output panel (single-line summary after each roll)
-        self._output_panel = RollOutputPanel()
-        self._output_panel.setMaximumHeight(80)
-        root_layout.addWidget(self._output_panel)
+        # Copy button row below the scroll area
+        copy_row = QHBoxLayout()
+        copy_row.addStretch()
+        self._copy_btn = QPushButton("Copy to Clipboard")
+        self._copy_btn.clicked.connect(self._copy_results_to_clipboard)
+        copy_row.addWidget(self._copy_btn)
+        root_layout.addLayout(copy_row)
 
     # ------------------------------------------------------------------
     # Public API
@@ -473,8 +492,6 @@ class SavesTab(QWidget):
                 base = p.name.rsplit(" ", 1)[0] if p.name and p.name.split()[-1].isdigit() else p.name
                 p.monster_name = base
         self._roll_saves_btn.setEnabled(bool(participants))
-        if participants:
-            self._output_panel.append(f"Loaded {len(participants)} participants")
 
     def load_participants_from_sidebar(self, members: list, ability: str = None) -> None:
         """Build participants from sidebar checked members.
@@ -491,8 +508,6 @@ class SavesTab(QWidget):
             base = p.name.rsplit(" ", 1)[0] if p.name and p.name.split()[-1].isdigit() else p.name
             p.monster_name = base
         self._roll_saves_btn.setEnabled(bool(self._participants))
-        if self._participants:
-            self._output_panel.append(f"Loaded {len(self._participants)} participants from sidebar")
 
     def reset_lr_counters(self) -> None:
         """Clear LR session counters. Called when encounter changes."""
@@ -593,8 +608,9 @@ class SavesTab(QWidget):
             self._results_layout.insertWidget(self._results_layout.count() - 1, row)
             self._result_rows.append(row)
 
-        # Summary line
-        self._output_panel.append(self._format_summary_line(result.summary))
+        # Summary line — inside the scroll area, below the result rows
+        self._summary_label.setText(self._format_summary_line(result.summary))
+        self._summary_label.setVisible(True)
 
     def _get_active_rules(self) -> list:
         """Return detection rules filtered by MR/LR toggle state."""
@@ -619,11 +635,18 @@ class SavesTab(QWidget):
         for row in self._result_rows:
             row.deleteLater()
         self._result_rows.clear()
-        # Clear layout items (keep the stretch)
-        while self._results_layout.count() > 1:
-            item = self._results_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+        # Clear layout items (keep the summary label and stretch)
+        keep = {self._summary_label}
+        i = 0
+        while i < self._results_layout.count():
+            item = self._results_layout.itemAt(i)
+            w = item.widget() if item else None
+            if w is not None and w not in keep:
+                self._results_layout.takeAt(i)
+                w.deleteLater()
+            else:
+                i += 1
+        self._summary_label.setVisible(False)
 
     def _format_participant_line(self, result) -> str:
         faces = result.d20_faces
@@ -647,6 +670,16 @@ class SavesTab(QWidget):
             f"\u2500\u2500\u2500 Passed: {summary.passed}  |  "
             f"Failed ({summary.failed}): {failed_str} \u2500\u2500\u2500"
         )
+
+    def _copy_results_to_clipboard(self) -> None:
+        """Copy all result row text + summary to the clipboard."""
+        lines = []
+        for row in self._result_rows:
+            lines.append(row._text_label.text())
+        if self._summary_label.isVisible():
+            lines.append(self._summary_label.text())
+        if lines:
+            QApplication.clipboard().setText("\n".join(lines))
 
     # ------------------------------------------------------------------
     # Settings integration

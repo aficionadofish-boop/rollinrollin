@@ -24,7 +24,7 @@ class AppSettings:
     default_save_dc: int = 13
 
     # Sidebar
-    sidebar_width: int = 300
+    sidebar_width: int = 350
 
     # Combat Tracker "Send to Saves" behavior
     ct_send_overrides_sidebar: bool = True

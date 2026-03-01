@@ -27,6 +27,7 @@ from PySide6.QtWidgets import (
 
 from src.engine.parser import roll_expression
 from src.domain.models import Trait
+from src.parser.formats._shared_patterns import detect_dice_in_text, detect_recharge
 from src.roll.service import RollService
 from src.roll.models import BonusDiceEntry, RollRequest, RollResult
 from src.ui.toggle_bar import ToggleBar
@@ -322,7 +323,16 @@ class AttackRollerTab(QWidget):
                 a for a in monster.actions
                 if a.is_parsed and a.to_hit_bonus is not None
             ]
-            if not rollable:
+            # Check for non-attack actions with dice (e.g. Fire Breath)
+            has_dice_actions = any(
+                detect_dice_in_text(a.raw_text or "")
+                for a in monster.actions
+                if a.to_hit_bonus is None
+            )
+            has_rollable_traits = any(
+                t.rollable_dice for t in getattr(monster, "traits", [])
+            )
+            if not rollable and not has_dice_actions and not has_rollable_traits:
                 continue
 
             # Creature header
@@ -372,11 +382,30 @@ class AttackRollerTab(QWidget):
                 self._action_list_layout.insertWidget(insert_idx, row)
                 self._action_rows.append(row)
 
-            # Trait rows — only if any traits have rollable dice
+            # Trait rows — include actual traits with dice AND non-attack
+            # actions (to_hit_bonus is None) that contain dice patterns
+            # (e.g., Fire Breath, which is an Action but not an attack roll)
             rollable_traits = [
                 t for t in getattr(monster, "traits", [])
                 if t.rollable_dice
             ]
+
+            # Convert non-attack actions with dice into Trait objects
+            for action in monster.actions:
+                if action.to_hit_bonus is not None:
+                    continue  # already shown as attack row
+                raw = action.raw_text or ""
+                detected = detect_dice_in_text(raw)
+                if not detected:
+                    continue
+                recharge = detect_recharge(action.name)
+                rollable_traits.append(Trait(
+                    name=action.name,
+                    description=raw,
+                    rollable_dice=detected,
+                    recharge_range=recharge,
+                ))
+
             if rollable_traits:
                 traits_divider = QLabel("Traits")
                 traits_divider.setStyleSheet(
@@ -421,15 +450,7 @@ class AttackRollerTab(QWidget):
         layout = QHBoxLayout(row)
         layout.setContentsMargins(16, 1, 2, 1)
 
-        label_text = trait.name
-        if trait.recharge_range:
-            lo, hi = trait.recharge_range
-            if lo == hi:
-                label_text += f" (Recharge {lo})"
-            else:
-                label_text += f" (Recharge {lo}-{hi})"
-
-        name_label = QLabel(label_text)
+        name_label = QLabel(trait.name)
         name_label.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
         )
@@ -488,17 +509,11 @@ class AttackRollerTab(QWidget):
         recharge_passed: bool | None,
     ) -> str:
         """Format the HTML output for a rolled trait."""
-        # Header line
+        # Header line — trait.name already includes "(Recharge X-Y)" if applicable
         header = self._html_escape(trait.name)
         if trait.recharge_range and recharge_roll is not None:
-            lo, hi = trait.recharge_range
-            if lo == hi:
-                recharge_label = f"(Recharge {lo})"
-            else:
-                recharge_label = f"(Recharge {lo}-{hi})"
             color = "#4CAF50" if recharge_passed else "#E63946"
             header += (
-                f' {self._html_escape(recharge_label)}'
                 f' <span style="color:{color};">[rolled: {recharge_roll}]</span>'
             )
 
@@ -523,11 +538,16 @@ class AttackRollerTab(QWidget):
         # Start with manually-configured bonus dice from the UI list
         bonus_dice = list(self._bonus_dice_list.get_entries())
 
-        # Inject buff dice from monster buffs that target attacks
+        # Inject buff dice from monster buffs that target attacks or damage
+        damage_bonus_dice: list[BonusDiceEntry] = []
         if monster:
             for buff in getattr(monster, "buffs", []):
                 if getattr(buff, "affects_attacks", False):
                     bonus_dice.append(
+                        BonusDiceEntry(formula=buff.bonus_value, label=buff.name)
+                    )
+                if getattr(buff, "affects_damage", False):
+                    damage_bonus_dice.append(
                         BonusDiceEntry(formula=buff.bonus_value, label=buff.name)
                     )
 
@@ -547,6 +567,7 @@ class AttackRollerTab(QWidget):
             nat20_always_hit=self._nat20_check.isChecked(),
             flat_modifier=self._flat_mod_spin.value(),
             bonus_dice=bonus_dice,
+            damage_bonus_dice=damage_bonus_dice,
             show_margin=self._show_margin_check.isChecked(),
             seed=None,  # Phase 6 (Settings) wires the global seed
             crunchy_crits=self._crunchy_crits_check.isChecked(),
@@ -591,7 +612,12 @@ class AttackRollerTab(QWidget):
         if after_text:
             any_hit = any(a.is_hit is True for a in result.attack_rolls)
             if mode == "raw" or any_hit:
-                escaped = self._html_escape(after_text)
+                # Strip leading ". " from statblock format
+                clean_text = after_text.lstrip(". ")
+                # Prepend "(Each)" when multiple attacks rolled
+                count = len(result.attack_rolls)
+                prefix = "(Each) " if count > 1 else ""
+                escaped = self._html_escape(f"{prefix}{clean_text}")
                 self._output_panel.append_html(
                     f'<div style="margin-left:16px; font-size:90%; opacity:0.85;">{escaped}</div>'
                 )
@@ -632,6 +658,11 @@ class AttackRollerTab(QWidget):
                 parts.append(f"{combined} {dp.damage_type} ({note})")
             else:
                 parts.append(f"{dp.total} {dp.damage_type}")
+        # Append buff damage bonuses
+        for formula, signed_total, label in getattr(attack, "damage_bonus_results", []):
+            sign = "+" if signed_total >= 0 else ""
+            lbl = f" {label}" if label else ""
+            parts.append(f"{sign}{signed_total}{lbl}")
         return " + ".join(parts)
 
     def _format_raw_line(self, attack, request) -> str:
@@ -787,6 +818,11 @@ class AttackRollerTab(QWidget):
                 parts.append(self._color_damage_segment(combined, dp.damage_type, note))
             else:
                 parts.append(self._color_damage_segment(dp.total, dp.damage_type))
+        # Append buff damage bonuses
+        for formula, signed_total, label in getattr(attack, "damage_bonus_results", []):
+            sign = "+" if signed_total >= 0 else ""
+            lbl = label if label else formula
+            parts.append(self._html_escape(f"{sign}{signed_total} {lbl}"))
         return " + ".join(parts)
 
     def _format_raw_line_html(self, attack, request) -> str:
@@ -820,6 +856,8 @@ class AttackRollerTab(QWidget):
 
         if attack.is_crit:
             return self._wrap_crit_line(line)
+        if attack.is_nat1:
+            return self._wrap_miss_line(line)
         return line
 
     def _format_compare_line_html(self, attack, request) -> str:

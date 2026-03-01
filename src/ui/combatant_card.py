@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QLayout,
     QWidgetItem,
+    QMenu,
 )
 from PySide6.QtCore import Qt, Signal, QPoint, QRect, QSize
 from PySide6.QtGui import QFont, QIntValidator
@@ -35,13 +36,9 @@ class FlowLayout(QLayout):
     """A wrapping flow layout: places items left-to-right, wrapping to new rows.
 
     Supports hasHeightForWidth() so parent widgets resize their height correctly.
-    Max 2 rows — items that would start row 3+ are hidden; a "+N more" badge is
-    added automatically if any items are hidden.
 
     Usage: call addWidget(w) to add widgets (do NOT call addItem directly).
     """
-
-    _MAX_ROWS = 2
 
     def __init__(self, parent=None, spacing: int = 4) -> None:
         super().__init__(parent)
@@ -52,6 +49,9 @@ class FlowLayout(QLayout):
 
     def addWidget(self, widget) -> None:  # type: ignore[override]
         """Add a widget to the flow layout."""
+        parent = self.parentWidget()
+        if parent is not None and widget.parent() is not parent:
+            widget.setParent(parent)
         item = QWidgetItem(widget)
         self._items.append(item)
         self.invalidate()
@@ -101,22 +101,13 @@ class FlowLayout(QLayout):
     # Layout engine -----------------------------------------------------
 
     def _do_layout(self, rect: QRect, test_only: bool) -> int:
-        """Place items into rows within rect. Returns total height used.
-
-        Items that would start on row 3+ are hidden. The last visible item on
-        row 2 may be replaced by a "+N more" badge if any items are hidden.
-        """
+        """Place items into rows within rect. Returns total height used."""
         margins = self.contentsMargins()
         effective_rect = rect.adjusted(margins.left(), margins.top(),
                                        -margins.right(), -margins.bottom())
         x = effective_rect.x()
         y = effective_rect.y()
         row_height = 0
-        current_row = 1  # 1-indexed
-
-        # Pass 1: compute positions and which items are on which row
-        positions = []  # (item, row, x_pos, y_pos, w, h)
-        row_y: list[int] = [effective_rect.y()]  # y-position of each row start
 
         for item in self._items:
             hint = item.sizeHint()
@@ -129,35 +120,17 @@ class FlowLayout(QLayout):
                 x = effective_rect.x()
                 y += row_height + self._spacing
                 row_height = 0
-                current_row += 1
-                if current_row > len(row_y):
-                    row_y.append(y)
 
-            positions.append((item, current_row, x, y, item_w, item_h))
+            if not test_only:
+                w = item.widget()
+                if w is not None:
+                    w.show()
+                    w.setGeometry(QRect(QPoint(x, y), QSize(item_w, item_h)))
+
             x += item_w + self._spacing
             row_height = max(row_height, item_h)
 
-        total_height = y + row_height - effective_rect.y()
-
-        if not test_only:
-            # Determine overflow: items on rows > MAX_ROWS are hidden
-            hidden_count = sum(1 for (item, row, *_) in positions if row > self._MAX_ROWS)
-
-            # If there are hidden items, we may need to replace the last visible
-            # item with a "+N more" badge. We find the last item on row MAX_ROWS.
-            # For simplicity: just show/hide items. The badge widget is managed
-            # externally (in _rebuild_condition_chips).
-            for (item, row, ix, iy, iw, ih) in positions:
-                w = item.widget()
-                if w is None:
-                    continue
-                if row > self._MAX_ROWS:
-                    w.hide()
-                else:
-                    w.show()
-                    w.setGeometry(QRect(QPoint(ix, iy), QSize(iw, ih)))
-
-        return total_height
+        return y + row_height - effective_rect.y() if self._items else 0
 
 
 # ---------------------------------------------------------------------------
@@ -272,6 +245,7 @@ class CombatantCard(QFrame):
     initiative_changed = Signal(str, int)
     card_clicked = Signal(str, object)  # combatant_id, Qt.KeyboardModifiers
     collapse_requested = Signal(str)    # combatant_id — emitted on double-click to collapse back to CompactSubRow
+    remove_requested = Signal(str)      # combatant_id — emitted from right-click context menu
 
     def __init__(self, state: CombatantState, parent=None) -> None:
         super().__init__(parent)
@@ -285,6 +259,7 @@ class CombatantCard(QFrame):
         self.setStyleSheet(
             "CombatantCard { border: 1px solid #555; border-radius: 4px; }"
         )
+        self.setMinimumWidth(420)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         # Set property for drag identification
@@ -298,7 +273,7 @@ class CombatantCard(QFrame):
 
     def _build_layout(self, state: CombatantState) -> None:
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(8, 4, 8, 4)
+        main_layout.setContentsMargins(8, 4, 8, 6)
         main_layout.setSpacing(4)
 
         # ---- Top row ----
@@ -385,6 +360,12 @@ class CombatantCard(QFrame):
         self._regen_label.setStyleSheet("font-size: 8pt; color: #4CAF50;")
         stats_layout.addWidget(self._regen_label)
 
+        # Hide all individual stat labels initially — set_stat_visible() will show them
+        self._speed_label.setVisible(False)
+        self._pp_label.setVisible(False)
+        self._leg_res_label.setVisible(False)
+        self._leg_act_label.setVisible(False)
+        self._regen_label.setVisible(False)
         self._stats_widget.setVisible(False)
         top_row.addWidget(self._stats_widget)
 
@@ -409,12 +390,12 @@ class CombatantCard(QFrame):
         main_layout.addLayout(mid_row)
 
         # ---- Bottom row — condition chips (UX-05: FlowLayout with max 2 rows) ----
-        self._chip_container = QWidget()
+        self._chip_container = QWidget(self)
         self._chip_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-        self._chip_layout = FlowLayout(spacing=4)
-        self._chip_container.setLayout(self._chip_layout)
+        self._chip_container.setMinimumHeight(26)
+        self._chip_layout = FlowLayout(self._chip_container, spacing=4)
 
-        self._plus_btn = QPushButton("+")
+        self._plus_btn = QPushButton("+", self._chip_container)
         self._plus_btn.setFixedSize(22, 22)
         self._plus_btn.setToolTip("Add condition")
         self._plus_btn.setStyleSheet(
@@ -448,7 +429,7 @@ class CombatantCard(QFrame):
 
         # Add condition chips (FlowLayout handles wrapping and max-2-row enforcement)
         for cond in state.conditions:
-            chip = _ConditionChip(cond.name, cond.duration, cond.expired)
+            chip = _ConditionChip(cond.name, cond.duration, cond.expired, parent=self._chip_container)
             chip.clicked.connect(
                 lambda name, cid=self._combatant_id: self.condition_clicked.emit(cid, name)
             )
@@ -501,6 +482,13 @@ class CombatantCard(QFrame):
         if event.button() == Qt.MouseButton.LeftButton:
             self.collapse_requested.emit(self._combatant_id)
         event.accept()
+
+    def contextMenuEvent(self, event) -> None:
+        menu = QMenu(self)
+        remove_action = menu.addAction("Remove from Combat")
+        chosen = menu.exec(event.globalPos())
+        if chosen == remove_action:
+            self.remove_requested.emit(self._combatant_id)
 
     # ------------------------------------------------------------------
     # Public API
@@ -571,9 +559,12 @@ class CombatantCard(QFrame):
         }
         if stat_key in label_map:
             label_map[stat_key].setVisible(visible)
-        # Show stats widget if any child label is visible
+        # Show stats widget if any child label is explicitly shown.
+        # Use `not isHidden()` instead of `isVisible()` because isVisible()
+        # returns False when the parent (_stats_widget) is hidden, creating
+        # a chicken-and-egg problem where the parent can never be shown.
         any_visible = any(
-            lbl.isVisible() for lbl in label_map.values()
+            not lbl.isHidden() for lbl in label_map.values()
         )
         self._stats_widget.setVisible(any_visible)
 

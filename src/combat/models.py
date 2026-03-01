@@ -209,19 +209,23 @@ STANDARD_CONDITIONS: list[dict] = [
 ]
 
 COMMON_BUFFS: list[dict] = [
-    {"name": "Bless",             "default_duration": 10},
-    {"name": "Shield",            "default_duration": 1},
-    {"name": "Bane",              "default_duration": 10},
-    {"name": "Hypnotic Pattern",  "default_duration": 10},
-    {"name": "Fear",              "default_duration": 10},
-    {"name": "Web",               "default_duration": 10},
-    {"name": "Entangle",          "default_duration": 10},
-    {"name": "Maze",              "default_duration": None},
-    {"name": "Haste",             "default_duration": 10},
-    {"name": "Slow",              "default_duration": 10},
-    {"name": "Faerie Fire",       "default_duration": 10},
-    {"name": "Hold Person",       "default_duration": 10},
-    {"name": "Hex",               "default_duration": None},
-    {"name": "Hunter's Mark",     "default_duration": None},
-    {"name": "Spirit Guardians",  "default_duration": 10},
+    # 1st level
+    {"name": "Bane",              "default_duration": 10, "level": 1},
+    {"name": "Bless",             "default_duration": 10, "level": 1},
+    {"name": "Entangle",          "default_duration": 10, "level": 1},
+    {"name": "Faerie Fire",       "default_duration": 10, "level": 1},
+    {"name": "Hex",               "default_duration": None, "level": 1},
+    {"name": "Hunter's Mark",     "default_duration": None, "level": 1},
+    {"name": "Shield",            "default_duration": 1,  "level": 1},
+    # 2nd level
+    {"name": "Hold Person",       "default_duration": 10, "level": 2},
+    {"name": "Web",               "default_duration": 10, "level": 2},
+    # 3rd level
+    {"name": "Fear",              "default_duration": 10, "level": 3},
+    {"name": "Haste",             "default_duration": 10, "level": 3},
+    {"name": "Hypnotic Pattern",  "default_duration": 10, "level": 3},
+    {"name": "Slow",              "default_duration": 10, "level": 3},
+    {"name": "Spirit Guardians",  "default_duration": 10, "level": 3},
+    # 8th level
+    {"name": "Maze",              "default_duration": None, "level": 8},
 ]

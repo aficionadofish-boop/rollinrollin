@@ -152,6 +152,13 @@ class MacroSandboxService:
             # Step a: Substitute query answers
             expr = self._preprocessor.substitute_queries(expr, answers)
 
+            # Also substitute queries in template field values so ?{...}
+            # tokens are resolved before the TemplateCard tries to render them
+            resolved_tf = [
+                (key, self._preprocessor.substitute_queries(val, answers))
+                for key, val in macro.template_fields
+            ]
+
             # Step b: Normalize double-sign artifacts
             expr = _normalize_expression(expr)
 
@@ -168,7 +175,7 @@ class MacroSandboxService:
                     warnings=[MacroWarning(token=w.token, reason=w.reason) for w in macro.warnings],
                     error=str(e),
                     template_name=macro.template_name,
-                    template_fields=macro.template_fields,
+                    template_fields=resolved_tf,
                 ))
                 line_number += 1
                 continue
@@ -195,7 +202,7 @@ class MacroSandboxService:
                     warnings=warnings,
                     error=None,
                     template_name=macro.template_name,
-                    template_fields=macro.template_fields,
+                    template_fields=resolved_tf,
                 ))
             else:
                 try:
@@ -207,7 +214,7 @@ class MacroSandboxService:
                         warnings=warnings,
                         error=None,
                         template_name=macro.template_name,
-                        template_fields=macro.template_fields,
+                        template_fields=resolved_tf,
                     ))
                 except (ValueError, ParseError) as e:
                     # If we have inline results or a template name, suppress the error —
@@ -220,7 +227,7 @@ class MacroSandboxService:
                             warnings=warnings,
                             error=None,
                             template_name=macro.template_name,
-                            template_fields=macro.template_fields,
+                            template_fields=resolved_tf,
                         ))
                     else:
                         results.append(MacroLineResult(
@@ -230,7 +237,7 @@ class MacroSandboxService:
                             warnings=warnings,
                             error=str(e),
                             template_name=macro.template_name,
-                            template_fields=macro.template_fields,
+                            template_fields=resolved_tf,
                         ))
 
             line_number += 1

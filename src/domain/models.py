@@ -176,6 +176,7 @@ class MonsterModification:
     equipment: list[EquipmentItem] = field(default_factory=list)            # equipped items
     buffs: list[BuffItem] = field(default_factory=list)                     # custom bonuses
     actions: list[dict] = field(default_factory=list)                       # serialized action overrides
+    traits: list[dict] = field(default_factory=list)                        # serialized trait overrides
     spellcasting_infos: list[SpellcastingInfo] = field(default_factory=list)
 
     @classmethod

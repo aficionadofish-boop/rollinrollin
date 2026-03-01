@@ -179,6 +179,63 @@ class TestExecuteInlineRolls:
 # 6. collect_all_queries
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# 5b. execute — query substitution in template fields
+# ---------------------------------------------------------------------------
+
+class TestExecuteTemplateFieldQuerySubstitution:
+    def test_keyed_template_field_query_resolved(self, service, roller):
+        """{{Damage=?{Hits|1, [[1d6+3]]|2, [[2d6+6]]}}} — query substituted in field value."""
+        raw = "&{template:default}{{name=Sneak Attack}}{{Damage=?{Hits|1, [[1d6+3]] P|2, [[2d6+6]] P}}}"
+        cleaned = service.preprocess_all_lines(raw)
+        queries = service.collect_all_queries(cleaned)
+        assert len(queries) == 1
+        assert queries[0].prompt == "Hits"
+
+        # Simulate user picking option 1
+        answers = {queries[0].raw: "[[1d6+3]] P"}
+        result = service.execute(cleaned, answers, roller)
+        lr = result.line_results[0]
+
+        # template_fields should have the resolved value (no ?{...} token)
+        assert len(lr.template_fields) == 1
+        key, value = lr.template_fields[0]
+        assert key == "Damage"
+        assert "?{" not in value
+        # The [[...]] tokens remain in template_fields (resolved by TemplateCard)
+        assert "[[1d6+3]]" in value
+
+    def test_bare_template_field_query_resolved(self, service, roller):
+        """{{?{How Many|1, 1 Attack [[1d20+6]]|5, 5 Attacks ...}}} — bare query resolved."""
+        raw = "&{template:default}{{name=Attacks}}{{?{How Many|1, 1 Attack [[1d20+6]]|2, 2 Attacks [[1d20+6]] [[1d20+6]]}}}"
+        cleaned = service.preprocess_all_lines(raw)
+        queries = service.collect_all_queries(cleaned)
+        assert len(queries) == 1
+
+        # Simulate user picking option 2
+        answers = {queries[0].raw: "2 Attacks [[1d20+6]] [[1d20+6]]"}
+        result = service.execute(cleaned, answers, roller)
+        lr = result.line_results[0]
+
+        # template_fields should have empty key with resolved value
+        assert len(lr.template_fields) == 1
+        key, value = lr.template_fields[0]
+        assert key == ""
+        assert "?{" not in value
+        # Should have 2 inline results from the chosen option
+        assert len(lr.inline_results) == 2
+
+    def test_template_name_preserved_with_query_fields(self, service, roller):
+        """Template name is preserved when fields contain queries."""
+        raw = "&{template:default}{{name=My Roll}}{{Result=?{Type|A, [[1d20]]|B, [[2d10]]}}}"
+        cleaned = service.preprocess_all_lines(raw)
+        answers = {cleaned[0].queries[0].raw: "[[1d20]]"}
+        result = service.execute(cleaned, answers, roller)
+        lr = result.line_results[0]
+        assert lr.template_name == "My Roll"
+        assert lr.template_fields[0][0] == "Result"
+
+
 class TestCollectAllQueries:
     def test_collect_all_queries_single_query_per_line(self, service):
         """collect_all_queries flattens all queries across lines."""

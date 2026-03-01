@@ -121,16 +121,20 @@ class MacroPreprocessor:
             ))
         line = _ATTR_RE.sub("", line)
 
-        # --- Warn and strip &{template:...} tokens ---
-        for m in _TEMPLATE_RE.finditer(line):
-            warnings.append(ParseWarning(
-                token=m.group(),
-                reason="Roll template removed — not supported",
-            ))
+        # --- Strip &{template:...} tokens (warning deferred until we know if fields exist) ---
+        template_tokens = [m.group() for m in _TEMPLATE_RE.finditer(line)]
         line = _TEMPLATE_RE.sub("", line)
 
         # --- Extract {{key=value}} template fields ---
         line, template_name, template_fields = self._extract_template_fields(line)
+
+        # Only warn about template if no template fields were found (fields = it works)
+        if template_tokens and not template_fields:
+            for token in template_tokens:
+                warnings.append(ParseWarning(
+                    token=token,
+                    reason="Roll template removed — not supported",
+                ))
 
         # --- Warn and strip #macro-name tokens ---
         for m in _MACRO_REF_RE.finditer(line):
@@ -296,6 +300,7 @@ class MacroPreprocessor:
             else:
                 # Bare value (e.g. ?{query} inside template field)
                 result_parts.append(" " + content.strip() + " ")
+                fields.append(("", content.strip()))
 
             last_end = end + 2
             i = end + 2

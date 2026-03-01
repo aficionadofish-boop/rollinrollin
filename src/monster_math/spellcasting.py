@@ -64,30 +64,35 @@ class SpellcastingDetector:
     """Detects and parses spellcasting traits from Monster actions."""
 
     def detect(self, monster: Monster) -> list[SpellcastingInfo]:
-        """Scan monster.actions for spellcasting entries and extract casting ability.
+        """Scan monster actions and traits for spellcasting entries and extract casting ability.
 
         Parameters
         ----------
         monster : Monster
-            The monster to inspect. Only `actions` and `ability_scores` are read.
+            The monster to inspect. Actions, traits, and ability_scores are read.
 
         Returns
         -------
         list[SpellcastingInfo]
-            One entry per detected spellcasting action. Empty list if none found.
+            One entry per detected spellcasting source. Empty list if none found.
         """
         results: list[SpellcastingInfo] = []
 
-        for action in monster.actions:
-            if "spellcasting" not in action.name.lower():
+        # Scan both actions and traits (spellcasting may be classified as either)
+        sources = list(monster.actions)
+        for trait in getattr(monster, "traits", []):
+            sources.append(trait)
+
+        for item in sources:
+            name = getattr(item, "name", "")
+            if "spellcasting" not in name.lower():
                 continue
 
-            casting_ability, is_assumed = self._extract_ability(
-                action.raw_text, monster
-            )
+            raw = getattr(item, "raw_text", None) or getattr(item, "description", "") or ""
+            casting_ability, is_assumed = self._extract_ability(raw, monster)
             results.append(
                 SpellcastingInfo(
-                    trait_name=action.name,
+                    trait_name=name,
                     casting_ability=casting_ability,
                     is_assumed=is_assumed,
                 )

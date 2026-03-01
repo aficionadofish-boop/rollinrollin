@@ -353,8 +353,16 @@ class CombatTrackerService:
     # ------------------------------------------------------------------
 
     def add_condition(self, combatant_id: str, condition: ConditionEntry) -> str:
-        """Add a condition to the combatant's condition list. Returns log entry."""
+        """Add a condition to the combatant's condition list. Returns log entry.
+
+        Rejects duplicates — if a condition with the same name already exists
+        (and isn't expired), returns an informational message instead.
+        """
         c = self._find(combatant_id)
+        for existing in c.conditions:
+            if existing.name == condition.name and not existing.expired:
+                entry = f"{c.name}: {condition.name} already active (not added)"
+                return entry
         c.conditions.append(condition)
         duration_str = f"{condition.duration} rounds" if condition.duration is not None else "indefinite"
         entry = f"{c.name}: {condition.name} added ({duration_str})"

@@ -291,11 +291,12 @@ class TemplateCard(QFrame):
             row_layout = QHBoxLayout(row_widget)
             row_layout.setContentsMargins(8, 3, 8, 3)
 
-            key_label = QLabel(f"{key}:")
-            key_label.setStyleSheet("font-weight: bold; min-width: 80px;")
-            val_label = QLabel(str(value))
+            if key:
+                key_label = QLabel(f"{key}:")
+                key_label.setStyleSheet("font-weight: bold; min-width: 80px;")
+                row_layout.addWidget(key_label)
 
-            row_layout.addWidget(key_label)
+            val_label = QLabel(str(value))
             row_layout.addWidget(val_label, 1)
             root.addWidget(row_widget)
 

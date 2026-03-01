@@ -184,7 +184,7 @@ class _PCRow(QWidget):
         layout.addWidget(self._max_hp_spin)
 
         self._del_btn = QPushButton("Del")
-        self._del_btn.setFixedWidth(36)
+        self._del_btn.setFixedWidth(48)
         self._del_btn.setStyleSheet(
             "QPushButton { color: #f44336; font-weight: bold; } "
             "QPushButton:hover { background-color: #3a1a1a; }"
@@ -524,6 +524,11 @@ class CombatTrackerTab(QWidget):
         self._reset_btn.clicked.connect(self._on_reset_combat)
         toolbar.addWidget(self._reset_btn)
 
+        self._clear_btn = QPushButton("Clear All")
+        self._clear_btn.setEnabled(False)
+        self._clear_btn.clicked.connect(self._on_clear_combat)
+        toolbar.addWidget(self._clear_btn)
+
         # Round counter
         round_font = QFont()
         round_font.setBold(True)
@@ -615,12 +620,14 @@ class CombatTrackerTab(QWidget):
 
         self._card_container = _CardContainer()
         self._card_container.reorder_requested.connect(self._on_reorder_requested)
+        self._card_container.setMinimumWidth(520)
         self._card_layout = QVBoxLayout(self._card_container)
         self._card_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self._card_layout.setSpacing(6)
         self._card_layout.setContentsMargins(4, 4, 4, 4)
 
         self._scroll_area.setWidget(self._card_container)
+        self._scroll_area.setMinimumWidth(540)
 
         # Right: combat log
         self._log_panel = CombatLogPanel()
@@ -660,6 +667,7 @@ class CombatTrackerTab(QWidget):
         self._combat_active = True
         self._roll_init_btn.setEnabled(True)
         self._reset_btn.setEnabled(True)
+        self._clear_btn.setEnabled(True)
         self._start_btn.setText("Reload Encounter")
         n = len(self._service.state.combatants)
         self._log_panel.set_round(self._service.state.round_number)
@@ -675,6 +683,7 @@ class CombatTrackerTab(QWidget):
         self._combat_active = True
         self._roll_init_btn.setEnabled(True)
         self._reset_btn.setEnabled(True)
+        self._clear_btn.setEnabled(True)
         self._start_btn.setText("Reload Encounter")
         # Restore log entries
         log_entries = state_dict.get("log_entries", [])
@@ -716,6 +725,7 @@ class CombatTrackerTab(QWidget):
                 item.widget().deleteLater()
         self._roll_init_btn.setEnabled(False)
         self._reset_btn.setEnabled(False)
+        self._clear_btn.setEnabled(False)
         self._start_btn.setText("Start Combat")
         self._round_label.setText("Round 1")
         self._update_selection_buttons()
@@ -820,6 +830,7 @@ class CombatTrackerTab(QWidget):
         card.initiative_changed.connect(self._on_initiative_changed)
         card.condition_clicked.connect(self._on_condition_clicked)
         card.card_clicked.connect(self._on_card_clicked)
+        card.remove_requested.connect(self._on_remove_combatant)
 
     def _wire_group_card_signals(self, group_card: GroupCard) -> None:
         group_card.damage_entered.connect(self._on_damage)
@@ -923,6 +934,27 @@ class CombatTrackerTab(QWidget):
             self._service.reset_combat()
             self._rebuild_cards()
             self._log_panel.add_entry("Combat reset.")
+
+    def _on_clear_combat(self) -> None:
+        """Clear all combatants from the combat tracker."""
+        reply = QMessageBox.question(
+            self,
+            "Clear All",
+            "Remove all combatants from combat?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            self.reset_combat_ui()
+            self._log_panel.add_entry("Combat cleared.")
+
+    def _on_remove_combatant(self, combatant_id: str) -> None:
+        """Remove a single combatant from combat via right-click menu."""
+        self._service.remove_combatant(combatant_id)
+        self._selected_ids.discard(combatant_id)
+        if self._last_selected_id == combatant_id:
+            self._last_selected_id = None
+        self._rebuild_cards()
+        self._update_selection_buttons()
 
     def _on_initiative_mode_toggled(self, checked: bool) -> None:
         """Switch between initiative mode (sorted, Next/Prev Turn) and manual mode (Pass 1 Round)."""

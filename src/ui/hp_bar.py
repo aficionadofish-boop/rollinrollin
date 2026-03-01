@@ -99,20 +99,36 @@ class HpBar(QWidget):
             if temp_width > 0:
                 painter.fillRect(hp_width, 0, temp_width, h, QColor("#2196F3"))
 
-        # Text overlay — descriptive label, always visible, white bold with shadow
+        # Text overlay — HP numbers centered + descriptive label left-aligned
+        hp_text = f"{self._current_hp}/{self._max_hp}"
+
+        # HP numbers: 8pt bold, centered
+        hp_font = QFont()
+        hp_font.setBold(True)
+        hp_font.setPointSize(8)
+        painter.setFont(hp_font)
+
+        # Shadow
+        painter.setPen(QColor("#000000"))
+        painter.drawText(1, 1, w, h, Qt.AlignmentFlag.AlignCenter, hp_text)
+        # Foreground
+        painter.setPen(QColor("#FFFFFF"))
+        painter.drawText(0, 0, w, h, Qt.AlignmentFlag.AlignCenter, hp_text)
+
+        # Descriptive label: 6pt, dimmer, left-aligned with padding
         if label:
-            font = QFont()
-            font.setBold(True)
-            font.setPointSize(7)
-            painter.setFont(font)
+            desc_font = QFont()
+            desc_font.setBold(True)
+            desc_font.setPointSize(6)
+            painter.setFont(desc_font)
 
-            # Draw shadow (dark, offset 1px)
+            pad = 4
+            # Shadow
             painter.setPen(QColor("#000000"))
-            painter.drawText(1, 1, w, h, Qt.AlignmentFlag.AlignCenter, label)
-
-            # Draw foreground (white)
-            painter.setPen(QColor("#FFFFFF"))
-            painter.drawText(0, 0, w, h, Qt.AlignmentFlag.AlignCenter, label)
+            painter.drawText(pad + 1, 1, w - pad, h, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, label)
+            # Foreground (dimmer white)
+            painter.setPen(QColor("#CCCCCC"))
+            painter.drawText(pad, 0, w - pad, h, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, label)
 
         painter.end()
 

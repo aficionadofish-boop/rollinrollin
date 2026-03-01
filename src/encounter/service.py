@@ -352,7 +352,11 @@ class FeatureDetectionService:
             return None, [], 0, 0
 
         actions = getattr(monster, "actions", [])
-        all_raw = " ".join(getattr(a, "raw_text", "") or "" for a in actions)
+        traits = getattr(monster, "traits", [])
+        all_raw = " ".join(
+            [getattr(a, "raw_text", "") or "" for a in actions]
+            + [f"{getattr(t, 'name', '')} {getattr(t, 'description', '') or ''}" for t in traits]
+        )
 
         advantage_override = None
         labels: list[str] = []
@@ -385,7 +389,7 @@ class FeatureDetectionService:
                     if lr_m:
                         lr_max = max(lr_max, int(lr_m.group(1)))
                         lr_uses = lr_max
-                    labels.append(f"LR {lr_uses}/{lr_max}")
+                    # Don't add LR label — the spinbox in _SaveResultRow shows the count
                 else:
                     labels.append(f"{rule.label} (reminder)")
 

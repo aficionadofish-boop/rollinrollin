@@ -38,10 +38,11 @@ ACTION_SECTION_RE = re.compile(
 
 # Section boundary regex — matches all recognized section headers.
 # Used to find the end of a named section (stop at next section header).
-# Covers both '#'-style headers and bold-text format (***Actions*** / **Actions**).
+# Covers '#'-style headers (any level), bold-text format, and horizontal rules.
 SECTION_BOUNDARY_RE = re.compile(
-    r'(?:^#{1,3}\s+(?:Actions|Reactions|Legendary Actions|Lair Actions|Bonus Actions|Traits)\s*$'
-    r'|^\*{2,3}(?:Actions|Reactions|Legendary Actions|Lair Actions|Bonus Actions|Traits)\*{2,3}\s*$)',
+    r'(?:^#{1,6}\s+(?:Actions|Reactions|Legendary Actions|Lair Actions|Bonus Actions|Traits)\s*$'
+    r'|^\*{2,3}(?:Actions|Reactions|Legendary Actions|Lair Actions|Bonus Actions|Traits)\*{2,3}\s*$'
+    r'|^#{4,6}\s+\S)',   # any ####+ header signals end of current section
     re.IGNORECASE | re.MULTILINE
 )
 

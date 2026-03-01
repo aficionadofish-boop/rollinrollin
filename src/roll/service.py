@@ -266,6 +266,16 @@ class RollService:
                         faces=dmg_result.faces,
                     ))
 
+        # 8b. Roll damage bonus dice (buff damage — only when damage is dealt)
+        damage_bonus_results: list = []
+        if damage_parts and request.damage_bonus_dice:
+            for entry in request.damage_bonus_dice:
+                formula_clean = entry.formula.lstrip("+")
+                dmg_b_result = roll_expression(formula_clean, roller, request.seed)
+                sign = -1 if entry.formula.startswith("-") else 1
+                signed_total = sign * dmg_b_result.total
+                damage_bonus_results.append((entry.formula, signed_total, entry.label))
+
         # 9. Margin (COMPARE + show_margin only)
         margin: Optional[int] = None
         if request.mode == "compare" and request.show_margin:
@@ -286,6 +296,7 @@ class RollService:
             damage_parts=damage_parts,
             margin=margin,
             crit_extra_parts=crit_extra_parts,
+            damage_bonus_results=damage_bonus_results,
         )
 
     # ------------------------------------------------------------------
@@ -301,6 +312,7 @@ class RollService:
         total_damage = (
             sum(dp.total for r in attack_rolls for dp in r.damage_parts)
             + sum(ep.total for r in attack_rolls for ep in r.crit_extra_parts)
+            + sum(db[1] for r in attack_rolls for db in r.damage_bonus_results)
         )
         return RollSummary(
             total_attacks=len(attack_rolls),
