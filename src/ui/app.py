@@ -6,7 +6,7 @@ import random
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtWidgets import QMainWindow, QTabWidget, QMessageBox
+from PySide6.QtWidgets import QMainWindow, QTabWidget, QMessageBox, QSplitter
 
 from src.combat.models import CombatState, PlayerCharacter
 from src.domain.models import MonsterModification
@@ -78,11 +78,20 @@ class MainWindow(QMainWindow):
         self._tab_widget.addTab(self._saves_tab, "Saves")
         self._tab_widget.addTab(self._macro_tab, "Macro Sandbox")
         self._tab_widget.addTab(self._settings_tab, "Settings")
-        self.setCentralWidget(self._tab_widget)
 
-        # Create sidebar dock and add to the right
+        # Create sidebar and combine with tab widget in a splitter for drag-resize
         self._sidebar = EncounterSidebarDock(library=self._library, parent=self)
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self._sidebar)
+        self._main_splitter = QSplitter(Qt.Orientation.Horizontal)
+        self._main_splitter.setObjectName("main_splitter")
+        self._main_splitter.addWidget(self._tab_widget)
+        self._main_splitter.addWidget(self._sidebar)
+        self._main_splitter.setStretchFactor(0, 1)   # tabs take remaining space
+        self._main_splitter.setStretchFactor(1, 0)    # sidebar keeps its size
+        self._main_splitter.setChildrenCollapsible(False)
+        self.setCentralWidget(self._main_splitter)
+
+        # Respond to sidebar collapse/expand to adjust splitter sizes
+        self._sidebar.collapse_toggled.connect(self._on_sidebar_collapse_toggled)
 
         # Load persisted data AFTER sidebar is constructed
         self._load_persisted_data()
@@ -156,6 +165,28 @@ class MainWindow(QMainWindow):
 
         # Status bar initial message
         self.statusBar().showMessage("Ready")
+
+    # ------------------------------------------------------------------
+    # Window lifecycle
+    # ------------------------------------------------------------------
+
+    def showEvent(self, event) -> None:
+        """Apply deferred splitter sizing on first show.
+
+        setSizes() must run AFTER Qt's layout pass has measured all widgets.
+        Calling it during __init__ or _load_persisted_data() fires before the
+        splitter has a real geometry, so at 1100x750 the minimum-size
+        constraints consume all available slack and the handle is immovable.
+        The guard flag prevents re-applying on subsequent show events
+        (minimize/restore cycles).
+        """
+        super().showEvent(event)
+        if not hasattr(self, '_splitter_initialized'):
+            self._splitter_initialized = True
+            if not self._sidebar.is_collapsed():
+                sidebar_w = self._sidebar.get_expanded_width()
+                total_w = self.width()
+                self._main_splitter.setSizes([total_w - sidebar_w, sidebar_w])
 
     # ------------------------------------------------------------------
     # Settings wiring
@@ -233,15 +264,34 @@ class MainWindow(QMainWindow):
         # Hide sidebar when Combat Tracker is active; restore otherwise
         current_widget = self._tab_widget.widget(new_index)
         if current_widget is self._combat_tracker_tab:
+            self._sidebar_sizes_backup = self._main_splitter.sizes()
             self._sidebar.setVisible(False)
         else:
             self._sidebar.setVisible(True)
+            if hasattr(self, '_sidebar_sizes_backup') and self._sidebar_sizes_backup:
+                self._main_splitter.setSizes(self._sidebar_sizes_backup)
 
         # Auto-load checked sidebar members when switching to Saves tab
         if current_widget is self._saves_tab:
             checked = self._sidebar.get_checked_members()
             if checked:
                 self._saves_tab.load_participants_from_sidebar(checked)
+
+    def _on_sidebar_collapse_toggled(self, collapsed: bool) -> None:
+        """Adjust splitter sizes when sidebar collapses or expands.
+
+        Also hides the splitter handle when collapsed (no phantom grab zone next
+        to the 24px strip) and restores it on expand to match the CSS width.
+        """
+        if collapsed:
+            total = sum(self._main_splitter.sizes())
+            self._main_splitter.setSizes([total - 24, 24])
+            self._main_splitter.setHandleWidth(0)
+        else:
+            total = sum(self._main_splitter.sizes())
+            sidebar_w = self._sidebar.get_expanded_width()
+            self._main_splitter.setSizes([total - sidebar_w, sidebar_w])
+            self._main_splitter.setHandleWidth(9)
 
     # ------------------------------------------------------------------
     # Persistence lifecycle
@@ -321,7 +371,8 @@ class MainWindow(QMainWindow):
                     5000,
                 )
 
-        # Restore sidebar width from settings
+        # Restore sidebar width from settings — actual splitter sizing deferred to showEvent
+        # so it runs after Qt's layout pass (fixes resize deadlock at 1100x750)
         self._sidebar.set_expanded_width(self._current_settings.sidebar_width)
 
         # Load player characters into Combat Tracker PC subtab
@@ -389,6 +440,7 @@ class MainWindow(QMainWindow):
                             dice_expr=dp.get("dice_expr", "1d6"),
                             damage_type=dp.get("damage_type", "bludgeoning"),
                             raw_text=dp.get("raw_text", ""),
+                            condition=dp.get("condition"),
                         )
                         for dp in a_dict.get("damage_parts", [])
                     ]
@@ -400,8 +452,33 @@ class MainWindow(QMainWindow):
                         is_parsed=a_dict.get("is_parsed", True),
                         damage_bonus=a_dict.get("damage_bonus"),
                         is_equipment_generated=a_dict.get("is_equipment_generated", False),
+                        after_text=a_dict.get("after_text", ""),
                     ))
                 modified.actions = reconstructed_actions
+
+            # Apply trait overrides
+            if mod.traits:
+                from src.domain.models import Trait, DetectedDie
+                reconstructed_traits = []
+                for t_dict in mod.traits:
+                    rollable_dice = [
+                        DetectedDie(
+                            full_match=d.get("full_match", ""),
+                            dice_expr=d.get("dice_expr", "1d6"),
+                            damage_type=d.get("damage_type", "unknown"),
+                            average=d.get("average", 0),
+                        )
+                        for d in t_dict.get("rollable_dice", [])
+                    ]
+                    rr = t_dict.get("recharge_range")
+                    recharge_range = tuple(rr) if rr else None
+                    reconstructed_traits.append(Trait(
+                        name=t_dict.get("name", ""),
+                        description=t_dict.get("description", ""),
+                        rollable_dice=rollable_dice,
+                        recharge_range=recharge_range,
+                    ))
+                modified.traits = reconstructed_traits
 
             # For save-as-copy: custom_name differs from base_name → add as new
             if mod.custom_name and mod.custom_name != base_name:
@@ -462,8 +539,9 @@ class MainWindow(QMainWindow):
             else:
                 self._settings_tab.discard()
 
-        # Save sidebar width to settings
-        self._current_settings.sidebar_width = self._sidebar.width()
+        # Save sidebar width to settings (from splitter allocation)
+        sizes = self._main_splitter.sizes()
+        self._current_settings.sidebar_width = sizes[1] if len(sizes) > 1 else 350
         self._settings_service.save(self._current_settings)
 
         self._save_persisted_data()

@@ -1,8 +1,8 @@
-"""EncounterSidebarDock — persistent QDockWidget encounter sidebar.
+"""EncounterSidebarDock — persistent encounter sidebar panel.
 
 Displays the active encounter (monster list with inline-editable count and X
-remove buttons) as a collapsible panel docked to the right side of MainWindow.
-Wired into MainWindow in Plan 02.
+remove buttons) as a collapsible panel to the right of the main tab widget.
+Embedded in a QSplitter by MainWindow for drag-to-resize.
 """
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ import datetime
 
 from PySide6.QtWidgets import (
     QCheckBox,
-    QDockWidget,
+    QFrame,
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
@@ -153,7 +153,7 @@ class _MonsterRowWidget(QWidget):
         self._count_spin.valueChanged.connect(self._on_count_changed)
 
         self._remove_btn = QPushButton("Del")
-        self._remove_btn.setFixedHeight(24)
+        self._remove_btn.setFixedSize(40, 24)
         self._remove_btn.setToolTip(f"Remove {monster.name}")
         self._remove_btn.clicked.connect(lambda: self.remove_requested.emit(self._monster_name))
 
@@ -206,11 +206,12 @@ class _MonsterRowWidget(QWidget):
 # ---------------------------------------------------------------------------
 
 
-class EncounterSidebarDock(QDockWidget):
-    """Persistent QDockWidget encounter sidebar.
+class EncounterSidebarDock(QFrame):
+    """Persistent encounter sidebar panel.
 
     Emits signals for MainWindow to wire to other tabs. All monster state
     is held here; MainWindow reads/writes via the public API.
+    Embedded in a QSplitter by MainWindow for drag-to-resize.
     """
 
     # --- Signals (wired by MainWindow in Plan 02) ---
@@ -220,12 +221,13 @@ class EncounterSidebarDock(QDockWidget):
     view_stat_block_requested = Signal(object)  # Monster — context menu "View Stat Block"
     save_btn_clicked = Signal()                 # Save button pressed
     load_btn_clicked = Signal()                 # Load button pressed
+    collapse_toggled = Signal(bool)             # True = collapsed, False = expanded
 
     _COLLAPSED_WIDTH = 24
-    _DEFAULT_EXPANDED_WIDTH = 300
+    _DEFAULT_EXPANDED_WIDTH = 350
 
     def __init__(self, library, parent=None) -> None:
-        super().__init__("Encounter", parent)
+        super().__init__(parent)
         self._library = library
         self._rows: list[tuple] = []   # (monster, _MonsterRowWidget, QListWidgetItem)
         self._collapsed = False
@@ -235,9 +237,7 @@ class EncounterSidebarDock(QDockWidget):
         self._current_auto_name = ""  # Tracks the last generated auto-name
 
         self.setObjectName("encounter_sidebar")
-        self.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetMovable)
-        # Remove default title bar — we build our own header inside _content_widget
-        self.setTitleBarWidget(QWidget())
+        self.setFrameShape(QFrame.Shape.StyledPanel)
 
         # Build the two internal widgets
         self._content_widget = QWidget()
@@ -248,21 +248,16 @@ class EncounterSidebarDock(QDockWidget):
         self._build_content()
         self._build_handle()
 
-        # Wrap both in a container so QDockWidget only holds one widget
-        container = QWidget()
-        container_layout = QHBoxLayout(container)
-        container_layout.setContentsMargins(0, 0, 0, 0)
-        container_layout.setSpacing(0)
-        container_layout.addWidget(self._content_widget)
-        container_layout.addWidget(self._handle_widget)
-        self.setWidget(container)
+        # Stack both in a layout; only one is visible at a time
+        self._container_layout = QHBoxLayout(self)
+        self._container_layout.setContentsMargins(0, 0, 0, 0)
+        self._container_layout.setSpacing(0)
+        self._container_layout.addWidget(self._content_widget)
+        self._container_layout.addWidget(self._handle_widget)
 
         # Initial state: expanded, handle hidden
         self._handle_widget.setVisible(False)
-        self.setMinimumWidth(200)
-        self.setMaximumWidth(self._expanded_width)
-
-        # No forced background — inherit from system/app theme
+        self.setMinimumWidth(150)  # Reduced from 200 to give splitter slack at 1100px
 
         self._update_empty_state()
 
@@ -396,26 +391,29 @@ class EncounterSidebarDock(QDockWidget):
 
     def _collapse(self) -> None:
         self._collapsed = True
-        self.setMinimumWidth(0)
-        self.setMaximumWidth(self._COLLAPSED_WIDTH)
         self._content_widget.setVisible(False)
         self._handle_widget.setVisible(True)
+        self.setMinimumWidth(self._COLLAPSED_WIDTH)
+        self.setMaximumWidth(self._COLLAPSED_WIDTH)
+        self.collapse_toggled.emit(True)
 
     def _expand(self) -> None:
         self._collapsed = False
         self._content_widget.setVisible(True)
         self._handle_widget.setVisible(False)
-        self.setMinimumWidth(200)
         self.setMaximumWidth(16777215)  # QWIDGETSIZE_MAX — allows resize
-        # Restore to last user-chosen width (set via set_expanded_width on startup)
-        if self._expanded_width >= 200:
-            self.resize(self._expanded_width, self.height())
+        self.setMinimumWidth(150)  # Reduced from 200 to give splitter 50px more slack at 1100px
+        self.collapse_toggled.emit(False)
 
     def resizeEvent(self, event) -> None:
         """Track expanded width for persistence whenever the user resizes the sidebar."""
         super().resizeEvent(event)
-        if not self._collapsed and event.size().width() >= 200:
+        if not self._collapsed and event.size().width() >= 150:
             self._expanded_width = event.size().width()
+
+    def is_collapsed(self) -> bool:
+        """Return True if the sidebar is currently in collapsed (24px strip) state."""
+        return self._collapsed
 
     # ------------------------------------------------------------------
     # Monster list management
@@ -541,11 +539,7 @@ class EncounterSidebarDock(QDockWidget):
         self._handle_btn.setEnabled(has_members)
         if not has_members and self._collapsed:
             # Auto-expand when encounter is cleared and sidebar is collapsed
-            self._collapsed = False
-            self._content_widget.setVisible(True)
-            self._handle_widget.setVisible(False)
-            self.setMinimumWidth(200)
-            self.setMaximumWidth(16777215)
+            self._expand()
 
     def _update_summary(self) -> None:
         """Recompute and display total creature count + total XP in header."""
@@ -691,6 +685,16 @@ class EncounterSidebarDock(QDockWidget):
         user_text = self._name_edit.text().strip()
         if not user_text or user_text == self._current_auto_name:
             return self._current_auto_name or self._generate_auto_name()
+        # Strip any existing auto-name suffix before re-appending.
+        # Auto-name pattern: " — YYYY-MM-DD HH:MM — N creature(s)"
+        import re
+        user_text = re.sub(
+            r"\s*\u2014\s*\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}\s*\u2014\s*\d+\s+creatures?$",
+            "",
+            user_text,
+        ).strip()
+        if not user_text:
+            return self._generate_auto_name()
         # Custom name: append fresh auto timestamp+count
         auto_base = self._generate_auto_name()
         return f"{user_text} \u2014 {auto_base}"
@@ -702,15 +706,17 @@ class EncounterSidebarDock(QDockWidget):
         self._current_auto_name = name
 
     def set_expanded_width(self, width: int) -> None:
-        """Restore persisted sidebar width (called on startup).
+        """Store the persisted sidebar width (called on startup).
 
-        Updates the internal target width; _expand() will apply it on next expand,
-        and we also apply it immediately if the sidebar is currently expanded.
+        The actual width is controlled by the parent QSplitter; this stores
+        the target so MainWindow can set the splitter sizes accordingly.
         """
-        if width >= 200:
+        if width >= 150:
             self._expanded_width = width
-            if not self._collapsed:
-                self.resize(width, self.height())
+
+    def get_expanded_width(self) -> int:
+        """Return the target expanded width for QSplitter sizing."""
+        return self._expanded_width
 
     def select_all(self) -> None:
         """Check all creature rows."""
