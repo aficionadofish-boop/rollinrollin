@@ -146,13 +146,26 @@ QListWidget::item:hover:!selected {
     background-color: #353535;
 }
 QSplitter::handle {
-    background-color: #444444;
+    background-color: #555555;
 }
 QSplitter::handle:horizontal {
-    width: 3px;
+    width: 6px;
 }
 QSplitter::handle:vertical {
-    height: 3px;
+    height: 6px;
+}
+QSplitter#main_splitter::handle:horizontal {
+    width: 9px;
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 transparent, stop:0.45 transparent,
+        stop:0.5 #555555,
+        stop:0.55 transparent, stop:1 transparent);
+}
+QSplitter#main_splitter::handle:horizontal:hover {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 transparent, stop:0.38 transparent,
+        stop:0.5 #999999,
+        stop:0.62 transparent, stop:1 transparent);
 }
 QFrame[frameShape="6"] {
     background-color: #323232;
@@ -363,10 +376,23 @@ QSplitter::handle {
     background-color: #CCCCCC;
 }
 QSplitter::handle:horizontal {
-    width: 3px;
+    width: 6px;
 }
 QSplitter::handle:vertical {
-    height: 3px;
+    height: 6px;
+}
+QSplitter#main_splitter::handle:horizontal {
+    width: 9px;
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 transparent, stop:0.45 transparent,
+        stop:0.5 #BBBBBB,
+        stop:0.55 transparent, stop:1 transparent);
+}
+QSplitter#main_splitter::handle:horizontal:hover {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 transparent, stop:0.38 transparent,
+        stop:0.5 #888888,
+        stop:0.62 transparent, stop:1 transparent);
 }
 QFrame[frameShape="6"] {
     background-color: #EEEEEE;
@@ -578,10 +604,23 @@ QSplitter::handle {
     background-color: #FFFFFF;
 }
 QSplitter::handle:horizontal {
-    width: 3px;
+    width: 6px;
 }
 QSplitter::handle:vertical {
-    height: 3px;
+    height: 6px;
+}
+QSplitter#main_splitter::handle:horizontal {
+    width: 9px;
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 transparent, stop:0.45 transparent,
+        stop:0.5 #FFFFFF,
+        stop:0.55 transparent, stop:1 transparent);
+}
+QSplitter#main_splitter::handle:horizontal:hover {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 transparent, stop:0.35 transparent,
+        stop:0.5 #FFD700,
+        stop:0.62 transparent, stop:1 transparent);
 }
 QFrame[frameShape="6"] {
     background-color: #0A0A0A;
