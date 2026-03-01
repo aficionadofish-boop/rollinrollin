@@ -9,7 +9,7 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 
 ## Current Position
 
-Phase: 16 of 16 (Buff System & Output Improvements)
+Phase: 16 of 15 (Buff System & Output Improvements)
 Plan: 4 of 5 in current phase
 Status: In Progress
 Last activity: 2026-02-28 — Phase 16 Plan 02 complete (buff dice injection into attack and save rolls, output header, damage type summary)
@@ -195,6 +195,7 @@ Recent decisions affecting current work:
 - Phase 14 detailed: Bug Fixes & Critical Polish — 16 bugs (BUG-01 to BUG-16) covering persistence, parser, coloring, combat tracker groups, LR tracking + 5 UX fixes (UX-01 to UX-05) for sidebar, init box, rubber-band, conditions
 - Phase 15 detailed: Editor & Parser Overhaul — 11 items (PARSE-01 to PARSE-11): traits/actions separation, traits tab UI, after-attack-text editing, action field labels, auto-dice detection, rollable trait buttons, recharge support, [[XdY]] notation, speed display, editor compaction, equipment reposition
 - Phase 16 detailed: Buff System & Output Improvements — 10 items: buff per-roll-type toggles (BUFF-01 to BUFF-03), output header + damage type summary (OUT-01/02), encounter naming/editing/sidebar resize (ENC-01 to ENC-03), health bar descriptive text + color bands (COMBAT-UX-01/02)
+- Phase 17 added: Sidebar handle fix — research and fix the sidebar handle of the encounter list tracker
 
 ### Pending Todos
 
@@ -207,6 +208,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-28
-Stopped at: Completed 16-02-PLAN.md (buff dice injection into attack and save rolls, output header, damage type summary)
-Resume file: .planning/phases/16-buff-system-output-improvements/16-02-SUMMARY.md
+Last session: 2026-03-01
+Stopped at: Phase 17 context gathered
+Resume file: .planning/phases/17-sidebar-handle-fix/17-CONTEXT.md
