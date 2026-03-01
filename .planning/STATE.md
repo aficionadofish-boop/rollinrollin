@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 
 ## Current Position
 
-Phase: 16 of 15 (Buff System & Output Improvements)
-Plan: 4 of 5 in current phase
-Status: In Progress
-Last activity: 2026-02-28 — Phase 16 Plan 02 complete (buff dice injection into attack and save rolls, output header, damage type summary)
+Phase: 17 (Sidebar Handle Fix)
+Plan: 1 of 1 in current phase — Complete
+Status: Complete
+Last activity: 2026-03-01 — Phase 17 Plan 01 complete (sidebar QSplitter handle fix: deferred sizing, gradient CSS, collapse-aware handle hiding)
 
-Progress: [████████████████████] Phase 16 in progress (4/5 plans, Plans 01, 02, 03, 04 complete)
+Progress: [████████████████████] Phase 17 complete (1/1 plans)
 
 ## Performance Metrics
 
@@ -189,6 +189,11 @@ Recent decisions affecting current work:
 - [Phase 16-03]: LoadEncounterDialog inline edit extracts name before first em-dash separator (creature count and date are display-only metadata)
 - [Phase 16-03]: Renames processed before deletions in _on_sidebar_load so original indices remain valid when both occur in same dialog session
 - [Phase 16-03]: resizeEvent tracks expanded width (>= 200) for persistence; _expand() restores via resize() not setMaximumWidth()
+- [Phase 17-01]: showEvent() deferred setSizes() with _splitter_initialized guard — runs once after Qt layout pass, not during __init__ or _load_persisted_data()
+- [Phase 17-01]: setObjectName("main_splitter") on QSplitter enables scoped CSS selector QSplitter#main_splitter::handle:horizontal, isolating main sidebar handle from all other splitters
+- [Phase 17-01]: sidebar minimumWidth reduced from 200 to 150 in _expand() and __init__ — gives splitter 50px more drag range at 1100px window width; resizeEvent threshold and set_expanded_width() guard updated to match
+- [Phase 17-01]: setHandleWidth(0/9) toggled in _on_sidebar_collapse_toggled: hides grab zone on collapse (no phantom area), restores 9px on expand to match CSS width
+- [Phase 17-01]: Gradient CSS qlineargradient for splitter handle: thin 1-2px visible center line within 9px grab zone; hover state brightens color — all three themes covered
 
 ### Roadmap Evolution
 
@@ -209,5 +214,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-01
-Stopped at: Phase 17 context gathered
-Resume file: .planning/phases/17-sidebar-handle-fix/17-CONTEXT.md
+Stopped at: Phase 17 Plan 01 complete — 17-01-SUMMARY.md created
+Resume file: .planning/phases/17-sidebar-handle-fix/17-01-SUMMARY.md

@@ -525,7 +525,7 @@ Plans:
 
 **Goal:** Make the encounter sidebar's QSplitter resize handle visible, discoverable, and reliably operable at all window sizes — fix the constraint deadlock that prevents dragging at 1100x750 standard launch size, add a subtle themed divider line with hover feedback, and hide the handle when the sidebar is collapsed
 **Depends on:** Phase 16
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
 - [ ] 17-01-PLAN.md -- Fix constraint deadlock (deferred setSizes + reduced minimumWidth) + scoped handle CSS with gradient line and hover in all 3 themes + collapsed-state handle hiding
