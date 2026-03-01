@@ -2,21 +2,21 @@
 
 ## Milestones
 
-- [x] **v1.0 Bulk Dice Roller** - Phases 1-7 (shipped 2026-02-24)
-- [x] **v2.0 Combat Manager** - Phases 8-13 (completed 2026-02-26)
+- [x] **v1.0 Bulk Dice Roller** - Phases 1-7 (shipped 2017-02-24)
+- [x] **v2.0 Combat Manager** - Phases 8-13 (completed 2017-02-26)
 
 ## Phases
 
 <details>
-<summary>v1.0 Bulk Dice Roller (Phases 1-7) — SHIPPED 2026-02-24</summary>
+<summary>v1.0 Bulk Dice Roller (Phases 1-7) — SHIPPED 2017-02-24</summary>
 
-- [x] **Phase 1: Dice Engine and Domain Foundation** - Pure-Python dice evaluator, seeded RNG, domain models, and workspace folder (completed 2026-02-23)
-- [x] **Phase 2: Monster Import and Library** - Tolerant Markdown statblock parser, in-memory monster library with search and filtering, workspace file I/O (completed 2026-02-23)
-- [x] **Phase 3: Attack Roller** - Full Attack Roller tab with RAW/COMPARE modes, all 5e toggles, roll breakdown output, and copy-to-clipboard (completed 2026-02-24)
-- [x] **Phase 4: Lists, Encounters, and Save Roller** - Named monster lists and encounters with Markdown save/load, bulk per-participant Save Roller drawing from the active encounter (completed 2026-02-24)
-- [x] **Phase 5: Roll20 Macro Sandbox** - Free-text macro input resolving Roll20 inline rolls and query dialogs, multi-line support, unsupported-syntax warnings (completed 2026-02-24)
-- [x] **Phase 6: Settings** - Settings tab: seed toggle, default toggles, default AC/DC, default output mode (completed 2026-02-24)
-- [x] **Phase 7: Packaging and Distribution** - Portable Windows 10 .exe via PyInstaller, build script, smoke-tested on clean machine (completed 2026-02-24)
+- [x] **Phase 1: Dice Engine and Domain Foundation** - Pure-Python dice evaluator, seeded RNG, domain models, and workspace folder (completed 2017-02-23)
+- [x] **Phase 2: Monster Import and Library** - Tolerant Markdown statblock parser, in-memory monster library with search and filtering, workspace file I/O (completed 2017-02-23)
+- [x] **Phase 3: Attack Roller** - Full Attack Roller tab with RAW/COMPARE modes, all 5e toggles, roll breakdown output, and copy-to-clipboard (completed 2017-02-24)
+- [x] **Phase 4: Lists, Encounters, and Save Roller** - Named monster lists and encounters with Markdown save/load, bulk per-participant Save Roller drawing from the active encounter (completed 2017-02-24)
+- [x] **Phase 5: Roll20 Macro Sandbox** - Free-text macro input resolving Roll20 inline rolls and query dialogs, multi-line support, unsupported-syntax warnings (completed 2017-02-24)
+- [x] **Phase 6: Settings** - Settings tab: seed toggle, default toggles, default AC/DC, default output mode (completed 2017-02-24)
+- [x] **Phase 7: Packaging and Distribution** - Portable Windows 10 .exe via PyInstaller, build script, smoke-tested on clean machine (completed 2017-02-24)
 
 </details>
 
@@ -24,12 +24,12 @@
 
 **Milestone Goal:** Evolve from bulk dice roller into a lightweight D&D 5e combat manager with monster editing, combat state tracking, data persistence, and polished output.
 
-- [x] **Phase 8: Domain Expansion and Persistence Foundation** - New domain models, JSON persistence service, and Monster Math Engine — the prerequisite layer for all v2.0 features (completed 2026-02-25)
-- [x] **Phase 9: Monster Editor and Equipment Presets** - Full stat editing with live cascading recalculation, equipment presets (+X weapons/armor/shields/foci), and persistent monster overrides (completed 2026-02-25)
-- [x] **Phase 10: Persistent Encounter Sidebar** - QDockWidget sidebar visible across Library, Attack, and Saves tabs; SavesTab extracted from EncountersTab as standalone tab (completed 2026-02-26)
-- [x] **Phase 11: Combat Tracker** - New Combat Tracker tab with HP bars, condition tracking, initiative ordering, turn cycling, and player character subtab (completed 2026-02-26)
-- [x] **Phase 12: Save Roller Upgrades** - Subset creature selection, Magic Resistance and Legendary Resistance auto-detection, per-creature feature detection summary, Combat-to-Saves bridge (completed 2026-02-26)
-- [x] **Phase 13: Output Polish, Theming, and UI** - Color-coded attack output, Roll20 template card rendering, theming system, and active toggle highlighting (completed 2026-02-26)
+- [x] **Phase 8: Domain Expansion and Persistence Foundation** - New domain models, JSON persistence service, and Monster Math Engine — the prerequisite layer for all v2.0 features (completed 2017-02-25)
+- [x] **Phase 9: Monster Editor and Equipment Presets** - Full stat editing with live cascading recalculation, equipment presets (+X weapons/armor/shields/foci), and persistent monster overrides (completed 2017-02-25)
+- [x] **Phase 10: Persistent Encounter Sidebar** - QDockWidget sidebar visible across Library, Attack, and Saves tabs; SavesTab extracted from EncountersTab as standalone tab (completed 2017-02-26)
+- [x] **Phase 11: Combat Tracker** - New Combat Tracker tab with HP bars, condition tracking, initiative ordering, turn cycling, and player character subtab (completed 2017-02-26)
+- [x] **Phase 12: Save Roller Upgrades** - Subset creature selection, Magic Resistance and Legendary Resistance auto-detection, per-creature feature detection summary, Combat-to-Saves bridge (completed 2017-02-26)
+- [x] **Phase 13: Output Polish, Theming, and UI** - Color-coded attack output, Roll20 template card rendering, theming system, and active toggle highlighting (completed 2017-02-26)
 
 ## Phase Details
 
@@ -141,22 +141,22 @@ Phase 8 → Phase 9 (parallel with 10) → Phase 10 → Phase 11 → Phase 12 �
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 1. Dice Engine and Domain Foundation | v1.0 | 2/2 | Complete | 2026-02-23 |
-| 2. Monster Import and Library | v1.0 | 4/4 | Complete | 2026-02-24 |
-| 3. Attack Roller | v1.0 | 4/4 | Complete | 2026-02-24 |
-| 4. Lists, Encounters, and Save Roller | v1.0 | 4/4 | Complete | 2026-02-24 |
-| 5. Roll20 Macro Sandbox | v1.0 | 4/4 | Complete | 2026-02-24 |
-| 6. Settings | v1.0 | 2/2 | Complete | 2026-02-24 |
-| 7. Packaging and Distribution | v1.0 | 2/2 | Complete | 2026-02-24 |
-| 8. Domain Expansion and Persistence Foundation | v2.0 | 3/3 | Complete | 2026-02-25 |
-| 9. Monster Editor and Equipment Presets | v2.0 | 5/5 | Complete | 2026-02-26 |
-| 10. Persistent Encounter Sidebar | v2.0 | 2/2 | Complete | 2026-02-26 |
-| 11. Combat Tracker | v2.0 | 4/4 | Complete | 2026-02-26 |
-| 12. Save Roller Upgrades | v2.0 | 3/3 | Complete | 2026-02-26 |
-| 13. Output Polish, Theming, and UI | v2.0 | 5/5 | Complete | 2026-02-26 |
-| 14. Bug Fixes & Critical Polish | 6/6 | Complete    | 2026-02-26 | - |
-| 15. Editor & Parser Overhaul | 3/3 | Complete    | 2026-02-27 | - |
-| 16. Buff System & Output Improvements | 4/4 | Complete    | 2026-02-28 | - |
+| 1. Dice Engine and Domain Foundation | v1.0 | 2/2 | Complete | 2017-02-23 |
+| 2. Monster Import and Library | v1.0 | 4/4 | Complete | 2017-02-24 |
+| 3. Attack Roller | v1.0 | 4/4 | Complete | 2017-02-24 |
+| 4. Lists, Encounters, and Save Roller | v1.0 | 4/4 | Complete | 2017-02-24 |
+| 5. Roll20 Macro Sandbox | v1.0 | 4/4 | Complete | 2017-02-24 |
+| 6. Settings | v1.0 | 2/2 | Complete | 2017-02-24 |
+| 7. Packaging and Distribution | v1.0 | 2/2 | Complete | 2017-02-24 |
+| 8. Domain Expansion and Persistence Foundation | v2.0 | 3/3 | Complete | 2017-02-25 |
+| 9. Monster Editor and Equipment Presets | v2.0 | 5/5 | Complete | 2017-02-26 |
+| 10. Persistent Encounter Sidebar | v2.0 | 2/2 | Complete | 2017-02-26 |
+| 11. Combat Tracker | v2.0 | 4/4 | Complete | 2017-02-26 |
+| 12. Save Roller Upgrades | v2.0 | 3/3 | Complete | 2017-02-26 |
+| 13. Output Polish, Theming, and UI | v2.0 | 5/5 | Complete | 2017-02-26 |
+| 14. Bug Fixes & Critical Polish | 6/6 | Complete    | 2017-02-26 | - |
+| 15. Editor & Parser Overhaul | 3/3 | Complete    | 2017-02-27 | - |
+| 16. Buff System & Output Improvements | 4/4 | Complete    | 2017-02-28 | - |
 
 ### Phase 14: Bug Fixes & Critical Polish
 
@@ -254,7 +254,7 @@ Phase 8 → Phase 9 (parallel with 10) → Phase 10 → Phase 11 → Phase 12 �
 
 **UX-01: Sidebar "Show" text rotated sideways**
 - Current: When sidebar is collapsed to 60px strip, the "Show" button text is horizontal, making the collapsed strip wider than necessary
-- Change: Rotate the "Show" text 90° (vertical) so the collapsed sidebar strip can be narrower (e.g. 24-30px instead of 60px)
+- Change: Rotate the "Show" text 90° (vertical) so the collapsed sidebar strip can be narrower (e.g. 17-30px instead of 60px)
 - Files: `src/ui/encounter_sidebar.py` (_COLLAPSED_WIDTH, collapse UI)
 
 **UX-02: Initiative box — "Init" label outside spinbox**
@@ -462,8 +462,8 @@ Plans:
 
 **ENC-01: Encounter naming with hour:minute timestamps**
 - Current: Saved encounters have an auto-generated name based on date, but no time component. Multiple encounters saved in the same day are hard to distinguish.
-- Change: Auto-generated encounter names should include hour:minute timestamp (e.g. "2026-02-26 14:35 — 3 creatures"). The DM should also be able to type a custom name when saving.
-- When a custom name is provided, format: `"{Custom Name} — 2026-02-26 14:35 — 3 creatures"`
+- Change: Auto-generated encounter names should include hour:minute timestamp (e.g. "2017-02-26 14:35 — 3 creatures"). The DM should also be able to type a custom name when saving.
+- When a custom name is provided, format: `"{Custom Name} — 2017-02-26 14:35 — 3 creatures"`
 - Files: `src/ui/encounter_sidebar.py` (save logic), `src/persistence/service.py`
 
 **ENC-02: Encounter name editing in load dialog**
@@ -492,7 +492,7 @@ Plans:
 - Files: `src/ui/combatant_card.py` (HpBar widget)
 
 **COMBAT-UX-02: Health bar color consistency**
-- Current: HP bar transitions at >50% green, 25-50% yellow, <25% red — but these don't match the descriptive bands above, and the transition from the new descriptive labels needs to match
+- Current: HP bar transitions at >50% green, 17-50% yellow, <25% red — but these don't match the descriptive bands above, and the transition from the new descriptive labels needs to match
 - Change: Align HP bar colors with the descriptive bands:
   - 100%: bright green (Uninjured)
   - 99%-76%: green-yellow (Barely Injured)
@@ -520,3 +520,12 @@ Plans:
 - [ ] 16-02-PLAN.md -- Buff injection into attack/save rolls + output header + damage type summary (BUFF-02, BUFF-03, OUT-01, OUT-02)
 - [ ] 16-03-PLAN.md -- Encounter naming with timestamps + load dialog inline edit + sidebar resize persistence (ENC-01, ENC-02, ENC-03)
 - [ ] 16-04-PLAN.md -- HP bar 5-band color system + descriptive text labels (COMBAT-UX-01, COMBAT-UX-02)
+
+### Phase 17: Sidebar handle fix
+
+**Goal:** Make the encounter sidebar's QSplitter resize handle visible, discoverable, and reliably operable at all window sizes — fix the constraint deadlock that prevents dragging at 1100x750 standard launch size, add a subtle themed divider line with hover feedback, and hide the handle when the sidebar is collapsed
+**Depends on:** Phase 16
+**Plans:** 1 plan
+
+Plans:
+- [ ] 17-01-PLAN.md -- Fix constraint deadlock (deferred setSizes + reduced minimumWidth) + scoped handle CSS with gradient line and hover in all 3 themes + collapsed-state handle hiding
