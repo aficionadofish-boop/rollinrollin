@@ -31,6 +31,11 @@ Make the encounter sidebar's QSplitter resize handle visible, discoverable, and 
 - The "Show" button strip is the only interaction when collapsed
 - Resize handle appears only when sidebar is expanded
 
+### Critical bug report
+- Sidebar resizing WORKS when the app is fullscreen but DOES NOT work at standard launch size (1100x750)
+- This is the primary fix target — likely a width constraint, minimum size, or splitter allocation issue at smaller window dimensions
+- Research must diagnose why fullscreen vs standard size behaves differently
+
 ### Claude's Discretion
 - Exact hover highlight color/opacity for the divider line
 - Whether grab zone is exactly 8px or 10px
@@ -45,7 +50,8 @@ Make the encounter sidebar's QSplitter resize handle visible, discoverable, and 
 
 - Current QSplitter is already in the uncommitted working tree (Architecture Approach 3 from SIDEBAR_HANDLE_HISTORY.txt) — this phase stabilizes it rather than replacing it
 - The _RotatedButton collapse handle at 24px is working and stays as-is
-- SIDEBAR_HANDLE_HISTORY.txt documents all prior approaches and should be consulted during research
+- SIDEBAR_HANDLE_HISTORY.txt documents all prior approaches and should be consulted during research — thorough review of all prior attempts is required before planning
+- Research must investigate why fullscreen works but standard size doesn't (constraint math, minimumSizeHint, tab widget pressure, etc.)
 
 </specifics>
 
