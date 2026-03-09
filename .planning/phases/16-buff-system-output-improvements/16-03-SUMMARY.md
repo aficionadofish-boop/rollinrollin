@@ -106,3 +106,14 @@ None - no external service configuration required.
 - ENC-01, ENC-02, ENC-03 all complete
 - All encounter naming features are wired end-to-end through persistence
 - Phase 16 plans may continue with COMBAT-UX items if any remain
+
+## Self-Check: PASSED
+
+- FOUND: src/ui/encounter_sidebar.py
+- FOUND: src/ui/load_encounter_dialog.py
+- FOUND: src/ui/app.py
+- FOUND: src/persistence/service.py
+- FOUND: .planning/phases/16-buff-system-output-improvements/16-03-SUMMARY.md
+- FOUND: c95a000 (Task 1 commit)
+- FOUND: 96ced51 (Task 2 commit)
+- FOUND: b969162 (docs metadata commit)

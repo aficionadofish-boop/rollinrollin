@@ -569,16 +569,16 @@ class CombatTrackerTab(QWidget):
         toolbar.addWidget(self._init_mode_btn)
 
         # Grouping toggle button
-        self._group_btn = QToolButton()
-        self._group_btn.setText("Group Monsters")
-        self._group_btn.setCheckable(True)
-        self._group_btn.setChecked(True)  # ON by default (per locked decision)
-        self._group_btn.setToolTip(
+        self._group_toggle_btn = QToolButton()
+        self._group_toggle_btn.setText("Group Monsters")
+        self._group_toggle_btn.setCheckable(True)
+        self._group_toggle_btn.setChecked(True)  # ON by default (per locked decision)
+        self._group_toggle_btn.setToolTip(
             "Group Monsters ON: same-type monsters collapsed into group cards.\n"
             "Group Monsters OFF: individual cards for all combatants."
         )
-        self._group_btn.toggled.connect(self._on_grouping_toggled)
-        toolbar.addWidget(self._group_btn)
+        self._group_toggle_btn.toggled.connect(self._on_grouping_toggled)
+        toolbar.addWidget(self._group_toggle_btn)
 
         # Next/Previous Turn — visible when initiative mode ON
         self._next_turn_btn = QPushButton("Next Turn")
@@ -810,48 +810,39 @@ class CombatTrackerTab(QWidget):
             self._cards[state.id] = card
 
     def _rebuild_cards_grouped(self) -> None:
-        """Group combatants by group_id; create GroupCard for multi-member groups."""
-        # Collect groups in display order (preserving first-occurrence order)
-        groups: dict[str, list] = {}
-        group_order: list[str] = []
-        singles: list = []  # combatants with unique group_id or no group
+        """Group combatants by group_id; create GroupCard for multi-member groups.
 
+        Cards are rendered in initiative order: groups appear at the position
+        of their first member in the sorted combatants list, interleaved with
+        ungrouped singles.
+        """
+        # Collect groups
+        groups: dict[str, list] = {}
         for state in self._service.state.combatants:
             gid = state.group_id
-            if not gid:
-                singles.append(state)
-                continue
-            if gid not in groups:
-                groups[gid] = []
-                group_order.append(gid)
-            groups[gid].append(state)
+            if gid:
+                groups.setdefault(gid, []).append(state)
 
-        # Build cards in initiative order (combatants already sorted by service)
-        for gid in group_order:
-            members = groups[gid]
-            if len(members) > 1:
-                # Create GroupCard for this group
+        # Walk the sorted combatants list and emit cards in order
+        rendered_groups: set[str] = set()
+        for state in self._service.state.combatants:
+            gid = state.group_id
+            if gid and gid in groups and len(groups[gid]) > 1:
+                # Multi-member group — render once at the position of first member
+                if gid in rendered_groups:
+                    continue
+                rendered_groups.add(gid)
+                members = groups[gid]
                 group_card = GroupCard(gid, members)
                 self._wire_group_card_signals(group_card)
                 self._card_layout.addWidget(group_card)
                 self._group_cards[gid] = group_card
-                # Also register members so _update_active_turn_highlight can find them
-                for m in members:
-                    # Map individual IDs to their group card for highlight
-                    pass  # GroupCard handles member highlights internally
             else:
-                # Single member — use individual card
-                card = CombatantCard(members[0])
+                # Single (no group_id, or group with only 1 member)
+                card = CombatantCard(state)
                 self._wire_card_signals(card)
                 self._card_layout.addWidget(card)
-                self._cards[members[0].id] = card
-
-        # Add standalone singles (PCs with no group_id or unique group_ids)
-        for state in singles:
-            card = CombatantCard(state)
-            self._wire_card_signals(card)
-            self._card_layout.addWidget(card)
-            self._cards[state.id] = card
+                self._cards[state.id] = card
 
     def _wire_card_signals(self, card: CombatantCard) -> None:
         card.damage_entered.connect(self._on_damage)
@@ -954,7 +945,7 @@ class CombatTrackerTab(QWidget):
 
     def _on_resort_initiative(self) -> None:
         """Re-sort combatants by their current initiative values without re-rolling."""
-        self._service._sort_by_initiative()
+        self._service.resort_initiative()
         self._rebuild_cards()
         self._log_panel.add_entry("Initiative re-sorted.")
 
@@ -962,21 +953,30 @@ class CombatTrackerTab(QWidget):
         """Group selected combatants under a shared group_id so they render as a GroupCard."""
         if len(self._selected_ids) < 2:
             return
-        # Use the first selected combatant's name as the group_id
-        first_id = next(iter(self._selected_ids))
-        first = self._service.get_combatant(first_id)
-        group_id = first.name if first else first_id
-        # Set all selected combatants' initiative to match and share group_id
-        init_val = first.initiative if first else 0
-        count = len(self._selected_ids)
+        # Collect all selected combatants and sort by initiative (highest first)
+        members = []
         for cid in self._selected_ids:
             c = self._service.get_combatant(cid)
             if c:
-                c.group_id = group_id
-                c.initiative = init_val
+                members.append(c)
+        if len(members) < 2:
+            return
+        members.sort(key=lambda c: c.initiative, reverse=True)
+        # Build group name from unique member names
+        seen = []
+        for m in members:
+            if m.name not in seen:
+                seen.append(m.name)
+        group_id = " & ".join(seen)
+        # Use highest initiative value for the group
+        init_val = members[0].initiative
+        count = len(members)
+        for c in members:
+            c.group_id = group_id
+            c.initiative = init_val
         self._selected_ids.clear()
         self._rebuild_cards()
-        self._log_panel.add_entry(f"Grouped {count} combatants.")
+        self._log_panel.add_entry(f"Grouped {count} combatants as '{group_id}'.")
 
     def _on_reset_combat(self) -> None:
         reply = QMessageBox.question(
@@ -1018,7 +1018,7 @@ class CombatTrackerTab(QWidget):
 
         if checked:
             # Entering initiative mode: sort combatants by initiative
-            self._service._sort_by_initiative()
+            self._service.resort_initiative()
             self._log_panel.add_entry("Initiative mode ON — sorted by initiative.")
         else:
             self._log_panel.add_entry("Initiative mode OFF — manual order / Pass 1 Round.")
@@ -1027,8 +1027,16 @@ class CombatTrackerTab(QWidget):
         self._rebuild_cards()
 
     def _on_grouping_toggled(self, checked: bool) -> None:
-        """Toggle auto-grouping of same-type monsters."""
+        """Toggle auto-grouping of same-type monsters.
+
+        When turned OFF, also clears all manual group_ids so monsters are
+        fully ungrouped.  Turning back ON re-enables auto-grouping by type.
+        """
         self._service.state.grouping_enabled = checked
+        if not checked:
+            # Clear all manual group_ids so monsters stay ungrouped
+            for c in self._service.state.combatants:
+                c.group_id = ""
         self._rebuild_cards()
 
     def _on_next_turn(self) -> None:

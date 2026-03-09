@@ -107,6 +107,19 @@ None - no external service configuration required.
 - extract_named_section() helper is available for any future parser extension needing section isolation
 - All 510 tests pass; no regressions
 
+## Self-Check: PASSED
+
+All created files exist, all commits verified:
+- FOUND: src/domain/models.py
+- FOUND: src/parser/formats/_shared_patterns.py
+- FOUND: src/parser/formats/plain.py
+- FOUND: src/parser/formats/homebrewery.py
+- FOUND: src/parser/formats/fivetools.py
+- FOUND: .planning/phases/14-bug-fixes-critical-polish/14-03-SUMMARY.md
+- FOUND: commit 3e4e7cf (feat: Monster model fields)
+- FOUND: commit b47fefa (fix: section boundary detection)
+- 510 tests pass
+
 ---
 *Phase: 14-bug-fixes-critical-polish*
 *Completed: 2026-02-26*

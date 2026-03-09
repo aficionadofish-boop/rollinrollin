@@ -297,6 +297,10 @@ class CombatTrackerService:
         self._sort_by_initiative()
         self._state.log_entries.append("Initiative rolled — combat order set.")
 
+    def resort_initiative(self) -> None:
+        """Public: re-sort combatants by initiative without re-rolling."""
+        self._sort_by_initiative()
+
     def set_initiative(self, combatant_id: str, value: int) -> None:
         """Manually set a combatant's initiative. Re-sorts if initiative_mode is on."""
         c = self._find(combatant_id)

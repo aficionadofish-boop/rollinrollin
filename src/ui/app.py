@@ -234,20 +234,17 @@ class MainWindow(QMainWindow):
         if hasattr(self, '_macro_tab'):
             self._macro_tab.set_sandbox_font(settings.sandbox_font)
 
-        # Apply UI scaling — adjust base font size for the entire application
-        text_scale = getattr(settings, "ui_text_scale", 100)
-        menu_scale = getattr(settings, "ui_menu_scale", 100)
+        # Apply UI scaling — adjust base font and control sizes
+        ui_scale = getattr(settings, "ui_scale", 100)
         from PySide6.QtWidgets import QApplication
         app = QApplication.instance()
         if app:
             font = app.font()
-            # Default point size is ~9; scale proportionally
             base_pt = 9
-            font.setPointSizeF(base_pt * text_scale / 100.0)
+            font.setPointSizeF(base_pt * ui_scale / 100.0)
             app.setFont(font)
-            # Menu/button scale via stylesheet minimum-height
-            if menu_scale != 100:
-                min_h = int(22 * menu_scale / 100)
+            if ui_scale != 100:
+                min_h = int(22 * ui_scale / 100)
                 app.setStyleSheet(
                     app.styleSheet() +
                     f"\nQPushButton, QComboBox, QSpinBox, QLineEdit {{ min-height: {min_h}px; }}"
@@ -703,6 +700,9 @@ class MainWindow(QMainWindow):
         # Reset the corresponding in-memory variable to empty
         if category == "loaded_monsters":
             self._persisted_monsters = []
+            self._library.clear()
+            self._library_tab._refresh_model()
+            self._library_tab._refresh_type_combo()
         elif category == "encounters":
             # Clear the sidebar encounter state
             self._sidebar.set_encounter("", [])
@@ -722,6 +722,9 @@ class MainWindow(QMainWindow):
         self._persisted_monsters = []
         self._persisted_modifications = {}
         self._persisted_macros = []
+        self._library.clear()
+        self._library_tab._refresh_model()
+        self._library_tab._refresh_type_combo()
         self._sidebar.set_encounter("", [])
         self._combat_tracker_tab.reset_combat_ui()
         self._combat_tracker_tab.clear_pcs()

@@ -370,8 +370,8 @@ class AttackRollerTab(QWidget):
                 buff_label.setStyleSheet(
                     "color: #8ecae6; font-size: 7pt; padding: 0 0 0px 16px;"
                 )
-                buff_label.setWordWrap(True)
-                buff_label.setMaximumHeight(32)
+                buff_label.setWordWrap(False)
+                buff_label.setMaximumWidth(320)
                 insert_idx = self._action_list_layout.count() - 1
                 self._action_list_layout.insertWidget(insert_idx, buff_label)
                 self._action_rows.append(buff_label)

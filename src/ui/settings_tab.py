@@ -310,25 +310,16 @@ class SettingsTab(QWidget):
         font_row.addStretch()
         layout.addLayout(font_row)
 
-        # --- UI Scale sliders ---
+        # --- UI Scale dropdown ---
         scale_row = QHBoxLayout()
-        scale_row.addWidget(QLabel("Text Size:"))
-        self._text_scale_spin = QSpinBox()
-        self._text_scale_spin.setRange(80, 150)
-        self._text_scale_spin.setValue(100)
-        self._text_scale_spin.setSuffix("%")
-        self._text_scale_spin.setToolTip("Scale general text size (80-150%)")
-        self._text_scale_spin.valueChanged.connect(self._mark_dirty)
-        scale_row.addWidget(self._text_scale_spin)
-
-        scale_row.addWidget(QLabel("Menu Size:"))
-        self._menu_scale_spin = QSpinBox()
-        self._menu_scale_spin.setRange(80, 150)
-        self._menu_scale_spin.setValue(100)
-        self._menu_scale_spin.setSuffix("%")
-        self._menu_scale_spin.setToolTip("Scale menu and control sizes (80-150%)")
-        self._menu_scale_spin.valueChanged.connect(self._mark_dirty)
-        scale_row.addWidget(self._menu_scale_spin)
+        scale_row.addWidget(QLabel("UI Scale:"))
+        self._scale_combo = QComboBox()
+        for pct in (75, 100, 125, 150):
+            self._scale_combo.addItem(f"{pct}%", pct)
+        self._scale_combo.setCurrentIndex(1)  # default 100%
+        self._scale_combo.setToolTip("Scale overall UI size")
+        self._scale_combo.currentIndexChanged.connect(self._mark_dirty)
+        scale_row.addWidget(self._scale_combo)
         scale_row.addStretch()
         layout.addLayout(scale_row)
 
@@ -595,8 +586,10 @@ class SettingsTab(QWidget):
             # else: leave at first available font
 
             # UI scale
-            self._text_scale_spin.setValue(getattr(settings, "ui_text_scale", 100))
-            self._menu_scale_spin.setValue(getattr(settings, "ui_menu_scale", 100))
+            scale_val = getattr(settings, "ui_scale", 100)
+            idx = self._scale_combo.findData(scale_val)
+            if idx >= 0:
+                self._scale_combo.setCurrentIndex(idx)
         finally:
             self.blockSignals(False)
 
@@ -638,8 +631,7 @@ class SettingsTab(QWidget):
             # Sandbox font
             sandbox_font=self._font_combo.currentText(),
             # UI scale
-            ui_text_scale=self._text_scale_spin.value(),
-            ui_menu_scale=self._menu_scale_spin.value(),
+            ui_scale=self._scale_combo.currentData(),
         )
 
     def save(self) -> None:

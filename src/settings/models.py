@@ -37,5 +37,4 @@ class AppSettings:
     sandbox_font: str = "Consolas"  # macro sandbox font family name
 
     # UI scaling
-    ui_text_scale: int = 100         # percentage (80-150) for general text size
-    ui_menu_scale: int = 100         # percentage (80-150) for menus, buttons, controls
+    ui_scale: int = 100              # percentage (75, 100, 125, 150) for overall UI size

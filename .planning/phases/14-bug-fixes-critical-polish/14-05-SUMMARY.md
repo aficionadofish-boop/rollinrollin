@@ -114,3 +114,13 @@ None - both bugs had clear root causes and targeted fixes.
 ---
 *Phase: 14-bug-fixes-critical-polish*
 *Completed: 2026-02-26*
+
+## Self-Check: PASSED
+
+- src/ui/combat_tracker_tab.py: FOUND
+- src/ui/encounters_tab.py: FOUND
+- src/ui/app.py: FOUND
+- .planning/phases/14-bug-fixes-critical-polish/14-05-SUMMARY.md: FOUND
+- commit 3e925b6 (BUG-11 stats toggle): FOUND
+- commit 0efed7a (BUG-15 LR counter): FOUND
+- commit 63ca95d (docs): FOUND

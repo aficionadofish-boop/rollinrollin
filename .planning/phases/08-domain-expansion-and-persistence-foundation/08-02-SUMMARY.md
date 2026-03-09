@@ -121,6 +121,16 @@ None - no external service configuration required.
 - SpellcastingDetector enables the editor to auto-detect and pre-populate spell section fields
 - Action.damage_bonus field will need to be formally added to the domain model (models.py) before full editor integration
 
+## Self-Check: PASSED
+
+- FOUND: src/monster_math/__init__.py
+- FOUND: src/monster_math/engine.py
+- FOUND: src/monster_math/validator.py
+- FOUND: src/monster_math/spellcasting.py
+- FOUND: src/tests/test_monster_math.py
+- FOUND: commit 4a9cdef (RED phase)
+- FOUND: commit 403066c (GREEN phase)
+
 ---
 *Phase: 08-domain-expansion-and-persistence-foundation*
 *Completed: 2026-02-25*

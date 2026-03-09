@@ -416,7 +416,7 @@ class MonsterEditorDialog(QDialog):
         # Initialize from manual override or auto-calculated from CR
         initial_prof = getattr(self._working_copy, "proficiency_bonus", None)
         if initial_prof is None:
-            initial_prof = self._math_engine.recalculate(self._working_copy).proficiency_bonus
+            initial_prof = self._engine.recalculate(self._working_copy).proficiency_bonus
         self._prof_spinbox.setValue(initial_prof)
         self._prof_spinbox.setFixedWidth(50)
         self._prof_spinbox.setToolTip("Proficiency bonus (editable independently of CR)")
