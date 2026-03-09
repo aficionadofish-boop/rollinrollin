@@ -183,6 +183,15 @@ class _PCRow(QWidget):
         self._max_hp_spin.valueChanged.connect(self.changed)
         layout.addWidget(self._max_hp_spin)
 
+        layout.addWidget(QLabel("Init:"))
+        self._init_bonus_spin = QSpinBox()
+        self._init_bonus_spin.setRange(-10, 20)
+        self._init_bonus_spin.setValue(0)
+        self._init_bonus_spin.setFixedWidth(50)
+        self._init_bonus_spin.setToolTip("Initiative bonus")
+        self._init_bonus_spin.valueChanged.connect(self.changed)
+        layout.addWidget(self._init_bonus_spin)
+
         self._del_btn = QPushButton("Del")
         self._del_btn.setFixedWidth(48)
         self._del_btn.setStyleSheet(
@@ -197,18 +206,22 @@ class _PCRow(QWidget):
             ac=self._ac_spin.value(),
             max_hp=self._max_hp_spin.value(),
             current_hp=self._max_hp_spin.value(),
+            initiative_bonus=self._init_bonus_spin.value(),
         )
 
     def set_pc(self, pc: PlayerCharacter) -> None:
         self._name_edit.blockSignals(True)
         self._ac_spin.blockSignals(True)
         self._max_hp_spin.blockSignals(True)
+        self._init_bonus_spin.blockSignals(True)
         self._name_edit.setText(pc.name)
         self._ac_spin.setValue(pc.ac)
         self._max_hp_spin.setValue(pc.max_hp)
+        self._init_bonus_spin.setValue(getattr(pc, "initiative_bonus", 0))
         self._name_edit.blockSignals(False)
         self._ac_spin.blockSignals(False)
         self._max_hp_spin.blockSignals(False)
+        self._init_bonus_spin.blockSignals(False)
 
     @property
     def del_btn(self) -> QPushButton:
@@ -519,6 +532,12 @@ class CombatTrackerTab(QWidget):
         self._roll_init_btn.clicked.connect(self._on_roll_initiative)
         toolbar.addWidget(self._roll_init_btn)
 
+        self._resort_init_btn = QPushButton("Re-sort")
+        self._resort_init_btn.setEnabled(False)
+        self._resort_init_btn.setToolTip("Re-sort combatants by current initiative values")
+        self._resort_init_btn.clicked.connect(self._on_resort_initiative)
+        toolbar.addWidget(self._resort_init_btn)
+
         self._reset_btn = QPushButton("Reset Combat")
         self._reset_btn.setEnabled(False)
         self._reset_btn.clicked.connect(self._on_reset_combat)
@@ -586,6 +605,13 @@ class CombatTrackerTab(QWidget):
         self._aoe_btn.setToolTip("Apply the same damage to all selected combatants")
         self._aoe_btn.clicked.connect(self._on_aoe_damage)
         toolbar.addWidget(self._aoe_btn)
+
+        # Group Selected — merge selected combatants into one initiative group
+        self._group_btn = QPushButton("Group Selected")
+        self._group_btn.setEnabled(False)
+        self._group_btn.setToolTip("Merge selected combatants into one initiative group")
+        self._group_btn.clicked.connect(self._on_group_selected)
+        toolbar.addWidget(self._group_btn)
 
         # Send to Saves — enabled when selection is non-empty
         self._send_saves_btn = QPushButton("Send to Saves")
@@ -666,6 +692,7 @@ class CombatTrackerTab(QWidget):
         self._rebuild_cards()
         self._combat_active = True
         self._roll_init_btn.setEnabled(True)
+        self._resort_init_btn.setEnabled(True)
         self._reset_btn.setEnabled(True)
         self._clear_btn.setEnabled(True)
         self._start_btn.setText("Reload Encounter")
@@ -682,6 +709,7 @@ class CombatTrackerTab(QWidget):
         self._rebuild_cards()
         self._combat_active = True
         self._roll_init_btn.setEnabled(True)
+        self._resort_init_btn.setEnabled(True)
         self._reset_btn.setEnabled(True)
         self._clear_btn.setEnabled(True)
         self._start_btn.setText("Reload Encounter")
@@ -724,6 +752,7 @@ class CombatTrackerTab(QWidget):
             if item.widget():
                 item.widget().deleteLater()
         self._roll_init_btn.setEnabled(False)
+        self._resort_init_btn.setEnabled(False)
         self._reset_btn.setEnabled(False)
         self._clear_btn.setEnabled(False)
         self._start_btn.setText("Start Combat")
@@ -891,10 +920,11 @@ class CombatTrackerTab(QWidget):
         self._pass_round_btn.setVisible(not initiative_mode)
 
     def _update_selection_buttons(self) -> None:
-        """Enable/disable AOE Damage and Send to Saves based on selection."""
+        """Enable/disable AOE Damage, Send to Saves, and Group Selected based on selection."""
         has_selection = len(self._selected_ids) > 0
         self._aoe_btn.setEnabled(has_selection)
         self._send_saves_btn.setEnabled(has_selection)
+        self._group_btn.setEnabled(len(self._selected_ids) >= 2)
 
     def _apply_selection_visuals(self) -> None:
         """Update selected state on all CombatantCard widgets."""
@@ -917,11 +947,36 @@ class CombatTrackerTab(QWidget):
 
     def _on_roll_initiative(self) -> None:
         self._service.roll_all_initiative(self._roller)
-        # After rolling, rebuild cards to reflect new sort order
         self._rebuild_cards()
         log_entries = self._service.state.log_entries
         if log_entries:
             self._log_panel.add_entry(log_entries[-1])
+
+    def _on_resort_initiative(self) -> None:
+        """Re-sort combatants by their current initiative values without re-rolling."""
+        self._service._sort_by_initiative()
+        self._rebuild_cards()
+        self._log_panel.add_entry("Initiative re-sorted.")
+
+    def _on_group_selected(self) -> None:
+        """Group selected combatants under a shared group_id so they render as a GroupCard."""
+        if len(self._selected_ids) < 2:
+            return
+        # Use the first selected combatant's name as the group_id
+        first_id = next(iter(self._selected_ids))
+        first = self._service.get_combatant(first_id)
+        group_id = first.name if first else first_id
+        # Set all selected combatants' initiative to match and share group_id
+        init_val = first.initiative if first else 0
+        count = len(self._selected_ids)
+        for cid in self._selected_ids:
+            c = self._service.get_combatant(cid)
+            if c:
+                c.group_id = group_id
+                c.initiative = init_val
+        self._selected_ids.clear()
+        self._rebuild_cards()
+        self._log_panel.add_entry(f"Grouped {count} combatants.")
 
     def _on_reset_combat(self) -> None:
         reply = QMessageBox.question(

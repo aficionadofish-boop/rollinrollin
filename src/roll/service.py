@@ -267,10 +267,13 @@ class RollService:
                     ))
 
         # 8b. Roll damage bonus dice (buff damage — only when damage is dealt)
+        #     On crit, double the dice in buff formulas (e.g. 1d4 → 2d4)
         damage_bonus_results: list = []
         if damage_parts and request.damage_bonus_dice:
             for entry in request.damage_bonus_dice:
                 formula_clean = entry.formula.lstrip("+")
+                if is_crit:
+                    formula_clean = _double_dice(formula_clean)
                 dmg_b_result = roll_expression(formula_clean, roller, request.seed)
                 sign = -1 if entry.formula.startswith("-") else 1
                 signed_total = sign * dmg_b_result.total

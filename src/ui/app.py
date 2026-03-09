@@ -234,6 +234,25 @@ class MainWindow(QMainWindow):
         if hasattr(self, '_macro_tab'):
             self._macro_tab.set_sandbox_font(settings.sandbox_font)
 
+        # Apply UI scaling — adjust base font size for the entire application
+        text_scale = getattr(settings, "ui_text_scale", 100)
+        menu_scale = getattr(settings, "ui_menu_scale", 100)
+        from PySide6.QtWidgets import QApplication
+        app = QApplication.instance()
+        if app:
+            font = app.font()
+            # Default point size is ~9; scale proportionally
+            base_pt = 9
+            font.setPointSizeF(base_pt * text_scale / 100.0)
+            app.setFont(font)
+            # Menu/button scale via stylesheet minimum-height
+            if menu_scale != 100:
+                min_h = int(22 * menu_scale / 100)
+                app.setStyleSheet(
+                    app.styleSheet() +
+                    f"\nQPushButton, QComboBox, QSpinBox, QLineEdit {{ min-height: {min_h}px; }}"
+                )
+
     # ------------------------------------------------------------------
     # Tab change guard (unsaved settings changes) and sidebar visibility
     # ------------------------------------------------------------------
@@ -261,10 +280,13 @@ class MainWindow(QMainWindow):
         if new_index == self._settings_tab_index:
             self._refresh_flush_counts()
 
+        # Always capture current splitter sizes before switching
+        if self._sidebar.isVisible():
+            self._sidebar_sizes_backup = self._main_splitter.sizes()
+
         # Hide sidebar when Combat Tracker is active; restore otherwise
         current_widget = self._tab_widget.widget(new_index)
         if current_widget is self._combat_tracker_tab:
-            self._sidebar_sizes_backup = self._main_splitter.sizes()
             self._sidebar.setVisible(False)
         else:
             self._sidebar.setVisible(True)
@@ -429,6 +451,8 @@ class MainWindow(QMainWindow):
                 modified.size = mod.size
             if mod.buffs:
                 modified.buffs = list(mod.buffs)
+            if getattr(mod, "proficiency_bonus", None) is not None:
+                modified.proficiency_bonus = mod.proficiency_bonus
 
             # Apply action overrides
             if mod.actions:

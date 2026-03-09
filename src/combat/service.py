@@ -237,6 +237,8 @@ class CombatTrackerService:
                 ac=pc.ac,
                 is_pc=True,
                 group_id="",
+                dex_score=10,
+                initiative_bonus=getattr(pc, "initiative_bonus", 0),
                 conditions=[
                     ConditionEntry(
                         name=c.name, duration=c.duration,
@@ -278,10 +280,9 @@ class CombatTrackerService:
 
         for c in self._state.combatants:
             if c.is_pc:
-                # PCs roll their own individual initiative
-                dex_mod = (c.dex_score - 10) // 2
+                # PCs roll 1d20 + initiative_bonus
                 roll_result = roller.roll_dice(1, 20)
-                c.initiative = roll_result.total + dex_mod
+                c.initiative = roll_result.total + getattr(c, "initiative_bonus", 0)
             elif self._state.grouping_enabled and c.group_id:
                 if c.group_id not in group_initiative:
                     dex_mod = (c.dex_score - 10) // 2

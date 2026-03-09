@@ -99,6 +99,7 @@ class Monster:
     buffs: list["BuffItem"] = field(default_factory=list)  # active buffs carried from editor (EDIT-10)
     traits: list[Trait] = field(default_factory=list)      # passive traits separated from attack actions (Phase 15)
     speed: str = ""                                # e.g. "40 ft., fly 80 ft." parsed from **Speed** line
+    proficiency_bonus: Optional[int] = None        # None = auto from CR; set = manual override
 
 
 @dataclass
@@ -178,6 +179,7 @@ class MonsterModification:
     actions: list[dict] = field(default_factory=list)                       # serialized action overrides
     traits: list[dict] = field(default_factory=list)                        # serialized trait overrides
     spellcasting_infos: list[SpellcastingInfo] = field(default_factory=list)
+    proficiency_bonus: Optional[int] = None                                 # manual prof override
 
     @classmethod
     def from_dict(cls, d: dict) -> "MonsterModification":

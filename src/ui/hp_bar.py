@@ -33,7 +33,7 @@ class HpBar(QWidget):
         self._current_hp = max(0, current_hp)
         self._temp_hp = max(0, temp_hp)
 
-        self.setFixedHeight(24)
+        self.setFixedHeight(28)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
     # ------------------------------------------------------------------
@@ -102,10 +102,10 @@ class HpBar(QWidget):
         # Text overlay — HP numbers centered + descriptive label left-aligned
         hp_text = f"{self._current_hp}/{self._max_hp}"
 
-        # HP numbers: 8pt bold, centered
+        # HP numbers: 9pt bold, centered
         hp_font = QFont()
         hp_font.setBold(True)
-        hp_font.setPointSize(8)
+        hp_font.setPointSize(9)
         painter.setFont(hp_font)
 
         # Shadow
@@ -115,19 +115,19 @@ class HpBar(QWidget):
         painter.setPen(QColor("#FFFFFF"))
         painter.drawText(0, 0, w, h, Qt.AlignmentFlag.AlignCenter, hp_text)
 
-        # Descriptive label: 6pt, dimmer, left-aligned with padding
+        # Descriptive label: 8pt bold, white, left-aligned with padding
         if label:
             desc_font = QFont()
             desc_font.setBold(True)
-            desc_font.setPointSize(6)
+            desc_font.setPointSize(8)
             painter.setFont(desc_font)
 
             pad = 4
             # Shadow
             painter.setPen(QColor("#000000"))
             painter.drawText(pad + 1, 1, w - pad, h, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, label)
-            # Foreground (dimmer white)
-            painter.setPen(QColor("#CCCCCC"))
+            # Foreground
+            painter.setPen(QColor("#FFFFFF"))
             painter.drawText(pad, 0, w - pad, h, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, label)
 
         painter.end()

@@ -410,6 +410,19 @@ class MonsterEditorDialog(QDialog):
         self._cr_combo.setFixedWidth(70)
         cr_hp_speed_row.addWidget(self._cr_combo)
 
+        cr_hp_speed_row.addWidget(QLabel("Prof:"))
+        self._prof_spinbox = QSpinBox()
+        self._prof_spinbox.setRange(1, 10)
+        # Initialize from manual override or auto-calculated from CR
+        initial_prof = getattr(self._working_copy, "proficiency_bonus", None)
+        if initial_prof is None:
+            initial_prof = self._math_engine.recalculate(self._working_copy).proficiency_bonus
+        self._prof_spinbox.setValue(initial_prof)
+        self._prof_spinbox.setFixedWidth(50)
+        self._prof_spinbox.setToolTip("Proficiency bonus (editable independently of CR)")
+        self._prof_spinbox.editingFinished.connect(self._on_prof_changed)
+        cr_hp_speed_row.addWidget(self._prof_spinbox)
+
         cr_hp_speed_row.addWidget(QLabel("HP:"))
         self._hp_flat_spinbox = QSpinBox()
         self._hp_flat_spinbox.setRange(1, 9999)
@@ -2056,6 +2069,19 @@ class MonsterEditorDialog(QDialog):
         self._working_copy.speed = text.strip()
         self._rebuild_preview()
 
+    def _on_prof_changed(self) -> None:
+        """Update proficiency bonus manually and cascade to saves/skills/attacks."""
+        if self._recalculating:
+            return
+        self._push_undo()
+        old_prof = self._engine.recalculate(self._working_copy).proficiency_bonus
+        new_prof = self._prof_spinbox.value()
+        self._working_copy.proficiency_bonus = new_prof
+        self._sync_save_toggles(recompute_values=True)
+        self._cascade_skills_on_prof_change()
+        self._cascade_actions_on_prof_change(old_prof, new_prof)
+        self._rebuild_preview()
+
     def _on_cr_changed(self, cr_text: str) -> None:
         """Update CR and trigger full recalculation (cascades prof bonus).
 
@@ -2073,7 +2099,14 @@ class MonsterEditorDialog(QDialog):
         # Capture old proficiency before updating CR
         old_prof = self._engine.recalculate(self._working_copy).proficiency_bonus
         self._working_copy.cr = cr_text
-        new_prof = self._engine.recalculate(self._working_copy).proficiency_bonus
+        # If no manual override, update prof spinbox to match new CR
+        if self._working_copy.proficiency_bonus is None:
+            new_prof = self._engine.recalculate(self._working_copy).proficiency_bonus
+            self._prof_spinbox.blockSignals(True)
+            self._prof_spinbox.setValue(new_prof)
+            self._prof_spinbox.blockSignals(False)
+        else:
+            new_prof = self._working_copy.proficiency_bonus
         # Cascade saves: recompute based on current UI toggle state
         self._sync_save_toggles(recompute_values=True)
         # Cascade skills: recompute based on current skill toggle state
@@ -2553,6 +2586,7 @@ class MonsterEditorDialog(QDialog):
             buffs=self.get_buff_items(),
             actions=serialized_actions,
             traits=serialized_traits,
+            proficiency_bonus=wc.proficiency_bonus,
         )
 
     def _modification_to_dict(self, mod: MonsterModification) -> dict:
@@ -2573,6 +2607,7 @@ class MonsterEditorDialog(QDialog):
             "actions": mod.actions,
             "traits": mod.traits,
             "spellcasting_infos": [],
+            "proficiency_bonus": mod.proficiency_bonus,
         }
 
     def _save_override(self) -> None:

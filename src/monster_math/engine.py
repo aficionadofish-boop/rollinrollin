@@ -98,7 +98,11 @@ class MonsterMathEngine:
         DerivedStats
             Complete derived stat block.
         """
-        prof = _PROF_BY_CR.get(monster.cr, 2)  # default 2 for unknown CRs
+        # Use manual override if set, otherwise derive from CR
+        if getattr(monster, "proficiency_bonus", None) is not None:
+            prof = monster.proficiency_bonus
+        else:
+            prof = _PROF_BY_CR.get(monster.cr, 2)  # default 2 for unknown CRs
 
         ability_modifiers: dict[str, int] = {}
         expected_saves: dict[str, int] = {}

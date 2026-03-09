@@ -5,6 +5,7 @@ and a "Copy to Clipboard" button below it.  Reusable across any rolling tab.
 """
 from __future__ import annotations
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -37,6 +38,10 @@ class RollOutputPanel(QWidget):
         self._text_edit.setAcceptRichText(True)
         self._text_edit.setPlaceholderText("Roll results will appear here...")
         self._text_edit.setMinimumHeight(150)
+        self._text_edit.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        self._text_edit.setLineWrapMode(QTextEdit.LineWrapMode.WidgetWidth)
         layout.addWidget(self._text_edit)
 
         btn_row = QHBoxLayout()

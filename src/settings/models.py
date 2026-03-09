@@ -35,3 +35,7 @@ class AppSettings:
     bg_color: str = ""              # custom background color hex (empty = use preset)
     accent_color: str = ""          # custom accent color hex (empty = use preset)
     sandbox_font: str = "Consolas"  # macro sandbox font family name
+
+    # UI scaling
+    ui_text_scale: int = 100         # percentage (80-150) for general text size
+    ui_menu_scale: int = 100         # percentage (80-150) for menus, buttons, controls

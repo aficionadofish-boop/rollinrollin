@@ -310,6 +310,28 @@ class SettingsTab(QWidget):
         font_row.addStretch()
         layout.addLayout(font_row)
 
+        # --- UI Scale sliders ---
+        scale_row = QHBoxLayout()
+        scale_row.addWidget(QLabel("Text Size:"))
+        self._text_scale_spin = QSpinBox()
+        self._text_scale_spin.setRange(80, 150)
+        self._text_scale_spin.setValue(100)
+        self._text_scale_spin.setSuffix("%")
+        self._text_scale_spin.setToolTip("Scale general text size (80-150%)")
+        self._text_scale_spin.valueChanged.connect(self._mark_dirty)
+        scale_row.addWidget(self._text_scale_spin)
+
+        scale_row.addWidget(QLabel("Menu Size:"))
+        self._menu_scale_spin = QSpinBox()
+        self._menu_scale_spin.setRange(80, 150)
+        self._menu_scale_spin.setValue(100)
+        self._menu_scale_spin.setSuffix("%")
+        self._menu_scale_spin.setToolTip("Scale menu and control sizes (80-150%)")
+        self._menu_scale_spin.valueChanged.connect(self._mark_dirty)
+        scale_row.addWidget(self._menu_scale_spin)
+        scale_row.addStretch()
+        layout.addLayout(scale_row)
+
         # Wire signals — connect AFTER widgets are created
         self._theme_combo.currentIndexChanged.connect(self._on_theme_changed)
         self._font_combo.currentTextChanged.connect(self._mark_dirty)
@@ -571,6 +593,10 @@ class SettingsTab(QWidget):
             if font_idx >= 0:
                 self._font_combo.setCurrentIndex(font_idx)
             # else: leave at first available font
+
+            # UI scale
+            self._text_scale_spin.setValue(getattr(settings, "ui_text_scale", 100))
+            self._menu_scale_spin.setValue(getattr(settings, "ui_menu_scale", 100))
         finally:
             self.blockSignals(False)
 
@@ -611,6 +637,9 @@ class SettingsTab(QWidget):
             accent_color=self._accent_color,
             # Sandbox font
             sandbox_font=self._font_combo.currentText(),
+            # UI scale
+            ui_text_scale=self._text_scale_spin.value(),
+            ui_menu_scale=self._menu_scale_spin.value(),
         )
 
     def save(self) -> None:

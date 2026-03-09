@@ -368,9 +368,10 @@ class AttackRollerTab(QWidget):
                 ]
                 buff_label = QLabel(f"Buffs: {', '.join(buff_parts)}")
                 buff_label.setStyleSheet(
-                    "color: #8ecae6; font-size: 8pt; padding: 0 0 2px 16px;"
+                    "color: #8ecae6; font-size: 7pt; padding: 0 0 0px 16px;"
                 )
                 buff_label.setWordWrap(True)
+                buff_label.setMaximumHeight(32)
                 insert_idx = self._action_list_layout.count() - 1
                 self._action_list_layout.insertWidget(insert_idx, buff_label)
                 self._action_rows.append(buff_label)
@@ -445,7 +446,7 @@ class AttackRollerTab(QWidget):
         return row
 
     def _make_trait_row(self, trait: Trait) -> QWidget:
-        """Build one trait row: 'Acid Breath (Recharge 5-6)  [Roll]'."""
+        """Build one trait row with separate Recharge and Damage buttons when applicable."""
         row = QWidget()
         layout = QHBoxLayout(row)
         layout.setContentsMargins(16, 1, 2, 1)
@@ -454,14 +455,28 @@ class AttackRollerTab(QWidget):
         name_label.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
         )
-
-        roll_btn = QPushButton("Roll")
-        roll_btn.clicked.connect(
-            lambda checked, t=trait: self._on_roll_trait(t)
-        )
-
         layout.addWidget(name_label)
-        layout.addWidget(roll_btn)
+
+        if trait.recharge_range and trait.rollable_dice:
+            # Separate buttons for recharge and damage
+            recharge_btn = QPushButton("Recharge")
+            recharge_btn.setMaximumWidth(72)
+            recharge_btn.clicked.connect(
+                lambda checked, t=trait: self._on_roll_trait_recharge(t)
+            )
+            damage_btn = QPushButton("Damage")
+            damage_btn.setMaximumWidth(64)
+            damage_btn.clicked.connect(
+                lambda checked, t=trait: self._on_roll_trait_damage(t)
+            )
+            layout.addWidget(recharge_btn)
+            layout.addWidget(damage_btn)
+        else:
+            roll_btn = QPushButton("Roll")
+            roll_btn.clicked.connect(
+                lambda checked, t=trait: self._on_roll_trait(t)
+            )
+            layout.addWidget(roll_btn)
         return row
 
     # ------------------------------------------------------------------
@@ -484,13 +499,11 @@ class AttackRollerTab(QWidget):
 
     def _on_roll_trait(self, trait: Trait) -> None:
         """Roll all detected dice in a trait and append formatted output."""
-        # Roll each detected die expression
         roll_results: list[int] = []
         for die in trait.rollable_dice:
             result = roll_expression(die.dice_expr, self._roller)
             roll_results.append(result.total)
 
-        # Roll recharge 1d6 if applicable
         recharge_roll: int | None = None
         recharge_passed: bool | None = None
         if trait.recharge_range:
@@ -499,6 +512,25 @@ class AttackRollerTab(QWidget):
             recharge_passed = lo <= recharge_roll <= hi
 
         html = self._format_trait_output(trait, roll_results, recharge_roll, recharge_passed)
+        self._output_panel.append_html(html)
+
+    def _on_roll_trait_recharge(self, trait: Trait) -> None:
+        """Roll only the recharge die for a trait."""
+        if not trait.recharge_range:
+            return
+        recharge_roll = self._roller.roll_one(6)
+        lo, hi = trait.recharge_range
+        recharge_passed = lo <= recharge_roll <= hi
+        html = self._format_trait_output(trait, [], recharge_roll, recharge_passed)
+        self._output_panel.append_html(html)
+
+    def _on_roll_trait_damage(self, trait: Trait) -> None:
+        """Roll only the damage dice for a trait (no recharge)."""
+        roll_results: list[int] = []
+        for die in trait.rollable_dice:
+            result = roll_expression(die.dice_expr, self._roller)
+            roll_results.append(result.total)
+        html = self._format_trait_output(trait, roll_results, None, None)
         self._output_panel.append_html(html)
 
     def _format_trait_output(
@@ -658,11 +690,10 @@ class AttackRollerTab(QWidget):
                 parts.append(f"{combined} {dp.damage_type} ({note})")
             else:
                 parts.append(f"{dp.total} {dp.damage_type}")
-        # Append buff damage bonuses
+        # Append buff damage bonuses (no leading sign — joiner provides " + ")
         for formula, signed_total, label in getattr(attack, "damage_bonus_results", []):
-            sign = "+" if signed_total >= 0 else ""
             lbl = f" {label}" if label else ""
-            parts.append(f"{sign}{signed_total}{lbl}")
+            parts.append(f"{abs(signed_total)}{lbl}")
         return " + ".join(parts)
 
     def _format_raw_line(self, attack, request) -> str:
@@ -818,11 +849,10 @@ class AttackRollerTab(QWidget):
                 parts.append(self._color_damage_segment(combined, dp.damage_type, note))
             else:
                 parts.append(self._color_damage_segment(dp.total, dp.damage_type))
-        # Append buff damage bonuses
+        # Append buff damage bonuses (no leading sign — joiner provides " + ")
         for formula, signed_total, label in getattr(attack, "damage_bonus_results", []):
-            sign = "+" if signed_total >= 0 else ""
             lbl = label if label else formula
-            parts.append(self._html_escape(f"{sign}{signed_total} {lbl}"))
+            parts.append(self._html_escape(f"{abs(signed_total)} {lbl}"))
         return " + ".join(parts)
 
     def _format_raw_line_html(self, attack, request) -> str:
@@ -928,6 +958,7 @@ class AttackRollerTab(QWidget):
         # Aggregate per-damage-type totals from hits (and RAW rolls where is_hit is None)
         if attack_rolls:
             type_totals: dict[str, int] = {}
+            buff_totals: dict[str, int] = {}
             for ar in attack_rolls:
                 if ar.is_hit is not False:  # True (hit) or None (RAW mode)
                     for dp in ar.damage_parts:
@@ -938,12 +969,21 @@ class AttackRollerTab(QWidget):
                         type_totals[ep.damage_type] = (
                             type_totals.get(ep.damage_type, 0) + ep.total
                         )
-            # Only show breakdown when multiple types are present (single type is redundant)
-            if len(type_totals) > 1:
-                parts = [
+                    for formula, signed_total, label in getattr(ar, "damage_bonus_results", []):
+                        key = label if label else formula
+                        buff_totals[key] = buff_totals.get(key, 0) + signed_total
+            # Show breakdown when multiple types or buff sources present
+            breakdown_parts = []
+            if len(type_totals) > 1 or buff_totals:
+                breakdown_parts = [
                     self._color_damage_segment(v, k) for k, v in type_totals.items()
                 ]
-                base += " \u2014 " + ", ".join(parts)
+            for label, total in buff_totals.items():
+                breakdown_parts.append(
+                    f'<span style="color:#8ecae6;">{total} {self._html_escape(label)}</span>'
+                )
+            if breakdown_parts:
+                base += " \u2014 " + ", ".join(breakdown_parts)
 
         base += " \u2500\u2500\u2500"
         return base

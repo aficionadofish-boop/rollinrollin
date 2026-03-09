@@ -61,6 +61,7 @@ class CombatantState:
     legendary_actions: int = 0        # uses remaining
     legendary_actions_max: int = 0
     regeneration_hp: int = 0          # HP per round; 0 = no regen
+    initiative_bonus: int = 0         # flat initiative modifier (for PCs)
 
     @property
     def is_defeated(self) -> bool:
@@ -87,6 +88,7 @@ class CombatantState:
             "legendary_actions": self.legendary_actions,
             "legendary_actions_max": self.legendary_actions_max,
             "regeneration_hp": self.regeneration_hp,
+            "initiative_bonus": self.initiative_bonus,
             "conditions": [
                 {
                     "name": c.name,
@@ -157,6 +159,7 @@ class PlayerCharacter:
     ac: int = 10
     max_hp: int = 1
     current_hp: int = 1
+    initiative_bonus: int = 0
     conditions: list[ConditionEntry] = field(default_factory=list)
 
     def to_dict(self) -> dict:
@@ -165,6 +168,7 @@ class PlayerCharacter:
             "ac": self.ac,
             "max_hp": self.max_hp,
             "current_hp": self.current_hp,
+            "initiative_bonus": self.initiative_bonus,
             "conditions": [
                 {
                     "name": c.name,
