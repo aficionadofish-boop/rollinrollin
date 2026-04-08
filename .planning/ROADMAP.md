@@ -529,3 +529,14 @@ Plans:
 
 Plans:
 - [ ] 17-01-PLAN.md -- Fix constraint deadlock (deferred setSizes + reduced minimumWidth) + scoped handle CSS with gradient line and hover in all 3 themes + collapsed-state handle hiding
+
+### Phase 18: storyteller system dice roller in a new tab
+
+**Goal:** Add a permanent Storyteller tab implementing WoD Classic and Aberrant 1e dice engines — pool-based d10 rolling with success counting, botch detection, 8-again/9-again/rote re-roll chains, Mega Dice scoring, colored HTML result display, session log, named presets persisted to disk, and an extended-roll running total — fully self-contained with Gothic accent styling scoped to the tab
+**Depends on:** Phase 17
+**Plans:** 3 plans
+
+Plans:
+- [ ] 18-01-PLAN.md -- StorytellerEngine + domain models + PersistenceService preset category + AppSettings fields
+- [ ] 18-02-PLAN.md -- StorytellerTab QWidget: system toggle, spinbox controls, colored dice HTML, session log, preset save/load, extended roll counter
+- [ ] 18-03-PLAN.md -- MainWindow tab registration + settings persistence wiring + human verify
