@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 18 (Storyteller System Dice Roller in a New Tab)
-Plan: 1 of 3 in current phase — Complete
+Plan: 2 of 3 in current phase — Complete
 Status: In Progress
-Last activity: 2026-04-08 — Phase 18 Plan 01 complete (storyteller engine + models + persistence + AppSettings infrastructure)
+Last activity: 2026-04-08 — Phase 18 Plan 02 complete (StorytellerTab QWidget — complete dice roller UI with WoD/Aberrant toggle, HTML dice rendering, preset persistence)
 
-Progress: [███░░░░░░░░░░░░░░░░░] Phase 18 in progress (1/3 plans)
+Progress: [██████░░░░░░░░░░░░░░] Phase 18 in progress (2/3 plans)
 
 ## Performance Metrics
 
@@ -197,6 +197,8 @@ Recent decisions affecting current work:
 - [Phase 18]: Aberrant 1s never cancel successes — botch is purely (total==0 AND any 1)
 - [Phase 18]: WoD 8/9-again is a loop (max 50 iterations), not a single extra pass — chain terminates when no qualifying dice in latest batch
 - [Phase 18]: storyteller_last_config uses field(default_factory=dict) to avoid mutable default in AppSettings dataclass
+- [Phase 18-02]: StorytellerTab._refresh_preset_combo() guarded with hasattr(_preset_combo) — _load_presets() runs before widget build in __init__; guard prevents AttributeError on first launch
+- [Phase 18-02]: HTML dice rendering uses QTextCursor.insertHtml() exclusively — QTextEdit.append() causes implicit paragraph gaps in Qt HTML renderer
 
 ### Roadmap Evolution
 
@@ -218,5 +220,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-04-08
-Stopped at: Completed 18-01-PLAN.md
-Resume file: .planning/phases/18-storyteller-system-dice-roller-in-a-new-tab/18-02-PLAN.md
+Stopped at: Completed 18-02-PLAN.md
+Resume file: .planning/phases/18-storyteller-system-dice-roller-in-a-new-tab/18-03-PLAN.md
