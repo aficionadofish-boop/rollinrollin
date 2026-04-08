@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 
 ## Current Position
 
-Phase: 17 (Sidebar Handle Fix)
-Plan: 1 of 1 in current phase — Complete
-Status: Complete
-Last activity: 2026-03-01 — Phase 17 Plan 01 complete (sidebar QSplitter handle fix: deferred sizing, gradient CSS, collapse-aware handle hiding)
+Phase: 18 (Storyteller System Dice Roller in a New Tab)
+Plan: 1 of 3 in current phase — Complete
+Status: In Progress
+Last activity: 2026-04-08 — Phase 18 Plan 01 complete (storyteller engine + models + persistence + AppSettings infrastructure)
 
-Progress: [████████████████████] Phase 17 complete (1/1 plans)
+Progress: [███░░░░░░░░░░░░░░░░░] Phase 18 in progress (1/3 plans)
 
 ## Performance Metrics
 
@@ -194,6 +194,9 @@ Recent decisions affecting current work:
 - [Phase 17-01]: sidebar minimumWidth reduced from 200 to 150 in _expand() and __init__ — gives splitter 50px more drag range at 1100px window width; resizeEvent threshold and set_expanded_width() guard updated to match
 - [Phase 17-01]: setHandleWidth(0/9) toggled in _on_sidebar_collapse_toggled: hides grab zone on collapse (no phantom area), restores 9px on expand to match CSS width
 - [Phase 17-01]: Gradient CSS qlineargradient for splitter handle: thin 1-2px visible center line within 9px grab zone; hover state brightens color — all three themes covered
+- [Phase 18]: Aberrant 1s never cancel successes — botch is purely (total==0 AND any 1)
+- [Phase 18]: WoD 8/9-again is a loop (max 50 iterations), not a single extra pass — chain terminates when no qualifying dice in latest batch
+- [Phase 18]: storyteller_last_config uses field(default_factory=dict) to avoid mutable default in AppSettings dataclass
 
 ### Roadmap Evolution
 
@@ -201,6 +204,7 @@ Recent decisions affecting current work:
 - Phase 15 detailed: Editor & Parser Overhaul — 11 items (PARSE-01 to PARSE-11): traits/actions separation, traits tab UI, after-attack-text editing, action field labels, auto-dice detection, rollable trait buttons, recharge support, [[XdY]] notation, speed display, editor compaction, equipment reposition
 - Phase 16 detailed: Buff System & Output Improvements — 10 items: buff per-roll-type toggles (BUFF-01 to BUFF-03), output header + damage type summary (OUT-01/02), encounter naming/editing/sidebar resize (ENC-01 to ENC-03), health bar descriptive text + color bands (COMBAT-UX-01/02)
 - Phase 17 added: Sidebar handle fix — research and fix the sidebar handle of the encounter list tracker
+- Phase 18 added: storyteller system dice roller in a new tab
 
 ### Pending Todos
 
@@ -213,6 +217,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-01
-Stopped at: Phase 17 Plan 01 complete — 17-01-SUMMARY.md created
-Resume file: .planning/phases/17-sidebar-handle-fix/17-01-SUMMARY.md
+Last session: 2026-04-08
+Stopped at: Completed 18-01-PLAN.md
+Resume file: .planning/phases/18-storyteller-system-dice-roller-in-a-new-tab/18-02-PLAN.md
