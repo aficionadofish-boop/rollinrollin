@@ -534,7 +534,7 @@ Plans:
 
 **Goal:** Add a permanent Storyteller tab implementing WoD Classic and Aberrant 1e dice engines — pool-based d10 rolling with success counting, botch detection, 8-again/9-again/rote re-roll chains, Mega Dice scoring, colored HTML result display, session log, named presets persisted to disk, and an extended-roll running total — fully self-contained with Gothic accent styling scoped to the tab
 **Depends on:** Phase 17
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 - [ ] 18-01-PLAN.md -- StorytellerEngine + domain models + PersistenceService preset category + AppSettings fields

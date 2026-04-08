@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 18 (Storyteller System Dice Roller in a New Tab)
-Plan: 2 of 3 in current phase — Complete
-Status: In Progress
-Last activity: 2026-04-08 — Phase 18 Plan 02 complete (StorytellerTab QWidget — complete dice roller UI with WoD/Aberrant toggle, HTML dice rendering, preset persistence)
+Plan: 3 of 3 in current phase — Complete
+Status: Complete
+Last activity: 2026-04-08 — Phase 18 Plan 03 complete (StorytellerTab wired into MainWindow at position 3, settings persistence, human-verified end-to-end)
 
-Progress: [██████░░░░░░░░░░░░░░] Phase 18 in progress (2/3 plans)
+Progress: [████████░░░░░░░░░░░░] Phase 18 complete (3/3 plans)
 
 ## Performance Metrics
 
@@ -199,6 +199,10 @@ Recent decisions affecting current work:
 - [Phase 18]: storyteller_last_config uses field(default_factory=dict) to avoid mutable default in AppSettings dataclass
 - [Phase 18-02]: StorytellerTab._refresh_preset_combo() guarded with hasattr(_preset_combo) — _load_presets() runs before widget build in __init__; guard prevents AttributeError on first launch
 - [Phase 18-02]: HTML dice rendering uses QTextCursor.insertHtml() exclusively — QTextEdit.append() causes implicit paragraph gaps in Qt HTML renderer
+- [Phase 18-03]: _settings_tab_index uses indexOf() after all addTab() calls — auto-resolves to 6 after Storyteller insertion with no manual adjustment
+- [Phase 18-03]: _on_tab_changed() sidebar logic uses widget identity (not index) — Storyteller tab falls into else branch (sidebar stays visible) with zero code changes
+- [Phase 18-03]: hasattr guard on _storyteller_tab in _apply_settings() — defensive against future init reordering; object exists when called but guard is safe
+- [Phase 18-03]: Session log separator uses <br><hr style="border:0; border-top:1px solid #333"> — <p> wrapper caused Qt HTML renderer paragraph gaps between roll entries
 
 ### Roadmap Evolution
 
@@ -220,5 +224,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-04-08
-Stopped at: Completed 18-02-PLAN.md
-Resume file: .planning/phases/18-storyteller-system-dice-roller-in-a-new-tab/18-03-PLAN.md
+Stopped at: Completed 18-03-PLAN.md
+Resume file: (Phase 18 complete — no next plan)
