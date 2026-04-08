@@ -487,13 +487,18 @@ class StorytellerTab(QWidget):
 
     def _append_log(self, character: str, config_str: str, verdict_str: str) -> None:
         """Append a roll summary line to the session log."""
-        line = (
-            f'<p style="margin:0;">'
+        # Use <br> as separator so Qt's insertHtml doesn't run entries together.
+        # A thin top-border line visually separates rolls.
+        separator = '<br><hr style="border:0; border-top:1px solid #333; margin:2px 0;">'
+        entry = (
             f'<span style="color:#AAAAAA;">[{character}]</span> '
             f'{config_str} <span style="color:#CCCCCC;">\u2192</span> {verdict_str}'
-            f'</p>'
         )
-        self._insert_html(self._log_text, line)
+        # Only add separator if log already has content
+        if self._log_text.toPlainText().strip():
+            self._insert_html(self._log_text, separator + entry)
+        else:
+            self._insert_html(self._log_text, entry)
 
     # ------------------------------------------------------------------
     # Extended roll
