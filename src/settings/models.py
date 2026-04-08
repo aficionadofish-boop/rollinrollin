@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 
@@ -38,3 +38,7 @@ class AppSettings:
 
     # UI scaling
     ui_scale: int = 100              # percentage (75, 100, 125, 150) for overall UI size
+
+    # Storyteller system
+    storyteller_system: str = "wod"        # "wod" or "aberrant"
+    storyteller_last_config: dict = field(default_factory=dict)

@@ -11,10 +11,11 @@ _FILENAMES = {
     "combat_state": "combat_state.json",
     "player_characters": "player_characters.json",
     "save_rules": "save_rules.json",
+    "storyteller_presets": "storyteller_presets.json",
 }
 
 # Categories that use a dict as their empty default; all others use a list.
-_DICT_CATEGORIES = {"modified_monsters", "encounters", "combat_state"}
+_DICT_CATEGORIES = {"modified_monsters", "encounters", "combat_state", "storyteller_presets"}
 
 
 class PersistenceService:
@@ -192,6 +193,18 @@ class PersistenceService:
 
     def save_save_rules(self, data: list) -> None:
         self._save("save_rules", data)
+
+    # ------------------------------------------------------------------
+    # Storyteller presets
+    # ------------------------------------------------------------------
+
+    def load_storyteller_presets(self) -> dict:
+        """Return dict of preset name -> preset dict. Empty dict if no file."""
+        return self._load("storyteller_presets")
+
+    def save_storyteller_presets(self, data: dict) -> None:
+        """Persist presets dict to disk."""
+        self._save("storyteller_presets", data)
 
     # ------------------------------------------------------------------
     # Utility
