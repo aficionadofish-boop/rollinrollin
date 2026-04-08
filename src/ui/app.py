@@ -23,6 +23,7 @@ from src.ui.encounter_sidebar import EncounterSidebarDock
 from src.ui.load_encounter_dialog import LoadEncounterDialog
 from src.ui.macro_sandbox_tab import MacroSandboxTab
 from src.ui.settings_tab import SettingsTab
+from src.ui.storyteller_tab import StorytellerTab
 from src.ui.theme_service import ThemeService
 from src.workspace.setup import WorkspaceManager, resolve_workspace_root
 
@@ -60,6 +61,7 @@ class MainWindow(QMainWindow):
             roller=self._roller,
             library=self._library,
         )
+        self._storyteller_tab = StorytellerTab(persistence=self._persistence)
         self._saves_tab = SavesTab(
             library=self._library,
             roller=self._roller,
@@ -71,10 +73,11 @@ class MainWindow(QMainWindow):
         )
         self._settings_tab = SettingsTab()
 
-        # Tab order: Library, Attack Roller, Combat Tracker, Saves, Macro Sandbox, Settings
+        # Tab order: Library, Attack Roller, Combat Tracker, Storyteller, Saves, Macro Sandbox, Settings
         self._tab_widget.addTab(self._library_tab, "Library")
         self._tab_widget.addTab(self._attack_roller_tab, "Attack Roller")
         self._tab_widget.addTab(self._combat_tracker_tab, "Combat Tracker")
+        self._tab_widget.addTab(self._storyteller_tab, "Storyteller")
         self._tab_widget.addTab(self._saves_tab, "Saves")
         self._tab_widget.addTab(self._macro_tab, "Macro Sandbox")
         self._tab_widget.addTab(self._settings_tab, "Settings")
@@ -249,6 +252,13 @@ class MainWindow(QMainWindow):
                     app.styleSheet() +
                     f"\nQPushButton, QComboBox, QSpinBox, QLineEdit {{ min-height: {min_h}px; }}"
                 )
+
+        # Restore storyteller system and last-used config
+        if hasattr(self, '_storyteller_tab'):
+            self._storyteller_tab.restore_config(
+                settings.storyteller_system,
+                settings.storyteller_last_config,
+            )
 
     # ------------------------------------------------------------------
     # Tab change guard (unsaved settings changes) and sidebar visibility
@@ -559,6 +569,10 @@ class MainWindow(QMainWindow):
                 self._settings_tab.save()
             else:
                 self._settings_tab.discard()
+
+        # Capture storyteller state into settings before saving
+        self._current_settings.storyteller_system = self._storyteller_tab.current_system()
+        self._current_settings.storyteller_last_config = self._storyteller_tab.current_config()
 
         # Save sidebar width to settings (from splitter allocation)
         sizes = self._main_splitter.sizes()
